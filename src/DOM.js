@@ -1,0 +1,343 @@
+/**
+ *  @requires javelin-install javelin-util javelin-vector
+ *  @provides javelin-dom
+ */
+
+JX.install('HTML', {
+  construct : function(str) {
+    if (this == JX || this == window) {
+      return new JX.HTML(str);
+    }
+
+    if (__DEV__) {
+      var tags = ['legend', 'thead', 'tbody', 'tfoot', 'column', 'colgroup',
+                  'caption', 'tr', 'th', 'td', 'option'];
+
+      var evil_stuff = new RegExp('^\\s*<('+tags.join('|')+')\\b', 'i');
+      var match = null;
+      if (match = str.match(evil_stuff)) {
+        throw new Error(
+          'JX.HTML("<'+match[1]+'>..."): '+
+          'call initializes an HTML object with an invalid partial fragment '+
+          'and can not be converted into DOM nodes. The enclosing tag of an '+
+          'HTML content string must be appendable to a document fragment. '+
+          'For example, <table> is allowed but <tr> or <tfoot> are not.');
+      }
+
+      var really_evil = /<script\b/;
+      if (str.match(really_evil)) {
+        throw new Error(
+          'JX.HTML("...<script>..."): '+
+          'call initializes an HTML object with an embedded script tag! '+
+          'Are you crazy?! Do NOT do this!!!');
+      }
+
+      //  TODO(epriestley): May need to deny <option> more broadly, see
+      //  http://support.microsoft.com/kb/829907 and the whole mess in the
+      //  heavy stack. But I seem to have gotten away without cloning into the
+      //  documentFragment below, so this may be a nonissue.
+    }
+
+    this._content = str;
+  },
+  members : {
+    _content : null,
+    getFragment : function() {
+      var wrapper = JX.$N('div');
+      wrapper.innerHTML = this._content;
+      var fragment = document.createDocumentFragment();
+      while (wrapper.firstChild) {
+        //  TODO(epriestley): Do we need to do a bunch of cloning junk here?
+        //  See heavy stack. I'm disconnecting the nodes instead; this seems
+        //  to work but maybe my test case just isn't extensive enough.
+        fragment.appendChild(wrapper.removeChild(wrapper.firstChild));
+      }
+      return fragment;
+    }
+  }
+});
+
+JX.install('$', {
+  construct : function(id) {
+
+    if (__DEV__) {
+      if (!id) {
+        throw new Error('Empty ID passed to JX.$()!');
+      }
+    }
+
+    var node = document.getElementById(id);
+    if (!node || (node.id != id)) {
+      if (__DEV__) {
+        if (node && (node.id != id)) {
+          throw new Error(
+            'JX.$("'+id+'"): '+
+            'document.getElementById() returned an element without the '+
+            'correct ID. This usually means that the element you are trying '+
+            'to select is being masked by a form with the same value in its '+
+            '"name" attribute.');
+        }
+      }
+      throw JX.$.NotFound;
+    }
+
+    return node;
+  },
+  statics : {
+    NotFound : {}
+  },
+  initialize : function() {
+    if (__DEV__) {
+      //  If we're in dev, upgrade this object into an Error so that it will
+      //  print something useful if it escapes the stack after being thrown.
+      JX.$.NotFound = new Error(
+        'JX.$() or JX.DOM.find() call matched no nodes.');
+    }
+  }
+});
+
+JX.install('$N', {
+  construct : function(tag, attr, content) {
+    if (typeof content == 'undefined' &&
+        (typeof attr != 'object' || attr instanceof JX.HTML)) {
+      content = attr;
+      attr = {};
+    }
+
+    var node = document.createElement(tag);
+
+    if (attr.style) {
+      JX.copy(node.style, attr.style);
+      delete attr.style;
+    }
+
+    if (attr.sigil) {
+      JX.Stratcom.sigilize(node, attr.sigil, attr.meta);
+      delete attr.sigil;
+      delete attr.meta;
+    }
+
+    if (__DEV__) {
+      if (attr.meta) {
+        throw new Error(
+          '$N('+tag+', ...): '+
+          'if you specify `meta` metadata, you must also specify a `sigil`.');
+      }
+    }
+
+    JX.copy(node, attr);
+    if (content) {
+      JX.DOM.setContent(node, content);
+    }
+
+    return node;
+  }
+});
+
+JX.install('DOM', {
+  statics : {
+    _autoid : 0,
+    _metrics : {},
+    setContent : function(node, content) {
+      while (node.firstChild) {
+        JX.DOM.remove(node.firstChild);
+      }
+      JX.DOM.appendContent(node, content);
+    },
+    prependContent : function(node, content) {
+      this._insertContent(node, content, this._mechanismPrepend);
+    },
+    appendContent : function(node, content) {
+      this._insertContent(node, content, this._mechanismAppend);
+    },
+    _mechanismPrepend : function(node, content) {
+      node.insertBefore(content, node.firstChild);
+    },
+    _mechanismAppend : function(node, content) {
+      node.appendChild(content);
+    },
+    _insertContent : function(parent, content, mechanism) {
+      if (content instanceof JX.HTML) {
+        content = content.getFragment();
+      }
+      if (content instanceof Array) {
+        for (var ii = 0; ii < content.length; ii++) {
+          var child = (typeof content[ii] == 'string')
+            ? document.createTextNode(content[ii])
+            : content[ii];
+          mechanism(parent, child);
+        }
+      } else if (content.nodeType) {
+        mechanism(parent, content);
+      } else {
+        mechanism(parent, document.createTextNode(content));
+      }
+    },
+
+    remove : function(node) {
+      node.parentNode && node.parentNode.removeChild(node);
+    },
+
+    serialize : function(form) {
+      var elements = form.elements;
+      var data = {};
+      for (var ii = 0; ii < elements.length; ++ii) {
+        if (!elements[ii].name) {
+          continue;
+        }
+        var type = elements[ii].type;
+        var tag  = elements[ii].tagName;
+        if (type in {text: 1, hidden: 1} ||
+             tag in {TEXTAREA: 1, SELECT: 1}) {
+          data[elements[ii].name] = elements[ii].value;
+        }
+      }
+      return data;
+    },
+    isType : function(node, of_type) {
+      node = (''+node.nodeName || '').toUpperCase();
+      of_type = JX.$AX(of_type);
+      for (var ii = 0; ii < of_type.length; ++ii) {
+        if (of_type[ii].toUpperCase() == node) {
+          return true;
+        }
+      }
+      return false;
+    },
+    listen : function(node, type, path, callback) {
+      return JX.Stratcom.listen(
+        type,
+        ['id:'+JX.DOM.uniqID(node)].concat(JX.$AX(path || [])),
+        callback);
+    },
+    uniqID : function(node) {
+      if (!node.id) {
+        node.id = 'autoid_'+(++JX.DOM._autoid);
+      }
+      return node.id;
+    },
+    alterClass : function(node, className, add) {
+      var has = ((' '+node.className+' ').indexOf(' '+className+' ') > -1);
+      if (add && !has) {
+        node.className += ' '+className;
+      } else if (has && !add) {
+        node.className = node.className.replace(
+          new RegExp('(^|\\s)' + className + '(?:\\s|$)', 'g'), '');
+      }
+    },
+    htmlize : function(str) {
+      return (''+str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    },
+    show : function() {
+      if (__DEV__) {
+        for (var ii = 0; ii < arguments.length; ++ii) {
+          if (!arguments[ii]) {
+            throw new Error('Null element passed to JX.DOM.show()');
+          }
+        }
+      }
+
+      for (var ii = 0; ii < arguments.length; ++ii) {
+        arguments[ii].style.display = '';
+      }
+    },
+    hide : function() {
+      if (__DEV__) {
+        for (var ii = 0; ii < arguments.length; ++ii) {
+          if (!arguments[ii]) {
+            throw new Error('Null element passed to JX.DOM.hide()');
+          }
+        }
+      }
+
+      for (var ii = 0; ii < arguments.length; ++ii) {
+        arguments[ii].style.display = 'none';
+      }
+    },
+
+    textMetrics : function(node, pseudoclass, x) {
+      if (!this._metrics[pseudoclass]) {
+        var n = JX.$N(
+          'var',
+          {className: pseudoclass});
+        this._metrics[pseudoclass] = n;
+      }
+      var proxy = this._metrics[pseudoclass];
+      document.body.appendChild(proxy);
+        proxy.style.width = x ? (x+'px') : '';
+        JX.DOM.setContent(
+          proxy,
+          JX.HTML(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
+        var metrics = JX.$V.getDim(proxy);
+      document.body.removeChild(proxy);
+      return metrics;
+    },
+
+
+    /**
+     *  Search the document for DOM nodes by providing a root node to look
+     *  beneath, a tag name, and (optionally) a sigil. Nodes which match all
+     *  specified conditions are returned.
+     *
+     *  @param  Node    Root node to search beneath.
+     *  @param  string  Tag name, like 'a' or 'textarea'.
+     *  @param  string  Optionally, a sigil which nodes are required to have.
+     *
+     *  @return list    List of matching nodes, which may be empty.
+     *
+     *  @heavy  DOM.scry
+     *  @author epriestley
+     */
+    scry : function(root, tagname, sigil) {
+      var nodes = root.getElementsByTagName(tagname);
+      if (!sigil) {
+        return JX.$A(nodes);
+      }
+      var result = [];
+      for (var ii = 0; ii < nodes.length; ii++) {
+        if (JX.Stratcom.hasSigil(nodes[ii], sigil)) {
+          result.push(nodes[ii]);
+        }
+      }
+      return result;
+    },
+
+
+    /**
+     *  Select a node uniquely identified by a root, tagname and sigil. This
+     *  is similar to JX.DOM.scry() but expects exactly one result. It will
+     *  throw JX.$.NotFound if it matches no results.
+     *
+     *  @param  Node    Root node to search beneath.
+     *  @param  string  Tag name, like 'a' or 'textarea'.
+     *  @param  string  Optionally, sigil which selected node must have.
+     *
+     *  @return Node    Node uniquely identified by the criteria.
+     *
+     *  @heavy  DOM.find
+     *  @author epriestley
+     */
+    find : function(root, tagname, sigil) {
+      var result = JX.DOM.scry(root, tagname, sigil);
+
+      if (__DEV__) {
+        if (result.length > 1) {
+          throw new Error(
+            'JX.DOM.find(<node>, "'+tagname+'", "'+sigil+'") matched more '+
+            'than one node.');
+        }
+      }
+
+      if (!result.length) {
+        throw JX.$.NotFound;
+      }
+      return result[0];
+    }
+
+  }
+});
+

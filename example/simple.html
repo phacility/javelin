@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>Javelin Example: Simple</title>
+    <script src="../pkg/init.min.js" type="text/javascript"></script>
+  </head>
+  <body>
+
+    <p>This is a simple page demoing event delegation with Javelin Stratcom.</p>
+
+    <button class="FN_dog">Dog</button>
+    <button class="FN_cat">Cat</button>
+
+  </body>
+  <script src="../pkg/javelin.min.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    JX.Stratcom.mergeData({});
+    JX.onload(function() {
+      JX.Stratcom.listen('click', 'dog', function(e) {
+        alert('Woof!');
+      });
+      JX.Stratcom.listen('click', 'cat', function(e) {
+        alert('Meow!');
+      });      
+    });
+  </script>
+</html>
