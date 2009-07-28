@@ -68,8 +68,6 @@
       root.addEventListener(event, JX.__rawEventQueue, true);
     } else {
       root.attachEvent('on'+event, JX.__rawEventQueue);
-      root.onfocusin  = JX.__rawEventQueue;
-      root.onfocusout = JX.__rawEventQueue;
     }
   }
 
