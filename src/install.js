@@ -1,6 +1,7 @@
 /**
  *  @requires javelin-util
  *  @provides javelin-install
+ *   @javelin
  */
 
 /**
@@ -18,7 +19,8 @@
  *      A map of instance methods and properties.
  *
  *    extend (string)
- *      The name of another JX-namespaced class to extend.
+ *      The name of another JX-namespaced class to extend via prototypal
+ *      inheritance.
  *
  *    statics (map)
  *      A map of static methods and properties.
@@ -49,8 +51,13 @@ JX.install = function(new_name, new_junk) {
     JX.install._nextObjectID = 0;
   }
 
-  //  If we've already installed this, ignore it.
+  //  If we've already installed this, something is up.
   if (new_name in JX) {
+    if (__DEV__) {
+      throw new Error(
+        'JX.install("'+new_name+'", ...): '+
+        'trying to reinstall something that has already been installed.');
+    }
     return;
   }
 
@@ -70,6 +77,7 @@ JX.install = function(new_name, new_junk) {
         continue;
       }
 
+      //  Install time! First, get this out of the queue.
       name = install_queue[ii][0];
       install_queue.splice(ii, 1);
       --ii;
@@ -87,13 +95,13 @@ JX.install = function(new_name, new_junk) {
         for (var k in junk) {
           if (!(k in valid)) {
             throw new Error(
-              'JX.install('+name+', ...): '+
+              'JX.install("'+name+'", {"'+k+'": ...}): '+
               'trying to install unknown property `'+k+'`.');
           }
         }
         if (junk.constructor !== {}.constructor) {
           throw new Error(
-            'JX.install('+name+', ...): '+
+            'JX.install("'+name+'", {"constructor": ...}): '+
             'property `constructor` should be called `construct`.');
         }
       }
@@ -107,7 +115,8 @@ JX.install = function(new_name, new_junk) {
       //      Reference to the constructor on each prototype.
       //
       //    constructor.__path__
-      //      List of delegate tokens.
+      //      List of delegate tokens. (This is a list of Stratcom names for
+      //      the class and all of its parents.)
       //
       //    constructor.__readable__
       //      DEV ONLY! Readable class name.
@@ -117,7 +126,9 @@ JX.install = function(new_name, new_junk) {
 
 
       //  First, build the constructor. If construct is just a function, this
-      //  won't change its behavior.
+      //  won't change its behavior (unless you have provided a really awesome
+      //  function, in which case it will correctly punish you for your attempt
+      //  at creativity).
       JX[name] = function() {
         this.__id__ = '__obj__'+(++JX.install._nextObjectID);
         return (junk.construct || JX.bag).apply(this, arguments);
@@ -145,7 +156,7 @@ JX.install = function(new_name, new_junk) {
       //  Build getters and setters from the `prop' map.
       for (var k in (junk.properties || {})) {
         var base = k.charAt(0).toUpperCase()+k.substr(1);
-        var prop = '_'+k;
+        var prop = '__auto__'+k;
         proto[prop] = junk.properties[k];
         proto['set'+base] = (function(prop) {
           return function(v) {
@@ -174,8 +185,8 @@ JX.install = function(new_name, new_junk) {
       //  of that class (including instances of classes which extend it).
       //
       //  This is rigged up through Stratcom. Each class has a path component
-      //  like "__class__Dog", and each object has a path component like
-      //  "__obj__23". When you invoke on an object, it emits an event with
+      //  like "class:Dog", and each object has a path component like
+      //  "obj:23". When you invoke on an object, it emits an event with
       //  a path that includes its class, all parent classes, and its object
       //  ID.
       //
@@ -199,7 +210,7 @@ JX.install = function(new_name, new_junk) {
         }
 
         //  Build the class name chain.
-        JX[name].__name__ = '__class__'+name;
+        JX[name].__name__ = 'class:'+name;
         var ancestry = parent.__path__ || [];
         JX[name].__path__ = ancestry.concat([JX[name].__name__]);
 
@@ -207,22 +218,22 @@ JX.install = function(new_name, new_junk) {
           if (__DEV__) {
             if (!(type in this.__class__.__events__)) {
               throw new Error(
-                name+'.invoke('+type+', ...): '+
+                name+'.invoke("'+type+'", ...): '+
                 'invalid event type. Valid event types are: '+
                 JX.keys(this.__class__.__events__).join(', ')+'.');
             }
           }
           return JX.Stratcom.invoke(
             'obj:'+type,
-            {args : JX.$A(arguments).slice(1)},
-            this.__class__.__path__.concat([this.__id__]));
-        }
+            this.__class__.__path__.concat([this.__id__]),
+            {args : JX.$A(arguments).slice(1)});
+        };
 
         proto.listen = function(type, callback) {
           if (__DEV__) {
             if (!(type in this.__class__.__events__)) {
               throw new Error(
-                this.__class__.__readable__+'.listen('+type+', ...): '+
+                this.__class__.__readable__+'.listen("'+type+'", ...): '+
                 'invalid event type. Valid event types are: '+
                 JX.keys(this.__class__.__events__).join(', ')+'.');
             }
@@ -233,13 +244,13 @@ JX.install = function(new_name, new_junk) {
             JX.bind(this, function(e) {
               return callback.apply(this, e.getData().args);
             }));
-        }
+        };
 
         JX[name].listen = function(type, callback) {
           if (__DEV__) {
             if (!(type in this.__events__)) {
               throw new Error(
-                this.__readable__+'.listen('+type+', ...): '+
+                this.__readable__+'.listen("'+type+'", ...): '+
                 'invalid event type. Valid event types are: '+
                 JX.keys(this.__events__).join(', ')+'.');
             }
@@ -250,7 +261,7 @@ JX.install = function(new_name, new_junk) {
             JX.bind(this, function(e) {
               return callback.apply(this, e.getData().args);
             }));
-        }
+        };
       }
 
       //  Finally, run the init function if it was provided.

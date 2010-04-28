@@ -2,11 +2,14 @@
  *  Javelin utility functions.
  *
  *  @provides javelin-util
+ *  @javelin
  */
 
 
 /**
- *  Convert an array-like object (e.g., arguments) into an array.
+ *  Convert an array-like object (e.g., arguments) into an array. This avoids
+ *  the Array.slice() trick because some bizarre COM object I dug up somewhere
+ *  was freaking out when I tried to do it and it made me sad.
  *
  *  @param  obj     Array or array-like object.
  *  @return array   Actual array.
@@ -15,12 +18,17 @@
  *  @author epriestley
  */
 JX.$A = function(mysterious_object) {
-  return Array.prototype.slice.apply(mysterious_object, []);
+  var r = [];
+  for (var ii = 0; ii < mysterious_object.length; ii++) {
+    r.push(mysterious_object[ii]);
+  }
+  return r;
 };
 
 
 /**
- *  Cast a value into an array, by wrapping scalars into singletons.
+ *  Cast a value into an array, by wrapping scalars into singletons. The "X"
+ *  might stand for anything!
  *
  *  @param  obj     Scalar or array.
  *  @return array   If the argument was a scalar, an array with the argument as
@@ -36,11 +44,12 @@ JX.$AX = function(maybe_scalar) {
 
 /**
  *  Copy properties from one object to another. Note: does not copy the
- *  toString property.
+ *  toString property or anything else which isn't enumerable or is somehow
+ *  magic or just doesn't work. But it's usually what you want.
  *
- *  @param  obj     Destination object, which properties should be copied to.
- *  @param  obj     Source object, which properties should be copied from.
- *  @return obj     Destination object.
+ *  @param  obj Destination object, which properties should be copied to.
+ *  @param  obj Source object, which properties should be copied from.
+ *  @return obj Destination object.
  *
  *  @heavy  copy_properties()
  *  @author epriestley
@@ -55,7 +64,8 @@ JX.copy = function(copy_dst, copy_src) {
 
 /**
  *  Bind is the king of all functions. Go look at the heavy one, it has like
- *  ten pages of documentation.
+ *  ten pages of documentation. Of course, If you're looking at the open source
+ *  version of Javelin, this is small comfort.
  *
  *  @param  obj|null  Context object to bind as `this'.
  *  @param  function  Function to bind context and arguments to.
@@ -82,7 +92,8 @@ JX.bind = function(context, func/*, arg, arg, ...*/) {
 
 /**
  *  This function is guaranteed not to do anything (the name is derived from
- *  "bag of holding").
+ *  "bag of holding"). Primarily, it's used as a placeholder when you want
+ *  something to be callable but don't want it to actually do anything.
  *
  *  @return void
  *
@@ -119,9 +130,20 @@ JX.keys = function(obj) {
  *  @author epriestley
  */
 JX.defer = function(fn, timeout) {
-  return setTimeout(fn, timeout || 0);
+  var t = setTimeout(fn, timeout || 0);
+  return {stop : function() { clearTimeout(t); }}
 };
 
+
+/**
+ *  Cause execution of a function to occur.
+ *
+ *  @heavy  Function.occur()
+ *  @author epriestley
+ */
+JX.occur = function(fn) {
+  return fn.apply(window);
+};
 
 /**
  *  Redirect the browser to another page by changing the window location.
@@ -133,46 +155,50 @@ JX.defer = function(fn, timeout) {
  *  @author epriestley
  */
 JX.go = function(uri) {
-
-  if (__DEV__) {
-    if (JX.Stratcom) {
-      clearTimeout(JX._redirectTimeout);
-      JX._redirectTimeout = null;
-      if (!JX._redirectInitialized) {
-        JX.Stratcom.listen('keypress', null, function(e) {
-          if (e.getSpecialKey() == 'esc' && !e.getPrevented()) {
-            if (JX._redirectTimeout) {
-              clearTimeout(JX._redirectTimeout);
-              JX._redirectTimeout = null;
-              JX.log('Redirect cancelled.');
-            }
-          }
-        });
-      }
-      if (!arguments[1]) {
-        var sec = 3;
-        JX.log('Redirecting to "'+uri+'" in '+sec+' seconds, press escape to '+
-                'cancel.');
-        JX._redirectTimeout = setTimeout(
-          JX.bind(JX, JX.go, uri, true),
-          sec * 1000);
-        return;
-      }
-    }
-  }
-
   (uri && (window.location = uri)) || window.location.reload(true);
 };
 
 
-//  TODO: This is only used in JX.Flash and we should probably inline it.
-JX.ua = {isTrident : !!(document.attachEvent)};
-
 if (__DEV__) {
   if (!window.console || !window.console.log) {
-    window.console = {log: function() {}};
+    if (window.opera && window.opera.postError) {
+      window.console = {log: function(m) { window.opera.postError(m); }};
+    } else {
+      window.console = {log: function(m) { }};
+    }
   }
   JX.log = function(message) {
     window.console.log(message);
   }
+
+  window.alert = (function(native_alert) {
+    var recent_alerts = [];
+    var in_alert = false;
+    return function(msg) {
+      if (in_alert) {
+        JX.log(
+          'alert(...): '+
+          'discarded reentrant alert.');
+        return;
+      }
+      in_alert = true;
+      recent_alerts.push(new Date().getTime());
+
+      if (recent_alerts.length > 3) {
+        recent_alerts.splice(0, recent_alerts.length - 3);
+      }
+
+      if (recent_alerts.length >= 3 &&
+          (recent_alerts[recent_alerts.length - 1] - recent_alerts[0]) < 5000) {
+        if (confirm(msg + "\n\nLots of alert()s recently. Kill them?")) {
+          window.alert = JX.bag;
+        }
+      } else {
+        //  Note that we can't .apply() the IE6 version of this "function"
+        native_alert(msg);
+      }
+      in_alert = false;
+    }
+  })(window.alert);
+
 }

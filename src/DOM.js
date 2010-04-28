@@ -1,6 +1,7 @@
 /**
  *  @requires javelin-install javelin-util javelin-vector
  *  @provides javelin-dom
+ *   @javelin
  */
 
 JX.install('HTML', {
@@ -30,6 +31,14 @@ JX.install('HTML', {
           'JX.HTML("...<script>..."): '+
           'call initializes an HTML object with an embedded script tag! '+
           'Are you crazy?! Do NOT do this!!!');
+      }
+
+      var wont_work = /<object\b/;
+      if (str.match(wont_work)) {
+        throw new Error(
+          'JX.HTML("...<object>..."): '+
+          'call initializes an HTML object with an embedded <object> tag. IE '+
+          'will not do the right thing with this.');
       }
 
       //  TODO(epriestley): May need to deny <option> more broadly, see
@@ -138,16 +147,41 @@ JX.install('DOM', {
   statics : {
     _autoid : 0,
     _metrics : {},
+    _bound : {},
     setContent : function(node, content) {
+      if (__DEV__) {
+        if (!JX.DOM.isNode(node)) {
+          throw new Error(
+            'JX.DOM.setContent(<yuck>, ...): '+
+            'first argument must be a DOM node.');
+        }
+      }
+
       while (node.firstChild) {
         JX.DOM.remove(node.firstChild);
       }
       JX.DOM.appendContent(node, content);
     },
     prependContent : function(node, content) {
+      if (__DEV__) {
+        if (!JX.DOM.isNode(node)) {
+          throw new Error(
+            'JX.DOM.prependContent(<junk>, ...): '+
+            'first argument must be a DOM node.');
+        }
+      }
+
       this._insertContent(node, content, this._mechanismPrepend);
     },
     appendContent : function(node, content) {
+      if (__DEV__) {
+        if (!JX.DOM.isNode(node)) {
+          throw new Error(
+            'JX.DOM.appendContent(<bleh>, ...): '+
+            'first argument must be a DOM node.');
+        }
+      }
+
       this._insertContent(node, content, this._mechanismAppend);
     },
     _mechanismPrepend : function(node, content) {
@@ -157,6 +191,9 @@ JX.install('DOM', {
       node.appendChild(content);
     },
     _insertContent : function(parent, content, mechanism) {
+      if (content === null || typeof content == 'undefined') {
+        return;
+      }
       if (content instanceof JX.HTML) {
         content = content.getFragment();
       }
@@ -175,11 +212,36 @@ JX.install('DOM', {
     },
 
     remove : function(node) {
-      node.parentNode && node.parentNode.removeChild(node);
+      node.parentNode && JX.DOM.replace(node, null);
+      return node;
+    },
+
+    replace : function(node, replacement) {
+      if (__DEV__) {
+        if (!node.parentNode) {
+          throw new Error(
+            'JX.DOM.replace(<node>, ...): '+
+            'node has no parent node, so it can not be replaced.');
+        }
+      }
+
+      var mechanism;
+      if (node.nextSibling) {
+        mechanism = JX.bind(node.nextSibling, function(parent, content) {
+          parent.insertBefore(content, this);
+        });
+      } else {
+        mechanism = this._mechanismAppend;
+      }
+      var parent = node.parentNode;
+      node.parentNode.removeChild(node);
+      this._insertContent(parent, replacement, mechanism);
+
+      return node;
     },
 
     serialize : function(form) {
-      var elements = form.elements;
+      var elements = form.getElementsByTagName('*');
       var data = {};
       for (var ii = 0; ii < elements.length; ++ii) {
         if (!elements[ii].name) {
@@ -187,12 +249,17 @@ JX.install('DOM', {
         }
         var type = elements[ii].type;
         var tag  = elements[ii].tagName;
-        if (type in {text: 1, hidden: 1} ||
-             tag in {TEXTAREA: 1, SELECT: 1}) {
+        if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
+             type in {text: 1, hidden: 1, password: 1} ||
+              tag in {TEXTAREA: 1, SELECT: 1}) {
           data[elements[ii].name] = elements[ii].value;
         }
       }
       return data;
+    },
+
+    isNode : function(node) {
+      return !!(node && node.nodeName && (node !== window));
     },
     isType : function(node, of_type) {
       node = (''+node.nodeName || '').toUpperCase();
@@ -222,7 +289,7 @@ JX.install('DOM', {
         node.className += ' '+className;
       } else if (has && !add) {
         node.className = node.className.replace(
-          new RegExp('(^|\\s)' + className + '(?:\\s|$)', 'g'), '');
+          new RegExp('(^|\\s)' + className + '(?:\\s|$)', 'g'), ' ');
       }
     },
     htmlize : function(str) {
@@ -293,6 +360,14 @@ JX.install('DOM', {
      *  @author epriestley
      */
     scry : function(root, tagname, sigil) {
+      if (__DEV__) {
+        if (!JX.DOM.isNode(root)) {
+          throw new Error(
+            'JX.DOM.scry(<yuck>, ...): '+
+            'first argument must be a DOM node.');
+        }
+      }
+
       var nodes = root.getElementsByTagName(tagname);
       if (!sigil) {
         return JX.$A(nodes);
@@ -322,20 +397,39 @@ JX.install('DOM', {
      *  @author epriestley
      */
     find : function(root, tagname, sigil) {
+      if (__DEV__) {
+        if (!JX.DOM.isNode(root)) {
+          throw new Error(
+            'JX.DOM.find(<glop>, "'+tagname+'", "'+sigil+'"): '+
+            'first argument must be a DOM node.');
+        }
+      }
+
       var result = JX.DOM.scry(root, tagname, sigil);
 
       if (__DEV__) {
         if (result.length > 1) {
           throw new Error(
-            'JX.DOM.find(<node>, "'+tagname+'", "'+sigil+'") matched more '+
-            'than one node.');
+            'JX.DOM.find(<node>, "'+tagname+'", "'+sigil+'"): '+
+            'matched more than one node.');
         }
       }
 
       if (!result.length) {
         throw JX.$.NotFound;
       }
+
       return result[0];
+    },
+
+    bindController : function(node, name, construct) {
+      var id = JX.DOM.uniqID(node);
+      var map = (this._bound[name] = (this._bound[name] || {}));
+      return (map[id] = (map[id] || (construct())));
+    },
+
+    focus : function(node) {
+      try { node.focus(); } catch (lol_ie) {}
     }
 
   }

@@ -1,6 +1,7 @@
 /**
  *  @requires javelin-install javelin-event
  *  @provides javelin-stratcom
+ *  @javelin
  */
 
 /**
@@ -47,7 +48,9 @@ JX.install('Stratcom', {
 
     /**
      *  Dispatch a simple event that does not have a corresponding native event
-     *  object. This is largely analagous to an Arbiter event.
+     *  object. This is largely analagous to an Arbiter event. (If you are
+     *  looking at the open source version of this, this is largely
+     *  meaningless.)
      *
      *  @param  string  Event type.
      *  @param  object  Optionally, arbitrary data to send with the event.
@@ -57,7 +60,7 @@ JX.install('Stratcom', {
      *
      *  @author epriestley
      */
-    invoke : function(type, data, path) {
+    invoke : function(type, path, data) {
       var proxy = new JX.Event()
         .setType(type)
         .setData(data || {})
@@ -103,11 +106,20 @@ JX.install('Stratcom', {
     listen : function(types, paths, func) {
 
       if (__DEV__) {
+        if (arguments.length == 4) {
+          throw new Error(
+            'JX.Stratcom.listen(...): '+
+            'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
+        }
         if (arguments.length != 3) {
-          throw new Error('listen() expects exactly 3 arguments.');
+          throw new Error(
+            'JX.Stratcom.listen(...): '+
+            'requires exactly 3 arguments.');
         }
         if (typeof func != 'function') {
-          throw new Error('listen() callback is not a function.');
+          throw new Error(
+            'JX.Stratcom.listen(...): '+
+            'callback is not a function.');
         }
       }
 
@@ -133,7 +145,6 @@ JX.install('Stratcom', {
       //  TODO: we'll call your listener twice if you install on two paths where
       //  one path is a subset of another. The solution is "don't do that", but
       //  it would be nice to verify that the caller isn't doing so, in __DEV__.
-
       for (var ii = 0; ii < types.length; ++ii) {
         var type = types[ii];
         if (!(type in this._targets)) {
@@ -147,6 +158,15 @@ JX.install('Stratcom', {
           this._need[id] = path.length;
           ids.push(id);
           for (var kk = 0; kk < path.length; ++kk) {
+            if (__DEV__) {
+              if (path[kk] == 'tag:#document') {
+                throw new Error(
+                  'JX.Stratcom.listen(..., "tag:#document", ...): '+
+                  'listen for document events as "tag:window", not '+
+                  '"tag:#document", in order to get consistent behavior '+
+                  'across browsers.');
+              }
+            }
             if (!type_target[path[kk]]) {
               type_target[path[kk]] = [];
             }
@@ -174,6 +194,9 @@ JX.install('Stratcom', {
 
       try {
         var target = event.srcElement || event.target;
+        if (target === window || (!target || target.nodeName == '#document')) {
+          target = {nodeName: 'window'};
+        }
       } catch (x) {
         var target = null;
       }
@@ -186,10 +209,7 @@ JX.install('Stratcom', {
         var data_source = cursor.className || '';
         var token;
         if (token = (data_source.match(this._matchName) || [])[1]) {
-          data[token] = (data_source.match(this._matchData) || [])[1];
-          if (data[token]) {
-            data[token] = this._data[data[token]];
-          }
+          data[token] = this.getData(cursor);
           nodes[token] = cursor;
           path.push(token);
         }
@@ -225,7 +245,7 @@ JX.install('Stratcom', {
         .setNodes(nodes)
         .setPath(path.reverse());
 
-//      JX.log('~> '+proxy);
+//      JX.log('~> '+proxy.toString());
 
       return this._dispatchProxy(proxy);
     },
@@ -278,12 +298,13 @@ JX.install('Stratcom', {
         event: proxy,
         cursor: 0
       });
+
       this.pass();
+
       this._execContext.pop();
 
       return proxy;
     },
-
 
     /**
      *  Pass on an event, allowing other handlers to process it. The use case
@@ -347,7 +368,7 @@ JX.install('Stratcom', {
 
 
     /**
-     *  Attach a sigil to a node.
+     *  Attach a sigil (and, optionally, metadata) to a node.
      */
     sigilize : function(node, sigil, data) {
       if (__DEV__) {
@@ -362,7 +383,6 @@ JX.install('Stratcom', {
       if (data) {
         this._data[this._dataref] = data;
         base.push('FD_'+(this._dataref++));
-
       }
       base.push('FN_'+sigil);
       node.className = base.reverse().join(' ');
@@ -380,8 +400,24 @@ JX.install('Stratcom', {
      */
     hasSigil : function(node, sigil) {
       return (node.className.match(this._matchName) || [])[1] == sigil;
+    },
+
+
+    /**
+     *  Retrieve a node's metadata.
+     *
+     *  @param  Node    Node from which to retrieve data.
+     *  @return dict    Data attached to the node, or an empty dictionary if
+     *                  the node has no data attached.
+     *
+     *  @author epriestley
+     */
+    getData : function(node) {
+      var idx = ((node.className || '').match(this._matchData) || [])[1];
+      return (idx && this._data[idx]) || {};
     }
+  },
+  initialize : function() {
 
   }
 });
-

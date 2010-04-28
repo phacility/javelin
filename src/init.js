@@ -3,8 +3,10 @@
  *
  *  @provides javelin-magical-init
  *  @nopackage
+ *  @javelin
  */
 (function() {
+
 
   if (window.JX) {
     return;
@@ -21,17 +23,6 @@
     what = what || window.event;
     master_event_queue.push(what);
 
-    //  Sometimes IE gives us events which throw when ".type" is accessed;
-    //  just ignore them since we can't meaningfully dispatch them. TODO:
-    //  figure out where these are coming from.
-    try { var test = what.type; } catch (x) { return; }
-
-    if (what.type == 'domready') {
-      var autofocus = document.getElementById('autofocus');
-      if (autofocus) {
-        try { autofocus.focus(); } catch(x) { }
-      }
-    }
 
     if (JX.Stratcom && JX.Stratcom.ready) {
       //  Empty the queue now so that exceptions don't cause us to repeatedly
@@ -41,13 +32,21 @@
       for (var ii = 0; ii < local_queue.length; ++ii) {
         var evt = local_queue[ii];
 
+        //  Sometimes IE gives us events which throw when ".type" is accessed;
+        //  just ignore them since we can't meaningfully dispatch them. TODO:
+        //  figure out where these are coming from.
+        try { var test = evt.type; } catch (x) { continue; }
+
         if (!loaded && evt.type == 'domready') {
-          document.body.id = null;
+          document.body && (document.body.id = null);
           loaded = true;
+
           for (var ii = 0; ii < onload.length; ii++) {
             onload[ii]();
           }
+
         }
+
         JX.Stratcom.dispatch(evt);
       }
     } else {
@@ -68,17 +67,48 @@
       root.addEventListener(event, JX.__rawEventQueue, true);
     } else {
       root.attachEvent('on'+event, JX.__rawEventQueue);
-      root.onfocusin  = JX.__rawEventQueue;
-      root.onfocusout = JX.__rawEventQueue;
     }
-  }
+  };
 
   var root = document.documentElement;
-  var events = ['click', 'submit', 'keypress', 'focus', 'blur', 'mousedown',
-                'mouseover', 'mouseout', 'keydown'];
-  for (var ii = 0; ii < events.length; ++ii) {
-    JX.enableDispatch(root, events[ii]);
+  var document_events = [
+    'click',
+    'keypress',
+    'mousedown',
+    'mouseover',
+    'mouseout',
+    'mouseup',
+    'keydown',
+    //  Opera is multilol: it propagates focus/blur oddly and propagates submit
+    //  in a way different from other browsers.
+    !window.opera && 'submit',
+     window.opera && 'focus',
+     window.opera && 'blur'
+  ];
+  for (var ii = 0; ii < document_events.length; ++ii) {
+    document_events[ii] && JX.enableDispatch(root, document_events[ii]);
   }
+
+  //  In particular, we're interested in capturing window focus/blur here so
+  //  long polls can abort when the window is not focused.
+  var window_events = [
+    'unload',
+    'focus',
+    'blur'
+  ];
+  for (var ii = 0; ii < window_events.length; ++ii) {
+    JX.enableDispatch(window, window_events[ii]);
+  }
+
+  JX.__simulate = function(node, event) {
+    if (root.attachEvent) {
+      var e = {target: node, type: event};
+      JX.__rawEventQueue(e);
+      if (e.returnValue === false) {
+        return false;
+      }
+    }
+  };
 
   //  TODO: Document the gigantic IE mess here with focus/blur.
   //  TODO: beforeactivate/beforedeactivate?
@@ -121,5 +151,6 @@
     }
     onload.push(func);
   }
+
 
 })();
