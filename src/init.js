@@ -1,9 +1,15 @@
 /**
- *  Javelin core; installs Javelin and Stratcom event delegation.
+ * Javelin core; installs Javelin and Stratcom event delegation.
  *
- *  @provides javelin-magical-init
- *  @nopackage
- *  @javelin
+ * @provides javelin-magical-init
+ * @nopackage
+ *
+ * @javelin-installs JX.__rawEventQueue
+ * @javelin-installs JX.__simulate
+ * @javelin-installs JX.enableDispatch
+ * @javelin-installs JX.onload
+ *
+ * @javelin
  */
 (function() {
 
@@ -24,7 +30,8 @@
     master_event_queue.push(what);
 
 
-    if (JX.Stratcom && JX.Stratcom.ready) {
+    // Evade static analysis.
+    if (JX['Stratcom'] && JX['Stratcom'].ready) {
       //  Empty the queue now so that exceptions don't cause us to repeatedly
       //  try to handle events.
       var local_queue = master_event_queue;
@@ -47,7 +54,7 @@
 
         }
 
-        JX.Stratcom.dispatch(evt);
+        JX['Stratcom'].dispatch(evt);
       }
     } else {
       var t = what.srcElement || what.target;

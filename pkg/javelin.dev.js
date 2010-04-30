@@ -1,8 +1,20 @@
 /**
- *  Javelin utility functions.
+ * Javelin utility functions.
  *
- *  @provides javelin-util
- *  @javelin
+ * @provides javelin-util
+ *
+ * @javelin-installs JX.$A
+ * @javelin-installs JX.$AX
+ * @javelin-installs JX.copy
+ * @javelin-installs JX.bind
+ * @javelin-installs JX.bag
+ * @javelin-installs JX.keys
+ * @javelin-installs JX.defer
+ * @javelin-installs JX.occur
+ * @javelin-installs JX.go
+ * @javelin-installs JX.log
+ *
+ * @javelin
  */
 
 
@@ -203,9 +215,10 @@ if (__DEV__) {
 
 }
 /**
- *  @requires javelin-util
- *  @provides javelin-install
- *   @javelin
+ * @requires javelin-util
+ * @provides javelin-install
+ * @javelin-installs JX.install
+ * @javelin
  */
 
 /**
@@ -427,7 +440,10 @@ JX.install = function(new_name, new_junk) {
                 JX.keys(this.__class__.__events__).join(', ')+'.');
             }
           }
-          return JX.Stratcom.invoke(
+          // Here and below, this nonstandard access notation is used to mask
+          // these callsites from the static analyzer. JX.Stratcom is always
+          // available by the time we hit these execution points.
+          return JX['Stratcom'].invoke(
             'obj:'+type,
             this.__class__.__path__.concat([this.__id__]),
             {args : JX.$A(arguments).slice(1)});
@@ -442,7 +458,7 @@ JX.install = function(new_name, new_junk) {
                 JX.keys(this.__class__.__events__).join(', ')+'.');
             }
           }
-          return JX.Stratcom.listen(
+          return JX['Stratcom'].listen(
             'obj:'+type,
             this.__id__,
             JX.bind(this, function(e) {
@@ -459,7 +475,7 @@ JX.install = function(new_name, new_junk) {
                 JX.keys(this.__events__).join(', ')+'.');
             }
           }
-          return JX.Stratcom.listen(
+          return JX['Stratcom'].listen(
             'obj:'+type,
             this.__name__,
             JX.bind(this, function(e) {
@@ -649,7 +665,7 @@ JX.install('Event', {
 
 
 /**
- *  @requires javelin-install javelin-event
+ *  @requires javelin-install javelin-event javelin-util javelin-magical-init
  *  @provides javelin-stratcom
  *  @javelin
  */
@@ -858,7 +874,8 @@ JX.install('Stratcom', {
       while (cursor) {
         var data_source = cursor.className || '';
         var token;
-        if (token = (data_source.match(this._matchName) || [])[1]) {
+        token = (data_source.match(this._matchName) || [])[1];
+        if (token) {
           data[token] = this.getData(cursor);
           nodes[token] = cursor;
           path.push(token);
@@ -1072,9 +1089,12 @@ JX.install('Stratcom', {
   }
 });
 /**
- *  @requires javelin-util
- *  @provides javelin-behavior
- *   @javelin
+ * @provides javelin-behavior
+ *
+ * @javelin-installs JX.behavior
+ * @javelin-installs JX.initBehaviors
+ *
+ * @javelin
  */
 
 (function(JX) {
@@ -1131,7 +1151,7 @@ JX.install('Stratcom', {
 /**
  *  Make lightweight, AsyncResponse-compatible requests.
  *
- *  @requires javelin-install javelin-stratcom
+ *  @requires javelin-install javelin-stratcom javelin-behavior javelin-util
  *  @provides javelin-request
  *  @javelin
  */
@@ -1307,9 +1327,9 @@ JX.install('Request', {
 });
 
 /**
- *  @requires javelin-install
- *  @provides javelin-vector
- *   @javelin
+ * @requires javelin-install javelin-event
+ * @provides javelin-vector
+ * @javelin
  */
 
 /**
@@ -1410,9 +1430,9 @@ JX.install('$V', {
   }
 });
 /**
- *  @requires javelin-install javelin-util javelin-vector
- *  @provides javelin-dom
- *   @javelin
+ * @requires javelin-install javelin-util javelin-vector javelin-stratcom
+ * @provides javelin-dom
+ * @javelin
  */
 
 JX.install('HTML', {
@@ -1849,7 +1869,7 @@ JX.install('DOM', {
 /**
  *  Simple JSON serializer.
  *
- *  @requires javelin-install
+ *  @requires javelin-install javelin-util
  *  @provides javelin-json
  *  @javelin
  */

@@ -1,7 +1,7 @@
 /**
- *  @requires javelin-install javelin-util javelin-vector
- *  @provides javelin-dom
- *   @javelin
+ * @requires javelin-install javelin-util javelin-vector javelin-stratcom
+ * @provides javelin-dom
+ * @javelin
  */
 
 JX.install('HTML', {

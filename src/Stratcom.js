@@ -1,5 +1,5 @@
 /**
- *  @requires javelin-install javelin-event
+ *  @requires javelin-install javelin-event javelin-util javelin-magical-init
  *  @provides javelin-stratcom
  *  @javelin
  */
@@ -208,7 +208,8 @@ JX.install('Stratcom', {
       while (cursor) {
         var data_source = cursor.className || '';
         var token;
-        if (token = (data_source.match(this._matchName) || [])[1]) {
+        token = (data_source.match(this._matchName) || [])[1];
+        if (token) {
           data[token] = this.getData(cursor);
           nodes[token] = cursor;
           path.push(token);

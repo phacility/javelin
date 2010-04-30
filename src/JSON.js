@@ -1,7 +1,7 @@
 /**
  *  Simple JSON serializer.
  *
- *  @requires javelin-install
+ *  @requires javelin-install javelin-util
  *  @provides javelin-json
  *  @javelin
  */

@@ -1,7 +1,10 @@
 /**
- *  @requires javelin-util
- *  @provides javelin-behavior
- *   @javelin
+ * @provides javelin-behavior
+ *
+ * @javelin-installs JX.behavior
+ * @javelin-installs JX.initBehaviors
+ *
+ * @javelin
  */
 
 (function(JX) {

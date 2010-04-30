@@ -1,7 +1,8 @@
 /**
- *  @requires javelin-util
- *  @provides javelin-install
- *   @javelin
+ * @requires javelin-util
+ * @provides javelin-install
+ * @javelin-installs JX.install
+ * @javelin
  */
 
 /**
@@ -223,7 +224,10 @@ JX.install = function(new_name, new_junk) {
                 JX.keys(this.__class__.__events__).join(', ')+'.');
             }
           }
-          return JX.Stratcom.invoke(
+          // Here and below, this nonstandard access notation is used to mask
+          // these callsites from the static analyzer. JX.Stratcom is always
+          // available by the time we hit these execution points.
+          return JX['Stratcom'].invoke(
             'obj:'+type,
             this.__class__.__path__.concat([this.__id__]),
             {args : JX.$A(arguments).slice(1)});
@@ -238,7 +242,7 @@ JX.install = function(new_name, new_junk) {
                 JX.keys(this.__class__.__events__).join(', ')+'.');
             }
           }
-          return JX.Stratcom.listen(
+          return JX['Stratcom'].listen(
             'obj:'+type,
             this.__id__,
             JX.bind(this, function(e) {
@@ -255,7 +259,7 @@ JX.install = function(new_name, new_junk) {
                 JX.keys(this.__events__).join(', ')+'.');
             }
           }
-          return JX.Stratcom.listen(
+          return JX['Stratcom'].listen(
             'obj:'+type,
             this.__name__,
             JX.bind(this, function(e) {

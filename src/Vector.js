@@ -1,7 +1,7 @@
 /**
- *  @requires javelin-install
- *  @provides javelin-vector
- *   @javelin
+ * @requires javelin-install javelin-event
+ * @provides javelin-vector
+ * @javelin
  */
 
 /**

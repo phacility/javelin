@@ -1,7 +1,7 @@
 /**
  *  Make lightweight, AsyncResponse-compatible requests.
  *
- *  @requires javelin-install javelin-stratcom
+ *  @requires javelin-install javelin-stratcom javelin-behavior javelin-util
  *  @provides javelin-request
  *  @javelin
  */

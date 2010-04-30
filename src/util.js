@@ -1,8 +1,20 @@
 /**
- *  Javelin utility functions.
+ * Javelin utility functions.
  *
- *  @provides javelin-util
- *  @javelin
+ * @provides javelin-util
+ *
+ * @javelin-installs JX.$A
+ * @javelin-installs JX.$AX
+ * @javelin-installs JX.copy
+ * @javelin-installs JX.bind
+ * @javelin-installs JX.bag
+ * @javelin-installs JX.keys
+ * @javelin-installs JX.defer
+ * @javelin-installs JX.occur
+ * @javelin-installs JX.go
+ * @javelin-installs JX.log
+ *
+ * @javelin
  */
 
 
