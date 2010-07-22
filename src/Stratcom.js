@@ -197,7 +197,7 @@ JX.install('Stratcom', {
           target = {nodeName: 'window'};
         }
       } catch (x) {
-        var target = null;
+        target = null;
       }
 
       var path = [];
