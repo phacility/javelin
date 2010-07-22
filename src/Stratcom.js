@@ -345,10 +345,11 @@ JX.install('Stratcom', {
      *  @author epriestley
      */
     context : function() {
-      if (!this._execContext.length) {
+      var len = this._execContext.length;
+      if (!len) {
         return null;
       }
-      return this._execContext[this._execContext.length - 1].event;
+      return this._execContext[len - 1].event;
     },
 
 
