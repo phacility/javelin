@@ -154,9 +154,9 @@
   JX.onload = function(func) {
     if (loaded) {
       func();
-      return;
+    } else {
+      onload.push(func);
     }
-    onload.push(func);
   }
 
 

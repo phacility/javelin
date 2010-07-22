@@ -286,10 +286,9 @@ JX.install('Stratcom', {
       for (var k in hits) {
         if (hits[k] == this._need[k]) {
           var handler = this._handlers[k];
-          if (!handler) {
-            continue;
+          if (handler) {
+            exec.push(handler);
           }
-          exec.push(handler);
         }
       }
 
