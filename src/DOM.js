@@ -262,7 +262,7 @@ JX.install('DOM', {
       return !!(node && node.nodeName && (node !== window));
     },
     isType : function(node, of_type) {
-      node = (''+node.nodeName || '').toUpperCase();
+      node = (''+(node.nodeName || '')).toUpperCase();
       of_type = JX.$AX(of_type);
       for (var ii = 0; ii < of_type.length; ++ii) {
         if (of_type[ii].toUpperCase() == node) {
