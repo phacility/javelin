@@ -132,8 +132,7 @@ JX.install('Stratcom', {
       }
       if (!(paths instanceof Array)) {
         paths = [[paths]];
-      }
-      if (!(paths[0] instanceof Array)) {
+      } else if (!(paths[0] instanceof Array)) {
         paths = [paths];
       }
 
