@@ -15,7 +15,7 @@ JX.install('JSON', {
         } catch (x) {
           JX.log(
             'JX.JSON.serialize(...): '+
-            'caught exception while serializing object.');
+            'caught exception while serializing object. ('+x+')');
         }
       } else {
         return JX.JSON._val(obj);
@@ -23,13 +23,15 @@ JX.install('JSON', {
     },
     _val : function(val) {
       var out = [];
-      if (val.push && val.pop) {
+      if (val === null) {
+        return 'null';
+      } else if (val.push && val.pop) {
         for (var ii = 0; ii < val.length; ii++) {
-          out.push(JX.JSON._val(val[ii]));
+          if (typeof val[ii] != 'undefined') {
+            out.push(JX.JSON._val(val[ii]));
+          }
         }
         return '['+out.join(',')+']';
-      } else if (val === null) {
-        return 'null';
       } else if (val === true) {
         return 'true';
       } else if (val === false) {

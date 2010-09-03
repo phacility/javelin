@@ -80,6 +80,7 @@
   var root = document.documentElement;
   var document_events = [
     'click',
+    'change',
     'keypress',
     'mousedown',
     'mouseover',

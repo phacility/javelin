@@ -80,6 +80,7 @@
   var root = document.documentElement;
   var document_events = [
     'click',
+    'change',
     'keypress',
     'mousedown',
     'mouseover',
@@ -154,9 +155,9 @@
   JX.onload = function(func) {
     if (loaded) {
       func();
-      return;
+    } else {
+      onload.push(func);
     }
-    onload.push(func);
   }
 
 

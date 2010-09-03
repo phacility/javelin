@@ -10,7 +10,6 @@
  * @javelin-installs JX.bag
  * @javelin-installs JX.keys
  * @javelin-installs JX.defer
- * @javelin-installs JX.occur
  * @javelin-installs JX.go
  * @javelin-installs JX.log
  *
@@ -19,35 +18,44 @@
 
 
 /**
- *  Convert an array-like object (e.g., arguments) into an array. This avoids
- *  the Array.slice() trick because some bizarre COM object I dug up somewhere
- *  was freaking out when I tried to do it and it made me sad.
+ * Convert an array-like object (usually ##arguments##) into a real Array. An
+ * "array-like object" is something with a ##length## property and numerical
+ * keys. The most common use for this is to let you call Array functions on the
+ * magical ##arguments## object.
  *
- *  @param  obj     Array or array-like object.
- *  @return array   Actual array.
+ *   JX.$A(arguments).slice(1);
  *
- *  @heavy  $A
- *  @author epriestley
+ * @param  obj     Array, or array-like object.
+ * @return Array   Actual array.
  */
-JX.$A = function(mysterious_object) {
+JX.$A = function(mysterious_arraylike_object) {
+  // NOTE: This avoids the Array.slice() trick because some bizarre COM object
+  // I dug up somewhere was freaking out when I tried to do it and it made me
+  // very upset, so do not replace this with Array.slice() cleverness.
   var r = [];
-  for (var ii = 0; ii < mysterious_object.length; ii++) {
-    r.push(mysterious_object[ii]);
+  for (var ii = 0; ii < mysterious_arraylike_object.length; ii++) {
+    r.push(mysterious_arraylike_object[ii]);
   }
   return r;
 };
 
 
 /**
- *  Cast a value into an array, by wrapping scalars into singletons. The "X"
- *  might stand for anything!
+ * Cast a value into an array, by wrapping scalars into singletons. If the
+ * argument is an array, it is returned unmodified. If it is a scalar, an array
+ * with a single element is returned. For example:
  *
- *  @param  obj     Scalar or array.
- *  @return array   If the argument was a scalar, an array with the argument as
- *                  its only element. Otherwise, the original array.
+ *   JX.$AX([3]); // Returns [3].
+ *   JX.$AX(3);   // Returns [3].
  *
- *  @heavy  arrayize()
- *  @author epriestley
+ * Note that this function uses an "instanceof Array" check so you may need to
+ * convert array-like objects (such as ##arguments## and Array instances from
+ * iframes) into real arrays with @{JX.$A()}.
+ *
+ * @param  wild    Scalar or Array.
+ * @return Array   If the argument was a scalar, an Array with the argument as
+ *                 its only element. Otherwise, the original Array.
+ *
  */
 JX.$AX = function(maybe_scalar) {
   return (maybe_scalar instanceof Array) ? maybe_scalar : [maybe_scalar];
@@ -55,16 +63,34 @@ JX.$AX = function(maybe_scalar) {
 
 
 /**
- *  Copy properties from one object to another. Note: does not copy the
- *  toString property or anything else which isn't enumerable or is somehow
- *  magic or just doesn't work. But it's usually what you want.
+ * Copy properties from one object to another. Note: does not copy the
+ * ##toString## property or anything else which isn't enumerable or is somehow
+ * magic or just doesn't work. But it's usually what you want. If properties
+ * already exist, they are overwritten.
  *
- *  @param  obj Destination object, which properties should be copied to.
- *  @param  obj Source object, which properties should be copied from.
- *  @return obj Destination object.
+ *   var cat  = {
+ *     ears: 'clean',
+ *     paws: 'clean',
+ *     nose: 'DIRTY OH NOES'
+ *   };
+ *   var more = {
+ *     nose: 'clean',
+ *     tail: 'clean'
+ *   };
  *
- *  @heavy  copy_properties()
- *  @author epriestley
+ *   JX.copy(cat, more);
+ *
+ *   // cat is now:
+ *   //  {
+ *   //    ears: 'clean',
+ *   //    paws: 'clean',
+ *   //    nose: 'clean',
+ *   //    tail: 'clean'
+ *   //  }
+ *
+ * @param  obj Destination object, which properties should be copied to.
+ * @param  obj Source object, which properties should be copied from.
+ * @return obj Destination object.
  */
 JX.copy = function(copy_dst, copy_src) {
   for (var k in copy_src) {
@@ -75,23 +101,97 @@ JX.copy = function(copy_dst, copy_src) {
 
 
 /**
- *  Bind is the king of all functions. Go look at the heavy one, it has like
- *  ten pages of documentation. Of course, If you're looking at the open source
- *  version of Javelin, this is small comfort.
+ * Create a function which invokes another function with a bound context and
+ * arguments (i.e., partial function application) when called; king of all
+ * functions.
  *
- *  @param  obj|null  Context object to bind as `this'.
- *  @param  function  Function to bind context and arguments to.
- *  @param  ...       Zero or more arguments to bind.
- *  @return function  Function with context and arguments bound.
+ * Bind performs context binding (letting you select what the value of ##this##
+ * will be when a function is invoked) and partial function application (letting
+ * you create some function which calls another one with bound arguments).
  *
- *  @heavy  bind()
- *  @author epriestley
+ * = Context Binding =
+ *
+ * Normally, when you call ##obj.method()##, the magic ##this## object will be
+ * the ##obj## you invoked the method from. This can be undesirable when you
+ * need to pass a callback to another function. For instance:
+ *
+ *   COUNTEREXAMPLE
+ *   var dog = new JX.Dog();
+ *   dog.barkNow(); // Makes the dog bark.
+ *
+ *   JX.Stratcom.listen('click', 'bark', dog.barkNow); // Does not work!
+ *
+ * This doesn't work because ##this## is ##window## when the function is
+ * later invoked; @{JX.Stratcom.listen()} does not know about the context
+ * object ##dog##. The solution is to pass a function with a bound context
+ * object:
+ *
+ *   var dog = new JX.Dog();
+ *   var bound_function = JX.bind(dog, dog.barkNow);
+ *
+ *   JX.Stratcom.listen('click', 'bark', bound_function);
+ *
+ * ##bound_function## is a function with ##dog## bound as ##this##; ##this##
+ * will always be ##dog## when the function is called, no matter what
+ * property chain it is invoked from.
+ *
+ * You can also pass ##null## as the context argument to implicitly bind
+ * ##window##.
+ *
+ * = Partial Function Application =
+ *
+ * @{JX.bind()} also performs partial function application, which allows you
+ * to bind one or more arguments to a function. For instance, if we have a
+ * simple function which adds two numbers:
+ *
+ *   function add(a, b) { return a + b; }
+ *   add(3, 4); // 7
+ *
+ * Suppose we want a new function, like this:
+ *
+ *   function add3(b) { return 3 + b; }
+ *   add3(4); // 7
+ *
+ * Instead of doing this, we can define ##add3()## in terms of ##add()## by
+ * binding the value ##3## to the ##a## argument:
+ *
+ *   var add3_bound = JX.bind(null, add, 3);
+ *   add3_bound(4); // 7
+ *
+ * Zero or more arguments may be bound in this way. This is particularly useful
+ * when using closures in a loop:
+ *
+ *   COUNTEREXAMPLE
+ *   for (var ii = 0; ii < button_list.length; ii++) {
+ *     button_list[ii].onclick = function() {
+ *       JX.log('You clicked button number '+ii+'!'); // Fails!
+ *     };
+ *   }
+ *
+ * This doesn't work; all the buttons report the highest number when clicked.
+ * This is because the local ##ii## is captured by the closure. Instead, bind
+ * the current value of ##ii##:
+ *
+ *   var func = function(button_num) {
+ *     JX.log('You clicked button number '+button_num+'!');
+ *   }
+ *   for (var ii = 0; ii < button_list.length; ii++) {
+ *     button_list[ii].onclick = JX.bind(null, func, ii);
+ *   }
+ *
+ * @param  obj|null  Context object to bind as ##this##.
+ * @param  function  Function to bind context and arguments to.
+ * @param  ...       Zero or more arguments to bind.
+ * @return function  New function which invokes the original function with
+ *                   bound context and arguments when called.
  */
-JX.bind = function(context, func/*, arg, arg, ...*/) {
+JX.bind = function(context, func, more) {
 
   if (__DEV__) {
     if (typeof func != 'function') {
-      throw new Error('Attempting to bind something that is not a function.');
+      throw new Error(
+        'JX.bind(context, <yuck>, ...): '+
+        'Attempting to bind something that is not a function.');
     }
   }
 
@@ -103,14 +203,11 @@ JX.bind = function(context, func/*, arg, arg, ...*/) {
 
 
 /**
- *  This function is guaranteed not to do anything (the name is derived from
- *  "bag of holding"). Primarily, it's used as a placeholder when you want
- *  something to be callable but don't want it to actually do anything.
+ * "Bag of holding"; function that does nothing. Primarily, it's used as a
+ * placeholder when you want something to be callable but don't want it to
+ * actually have an effect.
  *
- *  @return void
- *
- *  @heavy  bagofholding()
- *  @author epriestley
+ * @return void
  */
 JX.bag = function() {
   // \o\ \o/ /o/ woo dance party
@@ -118,13 +215,12 @@ JX.bag = function() {
 
 
 /**
- *  Convert an object's keys into an list.
+ * Convert an object's keys into a list. For example:
  *
- *  @param  obj     Object to retrieve keys from.
- *  @return list    List of keys.
+ *   JX.keys({sun: 1, moon: 1, stars: 1}); // Returns: ['sun', 'moon', 'stars']
  *
- *  @heavy  keys()
- *  @author epriestley
+ * @param  obj    Object to retrieve keys from.
+ * @return list   List of keys.
  */
 JX.keys = function(obj) {
   var r = [];
@@ -136,35 +232,32 @@ JX.keys = function(obj) {
 
 
 /**
- *  Defer a function for later execution.
+ * Defer a function for later execution, similar to ##setTimeout()##. Returns
+ * an object with a ##stop()## method, which cancels the deferred call.
  *
- *  @heavy  Function.defer()
- *  @author epriestley
+ *   var ref = JX.defer(yell, 3000); // Yell in 3 seconds.
+ *   // ...
+ *   ref.stop(); // Cancel the yell.
+ *
+ * @param function Function to invoke after the timeout.
+ * @param int?     Timeout, in milliseconds. If this value is omitted, the
+ *                 function will be invoked once control returns to the browser
+ *                 event loop, as with ##setTimeout(func, 0)##.
+ * @return obj     An object with a ##stop()## method, which cancels function
+ *                 execution.
  */
-JX.defer = function(fn, timeout) {
-  var t = setTimeout(fn, timeout || 0);
+JX.defer = function(func, timeout) {
+  var t = setTimeout(func, timeout || 0);
   return {stop : function() { clearTimeout(t); }}
 };
 
 
 /**
- *  Cause execution of a function to occur.
+ * Redirect the browser to another page by changing the window location.
  *
- *  @heavy  Function.occur()
- *  @author epriestley
- */
-JX.occur = function(fn) {
-  return fn.apply(window);
-};
-
-/**
- *  Redirect the browser to another page by changing the window location.
- *
- *  @param  string    Optional URI to redirect the browser to. If no URI is
- *                    provided, the current page will be reloaded.
- *  @return void
- *
- *  @author epriestley
+ * @param  string    Optional URI to redirect the browser to. If no URI is
+ *                   provided, the current page will be reloaded.
+ * @return void
  */
 JX.go = function(uri) {
   (uri && (window.location = uri)) || window.location.reload(true);
@@ -179,6 +272,14 @@ if (__DEV__) {
       window.console = {log: function(m) { }};
     }
   }
+
+  /**
+   * Print a message to the browser debugging console (like Firebug). This
+   * method exists only in ##__DEV__##.
+   *
+   * @param  string Message to print to the browser debugging console.
+   * @return void
+   */
   JX.log = function(message) {
     window.console.log(message);
   }
@@ -206,7 +307,7 @@ if (__DEV__) {
           window.alert = JX.bag;
         }
       } else {
-        //  Note that we can't .apply() the IE6 version of this "function"
+        //  Note that we can't .apply() the IE6 version of this "function".
         native_alert(msg);
       }
       in_alert = false;

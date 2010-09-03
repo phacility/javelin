@@ -1,8 +1,66 @@
 /**
  * @requires javelin-install javelin-util javelin-vector javelin-stratcom
  * @provides javelin-dom
+ *
+ * @javelin-installs JX.$
+ * @javelin-installs JX.$N
+ *
  * @javelin
  */
+
+
+/**
+ * Select an element by its "id" attribute, like ##document.getElementById()##.
+ * For example:
+ *
+ *   var node = JX.$('some_id');
+ *
+ * This will select the node with the specified "id" attribute:
+ *
+ *   LANG=HTML
+ *   <div id="some_id">...</div>
+ *
+ * If the specified node does not exist, @{JX.$()} will throw ##JX.$.NotFound##.
+ * For other ways to select nodes from the document, see @{JX.DOM.scry()} and
+ * @{JX.DOM.find()}.
+ *
+ * @param  string  "id" attribute to select from the document.
+ * @return Node    Node with the specified "id" attribute.
+ */
+JX.$ = function(id) {
+
+  if (__DEV__) {
+    if (!id) {
+      throw new Error('Empty ID passed to JX.$()!');
+    }
+  }
+
+  var node = document.getElementById(id);
+  if (!node || (node.id != id)) {
+    if (__DEV__) {
+      if (node && (node.id != id)) {
+        throw new Error(
+          'JX.$("'+id+'"): '+
+          'document.getElementById() returned an element without the '+
+          'correct ID. This usually means that the element you are trying '+
+          'to select is being masked by a form with the same value in its '+
+          '"name" attribute.');
+      }
+    }
+    throw JX.$.NotFound;
+  }
+
+  return node;
+};
+
+JX.$.NotFound = {};
+if (__DEV__) {
+  //  If we're in dev, upgrade this object into an Error so that it will
+  //  print something useful if it escapes the stack after being thrown.
+  JX.$.NotFound = new Error(
+    'JX.$() or JX.DOM.find() call matched no nodes.');
+}
+
 
 JX.install('HTML', {
   construct : function(str) {
@@ -66,82 +124,131 @@ JX.install('HTML', {
   }
 });
 
-JX.install('$', {
-  construct : function(id) {
 
-    if (__DEV__) {
-      if (!id) {
-        throw new Error('Empty ID passed to JX.$()!');
-      }
-    }
+/**
+ * Create a new DOM node with attributes and content.
+ *
+ *   var link = JX.$N('a');
+ *
+ * This creates a new, empty anchor tag without any attributes. The equivalent
+ * markup would be:
+ *
+ *   LANG=HTML
+ *   <a />
+ *
+ * You can also specify attributes by passing a dictionary:
+ *
+ *   JX.$N('a', {name: 'anchor'});
+ *
+ * This is equivalent to:
+ *
+ *   LANG=HTML
+ *   <a name="anchor" />
+ *
+ * Additionally, you can specify content:
+ *
+ *   JX.$N(
+ *     'a',
+ *     {href: 'http://www.javelinjs.com'},
+ *     'Visit the Javelin Homepage');
+ *
+ * This is equivalent to:
+ *
+ *   LANG=HTML
+ *   <a href="http://www.javelinjs.com">Visit the Javelin Homepage</a>
+ *
+ * If you only want to specify content, you can omit the attribute parameter.
+ * That is, these calls are equivalent:
+ *
+ *   JX.$N('div', {}, 'Lorem ipsum...'); // No attributes.
+ *   JX.$N('div', 'Lorem ipsum...')      // Same as above.
+ *
+ * Both are equivalent to:
+ *
+ *   LANG=HTML
+ *   <div>Lorem ipsum...</div>
+ *
+ * Note that the content is treated as plain text, not HTML. This means it is
+ * safe to use untrusted strings:
+ *
+ *   JX.$N('div', '<script src="evil.com" />');
+ *
+ * This is equivalent to:
+ *
+ *   LANG=HTML
+ *   <div>&lt;script src="evil.com" /&gt;</div>
+ *
+ * That is, the content will be properly escaped and will not create a
+ * vulnerability. If you want to set HTML content, you can use @{JX.HTML}:
+ *
+ *   JX.$N('div', JX.HTML(some_html));
+ *
+ * **This is potentially unsafe**, so make sure you understand what you're
+ * doing. You should usually avoid passing HTML around in string form. See
+ * @{JX.HTML} for discussion.
+ *
+ * You can create new nodes with a Javelin sigil (and, optionally, metadata) by
+ * providing "sigil" and "metadata" keys in the attribute dictionary.
+ *
+ * @param string                  Tag name, like 'a' or 'div'.
+ * @param dict|string|@{JX.HTML}? Property dictionary, or content if you don't
+ *                                want to specify any properties.
+ * @param string|@{JX.HTML}?      Content string (interpreted as plain text)
+ *                                or @{JX.HTML} object (interpreted as HTML,
+ *                                which may be dangerous).
+ * @return Node                   New node with whatever attributes and
+ *                                content were specified.
+ */
+JX.$N = function(tag, attr, content) {
+  if (typeof content == 'undefined' &&
+      (typeof attr != 'object' || attr instanceof JX.HTML)) {
+    content = attr;
+    attr = {};
+  }
 
-    var node = document.getElementById(id);
-    if (!node || (node.id != id)) {
-      if (__DEV__) {
-        if (node && (node.id != id)) {
-          throw new Error(
-            'JX.$("'+id+'"): '+
-            'document.getElementById() returned an element without the '+
-            'correct ID. This usually means that the element you are trying '+
-            'to select is being masked by a form with the same value in its '+
-            '"name" attribute.');
-        }
-      }
-      throw JX.$.NotFound;
-    }
-
-    return node;
-  },
-  statics : {
-    NotFound : {}
-  },
-  initialize : function() {
-    if (__DEV__) {
-      //  If we're in dev, upgrade this object into an Error so that it will
-      //  print something useful if it escapes the stack after being thrown.
-      JX.$.NotFound = new Error(
-        'JX.$() or JX.DOM.find() call matched no nodes.');
+  if (__DEV__) {
+    if (tag.toLowerCase() != tag) {
+      throw new Error(
+        '$N("'+tag+'", ...): '+
+        'tag name must be in lower case; '+
+        'use "'+tag.toLowerCase()+'", not "'+tag+'".');
     }
   }
-});
 
-JX.install('$N', {
-  construct : function(tag, attr, content) {
-    if (typeof content == 'undefined' &&
-        (typeof attr != 'object' || attr instanceof JX.HTML)) {
-      content = attr;
-      attr = {};
-    }
+  var node = document.createElement(tag);
 
-    var node = document.createElement(tag);
-
-    if (attr.style) {
-      JX.copy(node.style, attr.style);
-      delete attr.style;
-    }
-
-    if (attr.sigil) {
-      JX.Stratcom.sigilize(node, attr.sigil, attr.meta);
-      delete attr.sigil;
-      delete attr.meta;
-    }
-
-    if (__DEV__) {
-      if (attr.meta) {
-        throw new Error(
-          '$N('+tag+', ...): '+
-          'if you specify `meta` metadata, you must also specify a `sigil`.');
-      }
-    }
-
-    JX.copy(node, attr);
-    if (content) {
-      JX.DOM.setContent(node, content);
-    }
-
-    return node;
+  if (attr.style) {
+    JX.copy(node.style, attr.style);
+    delete attr.style;
   }
-});
+
+  if (attr.sigil) {
+    JX.Stratcom.sigilize(node, attr.sigil, attr.meta);
+    delete attr.sigil;
+    delete attr.meta;
+  }
+
+  if (__DEV__) {
+    if (attr.meta) {
+      throw new Error(
+        '$N('+tag+', ...): '+
+        'if you specify `meta` metadata, you must also specify a `sigil`.');
+    }
+  }
+
+  // prevent sigil from being wiped by blind copying the className
+  if (attr.className) {
+    JX.DOM.alterClass(node, attr.className, true);
+    delete attr.className;
+  }
+
+  JX.copy(node, attr);
+  if (content) {
+    JX.DOM.setContent(node, content);
+  }
+  return node;
+};
+
 
 JX.install('DOM', {
   statics : {
@@ -240,6 +347,19 @@ JX.install('DOM', {
       return node;
     },
 
+    /**
+     * Retrieve the nearest parent node matching the desired sigil.
+     * @param  Node The child element to search from
+     * @return  The matching parent or null if no parent could be found
+     * @author jgabbard
+     */
+    nearest : function(node, sigil) {
+      while (node && !JX.Stratcom.hasSigil(node, sigil)) {
+        node = node.parentNode;
+      }
+      return node;
+    },
+
     serialize : function(form) {
       var elements = form.getElementsByTagName('*');
       var data = {};
@@ -262,7 +382,7 @@ JX.install('DOM', {
       return !!(node && node.nodeName && (node !== window));
     },
     isType : function(node, of_type) {
-      node = (''+(node.nodeName || '')).toUpperCase();
+      node = ('' + (node.nodeName || '')).toUpperCase();
       of_type = JX.$AX(of_type);
       for (var ii = 0; ii < of_type.length; ++ii) {
         if (of_type[ii].toUpperCase() == node) {

@@ -1,9 +1,9 @@
 /**
- *  Make lightweight, AsyncResponse-compatible requests.
+ * Make basic AJAX XMLHTTPRequests.
  *
- *  @requires javelin-install javelin-stratcom javelin-behavior javelin-util
- *  @provides javelin-request
- *  @javelin
+ * @requires javelin-install javelin-stratcom javelin-behavior javelin-util
+ * @provides javelin-request
+ * @javelin
  */
 
 JX.install('Request', {
@@ -50,14 +50,15 @@ JX.install('Request', {
       q = q.join('&');
 
       var uri = this.getURI();
+      var method = this.getMethod().toUpperCase();
 
-      if (this.getMethod() == 'GET') {
+      if (method == 'GET') {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
-      xport.open(this.getMethod(), uri, true);
+      xport.open(method, uri, true);
 
-      if (this.getMethod() == 'POST') {
+      if (method == 'POST') {
         xport.setRequestHeader(
           'Content-Type',
           'application/x-www-form-urlencoded');
@@ -82,7 +83,7 @@ JX.install('Request', {
         if (xport.readyState != 4) {
           return;
         }
-        if (xport.status < 200 && xport.status >= 300) {
+        if (xport.status < 200 || xport.status >= 300) {
           this._fail();
           return;
         }
