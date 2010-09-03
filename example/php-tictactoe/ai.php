@@ -5,10 +5,10 @@ require_once '../../support/php/Javelin.php';
 $game = json_decode($_REQUEST['game']);
 
 $response = array();
-if (count(array_filter($game)) == 9) {
-  $response['outcome'] = 'Tie game. Reload to play again.';
-} else if (check_win($game, 'X')) {
+if (check_win($game, 'X')) {
   $response['outcome'] = 'You win! Reload to play again.';
+} else if (count(array_filter($game)) == 9) {
+  $response['outcome'] = 'Tie game. Reload to play again.';
 } else {
 
   do {
