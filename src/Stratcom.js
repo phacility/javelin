@@ -407,26 +407,31 @@ JX.install('Stratcom', {
      *
      * @param   Node    Node without any sigil.
      * @param   string  Sigil to name the node with.
-     * @param   wild?   Optional metadata to attach to the node.
-     * @return void
+     * @param   object? Optional metadata object to attach to the node.
+     * @return  void
      * @task sigil
      */
     sigilize : function(node, sigil, data) {
       if (__DEV__) {
         if (node.className.match(this._matchName)) {
           throw new Error(
-            'Stratcom.sigilize(<node>, '+sigil+', ...): '+
+            'JX.Stratcom.sigilize(<node>, ' + sigil + ', ...): ' +
             'node already has a sigil, sigils may not be overwritten.');
+        }
+        if (typeof data != 'undefined' &&
+            (data === null || typeof data != 'object')) {
+          throw new Error(
+            'JX.Stratcom.sigilize(..., ..., <nonobject>): ' +
+            'data to attach to node is not an object. You must use ' +
+            'objects, not primitives, for metadata.');
         }
       }
 
-      var base = [node.className];
       if (data) {
-        this._data[this._dataref] = data;
-        base.push('FD_'+(this._dataref++));
+        JX.Stratcom._setData(node, data);
       }
-      base.push('FN_'+sigil);
-      node.className = base.reverse().join(' ');
+
+      node.className = 'FN_' + sigil + ' ' + node.className;
     },
 
 
@@ -455,14 +460,42 @@ JX.install('Stratcom', {
      * Retrieve a node's metadata.
      *
      * @param  Node    Node from which to retrieve data.
-     * @return wild    Data attached to the node, or an empty dictionary if
-     *                 the node has no data attached.
+     * @return object  Data attached to the node, or an empty dictionary if
+     *                 the node has no data attached. In this case, the empty
+     *                 dictionary is set as the node's metadata -- i.e.,
+     *                 subsequent calls to getData() will retrieve the same
+     *                 object.
      *
      * @task sigil
      */
     getData : function(node) {
+      if (__DEV__) {
+        if (!node) {
+          throw new Error(
+            'JX.Stratcom.getData(<empty>): ' +
+            'you must provide a node to get associated data from.');
+        }
+      }
+
       var idx = ((node.className || '').match(this._matchData) || [])[1];
-      return (idx && this._data[idx]) || {};
+      return (idx && this._data[idx]) || JX.Stratcom._setData(node, {});
+    },
+
+
+    /**
+     * Attach metadata to a node. This data can later be retrieved through
+     * @{JX.Stratcom.getData()}, or @{JX.Event.getData()}.
+     *
+     * @param   Node    Node which data should be attached to.
+     * @param   object  Data to attach.
+     * @return  object  Attached data.
+     *
+     * @task internal
+     */
+    _setData : function(node, data) {
+      this._data[this._dataref] = data;
+      node.className = 'FD_' + (this._dataref++) + ' ' + node.className;
+      return data;
     }
   }
 });

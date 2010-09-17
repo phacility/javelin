@@ -22,7 +22,7 @@
  *     null,
  *     function(e) {
  *       var p = JX.$V(e);
- *       var d = JX.$V(e.getTarget());
+ *       var d = JX.$V.getDim(e.getTarget());
  *
  *       alert('You clicked at <'+p.x+','+p.y'>; the element you clicked '+
  *             'is '+d.x+' pixels wide and '+d.y+' pixels high.');

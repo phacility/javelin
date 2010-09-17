@@ -373,7 +373,13 @@ if (__DEV__) {
  * the expected way. Some properties and methods are automatically added to
  * all classes:
  *
- *   - ##instance.__id__## Globally unique scalar attached to each instance.
+ *   - ##instance.__id__## Globally unique identifier attached to each instance.
+ *   - ##instance.__super__## Reference to the parent class constructor, if one
+ *      exists. Allows use of ##this.__super__.apply(this, ...)## to call the
+ *      superclass's constructor.
+ *   - ##instance.__parent__## Reference to the parent class prototype, if one
+ *      exists. Allows use of ##this.__parent__.someMethod.apply(this, ...)##
+ *      to call the superclass's methods.
  *   - ##prototype.__class__## Reference to the class constructor.
  *   - ##constructor.__path__## List of path tokens used emit events. It is
  *       probably never useful to access this directly.
@@ -381,7 +387,7 @@ if (__DEV__) {
  *       plausibly use this when constructing error messages.
  *   - ##constructor.__events__## //DEV ONLY!// List of events supported by
  *       this class.
- *   - ##constructor.listen()## Listen to all objects of this class. See
+ *   - ##constructor.listen()## Listen to all instances of this class. See
  *       @{JX.Base}.
  *   - ##instance.listen()## Listen to one instance of this class. See
  *       @{JX.Base}.
@@ -477,7 +483,7 @@ JX.install = function(new_name, new_junk) {
       JX.copy(JX[name], junk.statics);
 
       if (__DEV__) {
-        JX[name].__readable__ = name;
+        JX[name].__readable__ = 'JX.' + name;
       }
 
       var proto;
@@ -507,6 +513,42 @@ JX.install = function(new_name, new_junk) {
             return this[prop];
           }
         })(prop);
+      }
+
+      if (__DEV__) {
+
+        // Check for aliasing in default values of members. If we don't do this,
+        // you can run into a problem like this:
+        //
+        //  JX.install('List', { members : { stuff : [] }});
+        //
+        //  var i_love = new JX.List();
+        //  var i_hate = new JX.List();
+        //
+        //  i_love.stuff.push('Psyduck');  // I love psyduck!
+        //  JX.log(i_hate.stuff);          // Show stuff I hate.
+        //
+        // This logs ["Psyduck"] because the push operation modifies
+        // JX.List.prototype.stuff, which is what both i_love.stuff and
+        // i_hate.stuff resolve to. To avoid this, set the default value to
+        // null (or any other scalar) and do "this.stuff = [];" in the
+        // constructor.
+
+        for (var member_name in junk.members) {
+          var member_value = junk.members[member_name];
+          if (typeof member_value == 'object' && member_value !== null) {
+            throw new Error(
+              'JX.install("' + name + '", ...): ' +
+              'installed member "' + member_name + '" is not a scalar or ' +
+              'function. Prototypal inheritence in Javascript aliases object ' +
+              'references across instances so all instances are initialized ' +
+              'to point at the exact same object. This is almost certainly ' +
+              'not what you intended. Make this member static to share it ' +
+              'across instances, or initialize it in the constructor to ' +
+              'prevent reference aliasing and give each instance its own ' +
+              'copy of the value.');
+          }
+        }
       }
 
 
@@ -555,7 +597,7 @@ JX.install = function(new_name, new_junk) {
           if (__DEV__) {
             if (!(type in this.__class__.__events__)) {
               throw new Error(
-                name + '.invoke("' + type + '", ...): ' +
+                this.__class__.__readable__ + '.invoke("' + type + '", ...): ' +
                 'invalid event type. Valid event types are: ' +
                 JX.keys(this.__class__.__events__).join(', ') + '.');
             }
@@ -601,6 +643,30 @@ JX.install = function(new_name, new_junk) {
             JX.bind(this, function(e) {
               return callback.apply(this, e.getData().args);
             }));
+        };
+      } else if (__DEV__) {
+        var error_message =
+          'class does not define any events. Pass an "events" property to ' +
+          'JX.install() to define events.';
+        JX[name].listen = JX[name].listen || function() {
+          throw new Error(
+            this.__readable__ + '.listen(...): ' +
+            error_message);
+        };
+        JX[name].invoke = JX[name].invoke || function() {
+          throw new Error(
+            this.__readable__ + '.invoke(...): ' +
+            error_message);
+        };
+        proto.listen = proto.listen || function() {
+          throw new Error(
+            this.__class__.__readable__ + '.listen(...): ' +
+            error_message);
+        };
+        proto.invoke = proto.invoke || function() {
+          throw new Error(
+            this.__class__.__readable__ + '.invoke(...): ' +
+            error_message);
         };
       }
 
@@ -1263,26 +1329,31 @@ JX.install('Stratcom', {
      *
      * @param   Node    Node without any sigil.
      * @param   string  Sigil to name the node with.
-     * @param   wild?   Optional metadata to attach to the node.
-     * @return void
+     * @param   object? Optional metadata object to attach to the node.
+     * @return  void
      * @task sigil
      */
     sigilize : function(node, sigil, data) {
       if (__DEV__) {
         if (node.className.match(this._matchName)) {
           throw new Error(
-            'Stratcom.sigilize(<node>, '+sigil+', ...): '+
+            'JX.Stratcom.sigilize(<node>, ' + sigil + ', ...): ' +
             'node already has a sigil, sigils may not be overwritten.');
+        }
+        if (typeof data != 'undefined' &&
+            (data === null || typeof data != 'object')) {
+          throw new Error(
+            'JX.Stratcom.sigilize(..., ..., <nonobject>): ' +
+            'data to attach to node is not an object. You must use ' +
+            'objects, not primitives, for metadata.');
         }
       }
 
-      var base = [node.className];
       if (data) {
-        this._data[this._dataref] = data;
-        base.push('FD_'+(this._dataref++));
+        JX.Stratcom._setData(node, data);
       }
-      base.push('FN_'+sigil);
-      node.className = base.reverse().join(' ');
+
+      node.className = 'FN_' + sigil + ' ' + node.className;
     },
 
 
@@ -1311,14 +1382,42 @@ JX.install('Stratcom', {
      * Retrieve a node's metadata.
      *
      * @param  Node    Node from which to retrieve data.
-     * @return wild    Data attached to the node, or an empty dictionary if
-     *                 the node has no data attached.
+     * @return object  Data attached to the node, or an empty dictionary if
+     *                 the node has no data attached. In this case, the empty
+     *                 dictionary is set as the node's metadata -- i.e.,
+     *                 subsequent calls to getData() will retrieve the same
+     *                 object.
      *
      * @task sigil
      */
     getData : function(node) {
+      if (__DEV__) {
+        if (!node) {
+          throw new Error(
+            'JX.Stratcom.getData(<empty>): ' +
+            'you must provide a node to get associated data from.');
+        }
+      }
+
       var idx = ((node.className || '').match(this._matchData) || [])[1];
-      return (idx && this._data[idx]) || {};
+      return (idx && this._data[idx]) || JX.Stratcom._setData(node, {});
+    },
+
+
+    /**
+     * Attach metadata to a node. This data can later be retrieved through
+     * @{JX.Stratcom.getData()}, or @{JX.Event.getData()}.
+     *
+     * @param   Node    Node which data should be attached to.
+     * @param   object  Data to attach.
+     * @return  object  Attached data.
+     *
+     * @task internal
+     */
+    _setData : function(node, data) {
+      this._data[this._dataref] = data;
+      node.className = 'FD_' + (this._dataref++) + ' ' + node.className;
+      return data;
     }
   }
 });
@@ -1584,7 +1683,7 @@ JX.install('Request', {
  *     null,
  *     function(e) {
  *       var p = JX.$V(e);
- *       var d = JX.$V(e.getTarget());
+ *       var d = JX.$V.getDim(e.getTarget());
  *
  *       alert('You clicked at <'+p.x+','+p.y'>; the element you clicked '+
  *             'is '+d.x+' pixels wide and '+d.y+' pixels high.');
