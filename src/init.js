@@ -100,7 +100,7 @@
   //  In particular, we're interested in capturing window focus/blur here so
   //  long polls can abort when the window is not focused.
   var window_events = [
-    'unload',
+    ('onpagehide' in window) ? 'pagehide' : 'unload',
     'focus',
     'blur'
   ];

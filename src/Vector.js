@@ -100,7 +100,7 @@ JX.install('$V', {
     this.x = parseFloat(x);
     this.y = parseFloat(y);
   },
-
+  canCallAsFunction : true,
   members : {
     x : null,
     y : null,

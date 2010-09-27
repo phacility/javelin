@@ -1,11 +1,15 @@
 /**
- * Make basic AJAX XMLHTTPRequests.
- *
- * @requires javelin-install javelin-stratcom javelin-behavior javelin-util
+ * @requires javelin-install
+ *           javelin-stratcom
+ *           javelin-util
+ *           javelin-behavior
  * @provides javelin-request
  * @javelin
  */
 
+/**
+ * Make basic AJAX XMLHTTPRequests.
+ */
 JX.install('Request', {
   construct : function(uri, handler) {
     this.setURI(uri);
@@ -20,7 +24,7 @@ JX.install('Request', {
 
     _xhrkey : null,
     _transport : null,
-    _aborted : false,
+    _finished : false,
 
     send : function() {
       var xport = null;
@@ -56,6 +60,15 @@ JX.install('Request', {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
+      if (this.getTimeout()) {
+        this._timer = JX.defer(
+          JX.bind(
+            this,
+            this._fail,
+            JX.Request.ERROR_TIMEOUT),
+          this.getTimeout());
+      }
+
       xport.open(method, uri, true);
 
       if (method == 'POST') {
@@ -69,15 +82,13 @@ JX.install('Request', {
     },
 
     abort : function() {
-      this._aborted = true;
-      this._transport.abort();
-      delete JX.Request._xhr[this._xhrkey];
+      this._cleanup();
     },
 
     _onreadystatechange : function() {
       var xport = this._transport;
       try {
-        if (this._aborted) {
+        if (this._finished) {
           return;
         }
         if (xport.readyState != 4) {
@@ -131,12 +142,15 @@ JX.install('Request', {
     },
 
     _fail : function(error) {
+      this._cleanup();
+
       this.invoke('error', error);
-      delete JX.Request._xhr[this._xhrkey];
       this.invoke('finally');
     },
 
     _done : function(response) {
+      this._cleanup();
+
       if (response.onload) {
         for (var ii = 0; ii < response.onload.length; ii++) {
           (new Function(response.onload[ii]))();
@@ -144,8 +158,14 @@ JX.install('Request', {
       }
 
       this.invoke('done', this.getRaw() ? response : response.payload);
-      delete JX.Request._xhr[this._xhrkey];
       this.invoke('finally');
+    },
+
+    _cleanup : function() {
+      this._finished = true;
+      delete JX.Request._xhr[this._xhrkey];
+      this._timer && this._timer.stop();
+      this._transport.abort();
     }
 
   },
@@ -161,14 +181,31 @@ JX.install('Request', {
         }
       }
       JX.Request._xhr = [];
-    }
+    },
+    ERROR_TIMEOUT : -9000
   },
 
   properties : {
     URI : null,
     data : null,
+
+    /**
+     * Configure which HTTP method to use for the request. Permissible values
+     * are "POST" (default) or "GET".
+     *
+     * @param string HTTP method, one of "POST" or "GET".
+     */
     method : 'POST',
-    raw : false
+    raw : false,
+
+    /**
+     * Configure a timeout, in milliseconds. If the request has not resolved
+     * (either with success or with an error) within the provided timeframe,
+     * it will automatically fail with error JX.Request.ERROR_TIMEOUT.
+     *
+     * @param int Timeout, in milliseconds (e.g. 3000 = 3 seconds).
+     */
+    timeout : null
   },
 
   initialize : function() {

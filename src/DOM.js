@@ -62,7 +62,33 @@ if (__DEV__) {
 }
 
 
+/**
+ * Upcast a string into an HTML object so it is treated as markup instead of
+ * plain text. See @{JX.$N} for discussion of Javelin's security model. Every
+ * time you call this function you potentially open up a security hole. Avoid
+ * its use wherever possible.
+ *
+ * This class intentionally supports only a subset of HTML because many browsers
+ * named "Internet Explorer" have awkward restrictions around what they'll
+ * accept for conversion to document fragments. Alter your datasource to emit
+ * valid HTML within this subset if you run into an unsupported edge case. All
+ * the edge cases are crazy and you should always be reasonably able to emit
+ * a cohesive tag instead of an unappendable fragment.
+ *
+ * @task build String into HTML
+ * @task nodes HTML into Nodes
+ */
 JX.install('HTML', {
+
+  /**
+   * Build a new HTML object from a trustworthy string.
+   *
+   * @task build
+   * @param string A string which you want to be treated as HTML, because you
+   *               know it is from a trusted source and any data in it has been
+   *               properly escaped.
+   * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
+   */
   construct : function(str) {
     if (this == JX || this == window) {
       return new JX.HTML(str);
@@ -107,8 +133,16 @@ JX.install('HTML', {
 
     this._content = str;
   },
+  canCallAsFunction : true,
   members : {
     _content : null,
+    /**
+     * Convert the raw HTML string into a DOM node tree.
+     *
+     * @task  nodes
+     * @return DocumentFragment A document fragment which contains the nodes
+     *                          corresponding to the HTML string you provided.
+     */
     getFragment : function() {
       var wrapper = JX.$N('div');
       wrapper.innerHTML = this._content;
@@ -229,10 +263,15 @@ JX.$N = function(tag, attr, content) {
   }
 
   if (__DEV__) {
+    if (('metadata' in attr) || ('data' in attr)) {
+      throw new Error(
+        '$N(' + tag + ', ...): ' +
+        'use the key "meta" to specify metadata, not "data" or "metadata".');
+    }
     if (attr.meta) {
       throw new Error(
-        '$N('+tag+', ...): '+
-        'if you specify `meta` metadata, you must also specify a `sigil`.');
+        '$N(' + tag + ', ...): ' +
+        'if you specify "meta" metadata, you must also specify a "sigil".');
     }
   }
 
@@ -250,11 +289,25 @@ JX.$N = function(tag, attr, content) {
 };
 
 
+/**
+ * Query and update the DOM. Everything here is static, this is essentially
+ * a collection of common utility functions.
+ *
+ * @task stratcom Attaching Event Listeners
+ * @task content Changing DOM Content
+ * @task nodes Updating Nodes
+ * @task test Testing DOM Properties
+ * @task convenience Convenience Methods
+ * @task query Finding Nodes in the DOM
+ */
 JX.install('DOM', {
   statics : {
     _autoid : 0,
     _metrics : {},
-    _bound : {},
+
+    /**
+     * @task content
+     */
     setContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
@@ -269,6 +322,11 @@ JX.install('DOM', {
       }
       JX.DOM.appendContent(node, content);
     },
+
+
+    /**
+     * @task content
+     */
     prependContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
@@ -280,6 +338,11 @@ JX.install('DOM', {
 
       this._insertContent(node, content, this._mechanismPrepend);
     },
+
+
+    /**
+     * @task content
+     */
     appendContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
@@ -291,12 +354,27 @@ JX.install('DOM', {
 
       this._insertContent(node, content, this._mechanismAppend);
     },
+
+
+    /**
+     * @task content
+     */
     _mechanismPrepend : function(node, content) {
       node.insertBefore(content, node.firstChild);
     },
+
+
+    /**
+     * @task content
+     */
     _mechanismAppend : function(node, content) {
       node.appendChild(content);
     },
+
+
+    /**
+     * @task content
+     */
     _insertContent : function(parent, content, mechanism) {
       if (content === null || typeof content == 'undefined') {
         return;
@@ -318,11 +396,19 @@ JX.install('DOM', {
       }
     },
 
+
+    /**
+     * @task nodes
+     */
     remove : function(node) {
       node.parentNode && JX.DOM.replace(node, null);
       return node;
     },
 
+
+    /**
+     * @task nodes
+     */
     replace : function(node, replacement) {
       if (__DEV__) {
         if (!node.parentNode) {
@@ -347,6 +433,7 @@ JX.install('DOM', {
       return node;
     },
 
+
     /**
      * Retrieve the nearest parent node matching the desired sigil.
      * @param  Node The child element to search from
@@ -359,6 +446,7 @@ JX.install('DOM', {
       }
       return node;
     },
+
 
     serialize : function(form) {
       var elements = form.getElementsByTagName('*');
@@ -378,9 +466,32 @@ JX.install('DOM', {
       return data;
     },
 
+
+    /**
+     * Test if an object is a valid Node.
+     *
+     * @task test
+     * @param wild Something which might be a Node.
+     * @return bool True if the parameter is a DOM node.
+     */
     isNode : function(node) {
       return !!(node && node.nodeName && (node !== window));
     },
+
+
+    /**
+     * Test if an object is a node of some specific (or one of several) types.
+     * For example, this tests if the node is an ##<input />##, ##<select />##,
+     * or ##<textarea />##.
+     *
+     *   JX.DOM.isType(node, ['input', 'select', 'textarea']);
+     *
+     * @task    test
+     * @param   wild        Something which might be a Node.
+     * @param   string|list One or more tags which you want to test for.
+     * @return  bool        True if the object is a node, and it's a node of one
+     *                      of the provided types.
+     */
     isType : function(node, of_type) {
       node = ('' + (node.nodeName || '')).toUpperCase();
       of_type = JX.$AX(of_type);
@@ -391,18 +502,41 @@ JX.install('DOM', {
       }
       return false;
     },
+
+    /**
+     * Listen for events occuring beneath a specific node in the DOM. This is
+     * similar to @{JX.Stratcom.listen()}, but allows you to specify some node
+     * which serves as a scope instead of the default scope (the whole document)
+     * which you get if you install using @{JX.Stratcom.listen()} directly. For
+     * example, to listen for clicks on nodes with the sigil 'menu-item' below
+     * the root menu node:
+     *
+     *   var the_menu = getReferenceToTheMenuNodeSomehow();
+     *   JX.DOM.listen(the_menu, 'click', 'menu-item', function(e) { ... });
+     *
+     * @task stratcom
+     * @param Node        The node to listen for events underneath.
+     * @param string|list One or more event types to listen for.
+     * @param list?       A path to listen on.
+     * @param function    Callback to invoke when a matching event occurs.
+     * @return object     A reference to the installed listener. You can later
+     *                    remove the listener by calling this object's remove()
+     *                    method.
+     */
     listen : function(node, type, path, callback) {
       return JX.Stratcom.listen(
         type,
         ['id:'+JX.DOM.uniqID(node)].concat(JX.$AX(path || [])),
         callback);
     },
+
     uniqID : function(node) {
       if (!node.id) {
         node.id = 'autoid_'+(++JX.DOM._autoid);
       }
       return node.id;
     },
+
     alterClass : function(node, className, add) {
       var has = ((' '+node.className+' ').indexOf(' '+className+' ') > -1);
       if (add && !has) {
@@ -412,6 +546,7 @@ JX.install('DOM', {
           new RegExp('(^|\\s)' + className + '(?:\\s|$)', 'g'), ' ');
       }
     },
+
     htmlize : function(str) {
       return (''+str)
         .replace(/&/g, '&amp;')
@@ -419,11 +554,24 @@ JX.install('DOM', {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
     },
+
+
+    /**
+     * Show one or more elements, by removing their "display" style. This
+     * assumes you have hidden them with hide(), or explicitly set the style
+     * to "display: none;".
+     *
+     * @task convenience
+     * @param ... One or more nodes to remove "display" styles from.
+     * @return void
+     */
     show : function() {
       if (__DEV__) {
         for (var ii = 0; ii < arguments.length; ++ii) {
           if (!arguments[ii]) {
-            throw new Error('Null element passed to JX.DOM.show()');
+            throw new Error(
+              'JX.DOM.show(...): ' +
+              'one or more arguments were null or empty.');
           }
         }
       }
@@ -432,11 +580,23 @@ JX.install('DOM', {
         arguments[ii].style.display = '';
       }
     },
+
+
+    /**
+     * Hide one or more elements, by setting "display: none;" on them. This is
+     * a convenience method. See also show().
+     *
+     * @task convenience
+     * @param ... One or more nodes to set "display: none" on.
+     * @return void
+     */
     hide : function() {
       if (__DEV__) {
         for (var ii = 0; ii < arguments.length; ++ii) {
           if (!arguments[ii]) {
-            throw new Error('Null element passed to JX.DOM.hide()');
+            throw new Error(
+              'JX.DOM.hide(...): ' +
+              'one or more arguments were null or empty.');
           }
         }
       }
@@ -466,18 +626,17 @@ JX.install('DOM', {
 
 
     /**
-     *  Search the document for DOM nodes by providing a root node to look
-     *  beneath, a tag name, and (optionally) a sigil. Nodes which match all
-     *  specified conditions are returned.
+     * Search the document for DOM nodes by providing a root node to look
+     * beneath, a tag name, and (optionally) a sigil. Nodes which match all
+     * specified conditions are returned.
      *
-     *  @param  Node    Root node to search beneath.
-     *  @param  string  Tag name, like 'a' or 'textarea'.
-     *  @param  string  Optionally, a sigil which nodes are required to have.
+     * @task query
      *
-     *  @return list    List of matching nodes, which may be empty.
+     * @param  Node    Root node to search beneath.
+     * @param  string  Tag name, like 'a' or 'textarea'.
+     * @param  string  Optionally, a sigil which nodes are required to have.
      *
-     *  @heavy  DOM.scry
-     *  @author epriestley
+     * @return list    List of matching nodes, which may be empty.
      */
     scry : function(root, tagname, sigil) {
       if (__DEV__) {
@@ -503,18 +662,17 @@ JX.install('DOM', {
 
 
     /**
-     *  Select a node uniquely identified by a root, tagname and sigil. This
-     *  is similar to JX.DOM.scry() but expects exactly one result. It will
-     *  throw JX.$.NotFound if it matches no results.
+     * Select a node uniquely identified by a root, tagname and sigil. This
+     * is similar to JX.DOM.scry() but expects exactly one result. It will
+     * throw JX.$.NotFound if it matches no results.
      *
-     *  @param  Node    Root node to search beneath.
-     *  @param  string  Tag name, like 'a' or 'textarea'.
-     *  @param  string  Optionally, sigil which selected node must have.
+     * @task query
      *
-     *  @return Node    Node uniquely identified by the criteria.
+     * @param  Node    Root node to search beneath.
+     * @param  string  Tag name, like 'a' or 'textarea'.
+     * @param  string  Optionally, sigil which selected node must have.
      *
-     *  @heavy  DOM.find
-     *  @author epriestley
+     * @return Node    Node uniquely identified by the criteria.
      */
     find : function(root, tagname, sigil) {
       if (__DEV__) {
@@ -542,12 +700,16 @@ JX.install('DOM', {
       return result[0];
     },
 
-    bindController : function(node, name, construct) {
-      var id = JX.DOM.uniqID(node);
-      var map = (this._bound[name] = (this._bound[name] || {}));
-      return (map[id] = (map[id] || (construct())));
-    },
 
+    /**
+     * Focus a node safely. This is just a convenience wrapper that allows you
+     * to avoid IE's habit of throwing when nearly any focus operation is
+     * invoked.
+     *
+     * @task convenience
+     * @param Node Node to move cursor focus to, if possible.
+     * @return void
+     */
     focus : function(node) {
       try { node.focus(); } catch (lol_ie) {}
     }

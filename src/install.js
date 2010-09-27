@@ -6,14 +6,12 @@
  */
 
 /**
- * Install a class or function into the Javelin ("JX") namespace. The first
- * argument is the name of whatever you want to install, and the second is a
- * map of these attributes (all of which are optional):
+ * Install a class into the Javelin ("JX") namespace. The first argument is the
+ * name of the class you want to install, and the second is a map of these
+ * attributes (all of which are optional):
  *
  *   - ##construct## //(function)// Class constructor. If you don't provide one,
- *       one will be created for you (but it will be very boring). You can also
- *       install functions by just defining them here and then calling the
- *       installed function without the "new" operator.
+ *       one will be created for you (but it will be very boring).
  *   - ##extend## //(string)// The name of another JX-namespaced class to extend
  *       via prototypal inheritance.
  *   - ##members## //(map)// A map of instance methods and properties.
@@ -77,8 +75,8 @@
  *   - ##instance.invoke()## Invoke an event from an instance. See @{JX.Base}.
  *
  *
- * @param  string  Name of the class or function to install. It will appear
- *                 in the JX "namespace" (e.g., JX.Pancake).
+ * @param  string  Name of the class to install. It will appear in the JX
+ *                 "namespace" (e.g., JX.Pancake).
  * @param  map     Map of properties, see method documentation.
  * @return void
  *
@@ -131,7 +129,8 @@ JX.install = function(new_name, new_junk) {
           extend : 1,
           initialize: 1,
           properties : 1,
-          events : 1
+          events : 1,
+          canCallAsFunction : 1
         };
         for (var k in junk) {
           if (!(k in valid)) {
@@ -152,7 +151,7 @@ JX.install = function(new_name, new_junk) {
       // function, in which case it will correctly punish you for your attempt
       // at creativity).
       JX[name] = (function(name, junk) {
-        return function() {
+        var result = function() {
           this.__id__ = '__obj__' + (++JX.install._nextObjectID);
           this.__super__ = JX[junk.extend] || JX.bag;
           this.__parent__ = JX[name].prototype;
@@ -160,6 +159,23 @@ JX.install = function(new_name, new_junk) {
           // TODO: Allow mixins to initialize here?
           // TODO: Also, build mixins?
         };
+
+        if (__DEV__) {
+          if (!junk.canCallAsFunction) {
+            var inner = result;
+            result = function() {
+              if (this === window || this === JX) {
+                throw new Error("<" + JX[name].__readable__ + ">: " +
+                                "Tried to construct an instance " +
+                                "without the 'new' operator. Either use " +
+                                "'new' or set 'canCallAsFunction' where you " +
+                                "install the class.");
+              }
+              return inner.apply(this, arguments);
+            };
+          }
+        }
+        return result;
       })(name, junk);
 
       // Copy in all the static methods and properties.

@@ -163,6 +163,14 @@ JX.install('Stratcom', {
       //  it would be nice to verify that the caller isn't doing so, in __DEV__.
       for (var ii = 0; ii < types.length; ++ii) {
         var type = types[ii];
+        if (('onpagehide' in window) && type == 'unload') {
+          // If we use "unload", we break the bfcache ("Back-Forward Cache") in
+          // Safari and Firefox. The BFCache makes using the back/forward
+          // buttons really fast since the pages can come out of magical
+          // fairyland instead of over the network, so use "pagehide" as a proxy
+          // for "unload" in these browsers.
+          type = 'pagehide';
+        }
         if (!(type in this._targets)) {
           this._targets[type] = {};
         }
