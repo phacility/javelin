@@ -13,6 +13,7 @@ class Javelin {
   protected $onload   = array();
   protected $behavior = array();
   protected $dirty    = true;
+  protected $block    = 0;
 
   public static function renderTag($tag, $content, $attributes = array()) {
     $javelin = self::getInstance();
@@ -27,7 +28,7 @@ class Javelin {
         case 'meta':
           $id = count($javelin->metadata);
           $javelin->metadata[$id] = $v;
-          $classes[] = 'FD_'.$id;
+          $classes[] = 'FD_'.$this->block.'_'.$id;
           unset($attributes[$k]);
           break;
         case 'mustcapture':
@@ -74,7 +75,8 @@ class Javelin {
 
     $data = array();
     if ($javelin->metadata) {
-      $data[] = 'JX.Stratcom.mergeData('.json_encode($javelin->metadata).');';
+      $json_metadata = json_encode($javelin->metadata);
+      $data[] = 'JX.Stratcom.mergeData('.$this->block.', '.$json_metadata.');';
       $javelin->metadata = array();
     }
 
@@ -132,7 +134,9 @@ class Javelin {
   }
 
   protected function __construct() {
-    // Protected constructor.
+    if (isset($_REQUEST['__metablock__'])) {
+      $this->block = $_REQUEST['__metablock__'];
+    }
   }
 
   public function __destruct() {

@@ -25,6 +25,7 @@ JX.install('Request', {
     _xhrkey : null,
     _transport : null,
     _finished : false,
+    _block : null,
 
     send : function() {
       var xport = null;
@@ -48,6 +49,9 @@ JX.install('Request', {
       var q = [];
       var data = this.getData() || {};
       data.__async__ = true;
+
+      this._block = JX.Stratcom.allocateMetadataBlock();
+      data.__metablock__ = this._block;
       for (var k in data) {
         q.push(encodeURIComponent(k)+'='+encodeURIComponent(data[k]));
       }
@@ -129,7 +133,7 @@ JX.install('Request', {
         if (response.error) {
           this._fail(response.error);
         } else {
-          JX.Stratcom.mergeData(response.javelin_metadata || {});
+          JX.Stratcom.mergeData(this._block, response.javelin_metadata || {});
           this._done(response);
           JX.initBehaviors(response.javelin_behaviors || {});
         }

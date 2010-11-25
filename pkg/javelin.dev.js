@@ -978,15 +978,12 @@ JX.install('Stratcom', {
     _handlers : [],
     _need : {},
     _matchName : /\bFN_([^ ]+)/,
-    _matchData : /\bFD_([^ ]+)/,
+    _matchData : /\bFD_([^ ]+)_([^ ]+)/,
     _auto : '*',
     _data : {},
     _execContext : [],
-
-    /**
-     *  It's over nine THOUSSAANNND!!!!
-     */
-    _dataref : 9000,
+    _dataref : 0,
+    _dataBlock : 2,
 
 
     /**
@@ -1336,12 +1333,13 @@ JX.install('Stratcom', {
      * Merge metadata. You must call this (even if you have no metadata) to
      * start the Stratcom queue.
      *
+     * @param  int           The block of this metadata
      * @param  dict          Dictionary of metadata.
      * @return void
      * @task internal
      */
-    mergeData : function(data) {
-      JX.copy(this._data, data);
+    mergeData : function(block, data) {
+      this._data[block] = data;
       JX.Stratcom.ready = true;
       JX.__rawEventQueue({type: 'start-queue'});
     },
@@ -1423,9 +1421,22 @@ JX.install('Stratcom', {
         }
       }
 
-      var idx = ((node.className || '').match(this._matchData) || [])[1];
-      return (idx && this._data[idx]) || JX.Stratcom._setData(node, {});
+      var matches = ((node.className || '').match(this._matchData) || []);
+      var block = matches[1];
+      var idx = matches[2];
+      return
+        (idx && this._data[block] && this._data[block][idx]) ||
+        JX.Stratcom._setData(node, {});
     },
+
+
+    /**
+     * Allocate a metadata block, normally for the purpose of passing it to an
+     * ajax request.
+     */
+    allocateMetadataBlock : function() {
+      return this._dataBlock++;
+    }
 
 
     /**
@@ -1439,8 +1450,11 @@ JX.install('Stratcom', {
      * @task internal
      */
     _setData : function(node, data) {
-      this._data[this._dataref] = data;
-      node.className = 'FD_' + (this._dataref++) + ' ' + node.className;
+      if (!this._data[1]) { // data block 1 is reserved for javascript
+        this._data[1] = [];
+      }
+      this._data[1][this._dataref] = data;
+      node.className = 'FD_1_' + (this._dataref++) + ' ' + node.className;
       return data;
     }
   }
@@ -1531,6 +1545,7 @@ JX.install('Request', {
     _xhrkey : null,
     _transport : null,
     _finished : false,
+    _block : null,
 
     send : function() {
       var xport = null;
@@ -1554,6 +1569,9 @@ JX.install('Request', {
       var q = [];
       var data = this.getData() || {};
       data.__async__ = true;
+
+      this._block = JX.Stratcom.allocateMetadataBlock();
+      data.__metablock__ = this._block;
       for (var k in data) {
         q.push(encodeURIComponent(k)+'='+encodeURIComponent(data[k]));
       }
@@ -1635,7 +1653,7 @@ JX.install('Request', {
         if (response.error) {
           this._fail(response.error);
         } else {
-          JX.Stratcom.mergeData(response.javelin_metadata || {});
+          JX.Stratcom.mergeData(this._block, response.javelin_metadata || {});
           this._done(response);
           JX.initBehaviors(response.javelin_behaviors || {});
         }
