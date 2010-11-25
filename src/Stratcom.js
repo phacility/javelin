@@ -483,12 +483,22 @@ JX.install('Stratcom', {
         }
       }
 
-      var matches = ((node.className || '').match(this._matchData) || []);
-      var block = matches[1];
-      var idx = matches[2];
-      return
-        (idx && this._data[block] && this._data[block][idx]) ||
-        JX.Stratcom._setData(node, {});
+      var data = undefined;
+      var matches = (node.className || '').match(this._matchData);
+
+      if (matches) {
+        var block = matches[1];
+        var idx = matches[2];
+        if (this._data[block] && this._data[block][idx] !== undefined) {
+          data = this._data[block][idx];
+        }
+      }
+
+      if (data === undefined) {
+        data = JX.Stratcom._setData(node, {});
+      }
+
+      return data;
     },
 
 
@@ -498,7 +508,7 @@ JX.install('Stratcom', {
      */
     allocateMetadataBlock : function() {
       return this._dataBlock++;
-    }
+    },
 
 
     /**

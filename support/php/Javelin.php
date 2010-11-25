@@ -28,7 +28,7 @@ class Javelin {
         case 'meta':
           $id = count($javelin->metadata);
           $javelin->metadata[$id] = $v;
-          $classes[] = 'FD_'.$this->block.'_'.$id;
+          $classes[] = 'FD_'.$javelin->block.'_'.$id;
           unset($attributes[$k]);
           break;
         case 'mustcapture':
@@ -76,7 +76,7 @@ class Javelin {
     $data = array();
     if ($javelin->metadata) {
       $json_metadata = json_encode($javelin->metadata);
-      $data[] = 'JX.Stratcom.mergeData('.$this->block.', '.$json_metadata.');';
+      $data[] = 'JX.Stratcom.mergeData('.$javelin->block.', '.$json_metadata.');';
       $javelin->metadata = array();
     }
 
