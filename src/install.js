@@ -234,6 +234,17 @@ JX.install = function(new_name, new_junk) {
         // constructor.
 
         for (var member_name in junk.members) {
+          if (junk.extend && member_name[0] == '_') {
+            throw new Error(
+              'JX.install("' + name + '", ...): ' +
+              'installed member "' + member_name + '" must not be named with ' +
+              'a leading underscore because it is in a subclass. Variables ' +
+              'are analyzed and crushed one file at a time, and crushed ' +
+              'member variables in subclasses alias crushed member variables ' +
+              'in superclasses. Remove the underscore, refactor the class so ' +
+              'it does not extend anything, or fix the minifier to be ' +
+              'capable of safely crushing subclasses.');
+          }
           var member_value = junk.members[member_name];
           if (typeof member_value == 'object' && member_value !== null) {
             throw new Error(

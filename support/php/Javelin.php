@@ -76,9 +76,13 @@ class Javelin {
     $data = array();
     if ($javelin->metadata) {
       $json_metadata = json_encode($javelin->metadata);
-      $data[] = 'JX.Stratcom.mergeData('.$javelin->block.', '.$json_metadata.');';
       $javelin->metadata = array();
+    } else {
+      $json_metadata = '{}';
     }
+    // Even if there is no metadata on the page, Javelin uses the mergeData()
+    // call to start dispatching the event queue.
+    $data[] = 'JX.Stratcom.mergeData('.$javelin->block.', '.$json_metadata.');';
 
     if ($javelin->behavior) {
       $behavior = json_encode($javelin->behavior);
