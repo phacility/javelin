@@ -260,6 +260,11 @@ JX.defer = function(func, timeout) {
  * @return void
  */
 JX.go = function(uri) {
+
+  // Foil static analysis, etc. Strictly speaking, JX.go() doesn't really need
+  // to be in javelin-utils so we could do this properly at some point.
+  JX['Stratcom'] && JX['Stratcom'].invoke('go', null, {uri:  uri});
+
   (uri && (window.location = uri)) || window.location.reload(true);
 };
 

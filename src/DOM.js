@@ -299,6 +299,7 @@ JX.$N = function(tag, attr, content) {
  * @task test Testing DOM Properties
  * @task convenience Convenience Methods
  * @task query Finding Nodes in the DOM
+ * @task view Changing View State
  */
 JX.install('DOM', {
   statics : {
@@ -712,8 +713,17 @@ JX.install('DOM', {
      */
     focus : function(node) {
       try { node.focus(); } catch (lol_ie) {}
-    }
+    },
 
+    /**
+     * Scroll to the position of an element in the document.
+     * @task view
+     * @param Node Node to move document scroll position to, if possible.
+     * @return void
+     */
+     scrollTo : function(node) {
+       window.scrollTo(0, JX.$V(node).y);
+     }
   }
 });
 

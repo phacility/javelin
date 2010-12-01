@@ -87,6 +87,10 @@
     'mouseout',
     'mouseup',
     'keydown',
+    'drop',
+    'dragenter',
+    'dragleave',
+    'dragover',
     //  Opera is multilol: it propagates focus/blur oddly and propagates submit
     //  in a way different from other browsers.
     !window.opera && 'submit',
@@ -101,6 +105,7 @@
   //  long polls can abort when the window is not focused.
   var window_events = [
     ('onpagehide' in window) ? 'pagehide' : 'unload',
+    'resize',
     'focus',
     'blur'
   ];

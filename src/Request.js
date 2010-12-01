@@ -18,7 +18,7 @@ JX.install('Request', {
     }
   },
 
-  events : ['done', 'error', 'finally'],
+  events : ['send', 'done', 'error', 'finally'],
 
   members : {
 
@@ -46,23 +46,22 @@ JX.install('Request', {
 
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
-      var q = [];
       var data = this.getData() || {};
       data.__async__ = true;
 
       this._block = JX.Stratcom.allocateMetadataBlock();
       data.__metablock__ = this._block;
-      for (var k in data) {
-        q.push(encodeURIComponent(k)+'='+encodeURIComponent(data[k]));
-      }
-      q = q.join('&');
 
+      var q = (this.getDataSerializer() ||
+               JX.Request.defaultDataSerializer)(data);
       var uri = this.getURI();
       var method = this.getMethod().toUpperCase();
 
       if (method == 'GET') {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
+
+      this.invoke('send', this);
 
       if (this.getTimeout()) {
         this._timer = JX.defer(
@@ -75,11 +74,31 @@ JX.install('Request', {
 
       xport.open(method, uri, true);
 
+      if (__DEV__) {
+        if (this.getFile()) {
+          if (method != 'POST') {
+            throw new Error(
+              'JX.Request.send(): ' +
+              'attempting to send a file over GET. You must use POST.');
+          }
+          if (this.getData()) {
+            throw new Error(
+              'JX.Request.send(): ' +
+              'attempting to send data and a file. You can not send both ' +
+              'at once.');
+          }
+        }
+      }
+
       if (method == 'POST') {
-        xport.setRequestHeader(
-          'Content-Type',
-          'application/x-www-form-urlencoded');
-        xport.send(q);
+        if (this.getFile()) {
+          xport.send(this.getFile());
+        } else {
+          xport.setRequestHeader(
+            'Content-Type',
+            'application/x-www-form-urlencoded');
+          xport.send(q);
+        }
       } else {
         xport.send(null);
       }
@@ -133,7 +152,9 @@ JX.install('Request', {
         if (response.error) {
           this._fail(response.error);
         } else {
-          JX.Stratcom.mergeData(this._block, response.javelin_metadata || {});
+          JX.Stratcom.mergeData(
+            this._block,
+            response.javelin_metadata || {});
           this._done(response);
           JX.initBehaviors(response.javelin_behaviors || {});
         }
@@ -148,7 +169,7 @@ JX.install('Request', {
     _fail : function(error) {
       this._cleanup();
 
-      this.invoke('error', error);
+      this.invoke('error', error, this);
       this.invoke('finally');
     },
 
@@ -161,7 +182,7 @@ JX.install('Request', {
         }
       }
 
-      this.invoke('done', this.getRaw() ? response : response.payload);
+      this.invoke('done', this.getRaw() ? response : response.payload, this);
       this.invoke('finally');
     },
 
@@ -186,13 +207,20 @@ JX.install('Request', {
       }
       JX.Request._xhr = [];
     },
-    ERROR_TIMEOUT : -9000
+    ERROR_TIMEOUT : -9000,
+    defaultDataSerializer : function(data) {
+      var uri = [];
+      for (var k in data) {
+        uri.push(encodeURIComponent(k) + '=' + encodeURIComponent(data[k]));
+      }
+      return uri.join('&');
+    }
   },
 
   properties : {
     URI : null,
     data : null,
-
+    dataSerializer : null,
     /**
      * Configure which HTTP method to use for the request. Permissible values
      * are "POST" (default) or "GET".
@@ -200,6 +228,7 @@ JX.install('Request', {
      * @param string HTTP method, one of "POST" or "GET".
      */
     method : 'POST',
+    file : null,
     raw : false,
 
     /**

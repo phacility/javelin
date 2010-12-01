@@ -260,6 +260,11 @@ JX.defer = function(func, timeout) {
  * @return void
  */
 JX.go = function(uri) {
+
+  // Foil static analysis, etc. Strictly speaking, JX.go() doesn't really need
+  // to be in javelin-utils so we could do this properly at some point.
+  JX['Stratcom'] && JX['Stratcom'].invoke('go', null, {uri:  uri});
+
   (uri && (window.location = uri)) || window.location.reload(true);
 };
 
@@ -982,9 +987,33 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
-    _dataref : 0,
+
+    /**
+     * Node metadata is stored in a series of blocks to prevent collisions
+     * between indexes that are generated on the server side (and potentially
+     * concurrently). Block 0 is for metadata on the initial page load, block 1
+     * is for metadata added at runtime with JX.Stratcom.siglize(), and blocks
+     * 2 and up are for metadata generated from other sources (e.g. JX.Request).
+     * Use allocateMetadataBlock() to reserve a block, and mergeData() to fill
+     * a block with data.
+     *
+     * When a JX.Request is sent, a block is allocated for it and any metadata
+     * it returns is filled into that block.
+     */
     _dataBlock : 2,
 
+    /**
+     * Within each datablock, data is identified by a unique index. The data
+     * pointer on a node looks like this:
+     *
+     *  FD_1_2
+     *
+     * ...where 1 is the block, and 2 is the index within that block. Normally,
+     * blocks are filled on the server side, so index allocation takes place
+     * there. However, when data is provided with JX.Stratcom.sigilize(), we
+     * need to allocate indexes on the client.
+     */
+    _dataIndex : 0,
 
     /**
      * Dispatch a simple event that does not have a corresponding native event
@@ -1333,15 +1362,17 @@ JX.install('Stratcom', {
      * Merge metadata. You must call this (even if you have no metadata) to
      * start the Stratcom queue.
      *
-     * @param  int           The block of this metadata
+     * @param  int          The datablock to merge data into.
      * @param  dict          Dictionary of metadata.
      * @return void
      * @task internal
      */
     mergeData : function(block, data) {
       this._data[block] = data;
-      JX.Stratcom.ready = true;
-      JX.__rawEventQueue({type: 'start-queue'});
+      if (block == 0) {
+        JX.Stratcom.ready = true;
+        JX.__rawEventQueue({type: 'start-queue'});
+      }
     },
 
 
@@ -1421,33 +1452,25 @@ JX.install('Stratcom', {
         }
       }
 
-      var data = undefined;
       var matches = (node.className || '').match(this._matchData);
-
       if (matches) {
-        var block = matches[1];
-        var idx = matches[2];
-        if (this._data[block] && this._data[block][idx] !== undefined) {
-          data = this._data[block][idx];
+        var block = this._data[matches[1]];
+        var index = matches[2];
+        if (block && (index in block)) {
+          return block[index];
         }
       }
 
-      if (data === undefined) {
-        data = JX.Stratcom._setData(node, {});
-      }
-
-      return data;
+      return JX.Stratcom._setData(node, {});
     },
-
 
     /**
-     * Allocate a metadata block, normally for the purpose of passing it to an
-     * ajax request.
-     */
-    allocateMetadataBlock : function() {
-      return this._dataBlock++;
-    },
 
+     * @task internal
+     */
+     allocateMetadataBlock : function() {
+       return this._dataBlock++;
+    },
 
     /**
      * Attach metadata to a node. This data can later be retrieved through
@@ -1461,10 +1484,10 @@ JX.install('Stratcom', {
      */
     _setData : function(node, data) {
       if (!this._data[1]) { // data block 1 is reserved for javascript
-        this._data[1] = [];
+        this._data[1] = {};
       }
-      this._data[1][this._dataref] = data;
-      node.className = 'FD_1_' + (this._dataref++) + ' ' + node.className;
+      this._data[1][this._dataIndex] = data;
+      node.className = 'FD_1_' + (this._dataIndex++) + ' ' + node.className;
       return data;
     }
   }
@@ -1548,7 +1571,7 @@ JX.install('Request', {
     }
   },
 
-  events : ['done', 'error', 'finally'],
+  events : ['send', 'done', 'error', 'finally'],
 
   members : {
 
@@ -1576,23 +1599,22 @@ JX.install('Request', {
 
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
-      var q = [];
       var data = this.getData() || {};
       data.__async__ = true;
 
       this._block = JX.Stratcom.allocateMetadataBlock();
       data.__metablock__ = this._block;
-      for (var k in data) {
-        q.push(encodeURIComponent(k)+'='+encodeURIComponent(data[k]));
-      }
-      q = q.join('&');
 
+      var q = (this.getDataSerializer() ||
+               JX.Request.defaultDataSerializer)(data);
       var uri = this.getURI();
       var method = this.getMethod().toUpperCase();
 
       if (method == 'GET') {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
+
+      this.invoke('send', this);
 
       if (this.getTimeout()) {
         this._timer = JX.defer(
@@ -1605,11 +1627,31 @@ JX.install('Request', {
 
       xport.open(method, uri, true);
 
+      if (__DEV__) {
+        if (this.getFile()) {
+          if (method != 'POST') {
+            throw new Error(
+              'JX.Request.send(): ' +
+              'attempting to send a file over GET. You must use POST.');
+          }
+          if (this.getData()) {
+            throw new Error(
+              'JX.Request.send(): ' +
+              'attempting to send data and a file. You can not send both ' +
+              'at once.');
+          }
+        }
+      }
+
       if (method == 'POST') {
-        xport.setRequestHeader(
-          'Content-Type',
-          'application/x-www-form-urlencoded');
-        xport.send(q);
+        if (this.getFile()) {
+          xport.send(this.getFile());
+        } else {
+          xport.setRequestHeader(
+            'Content-Type',
+            'application/x-www-form-urlencoded');
+          xport.send(q);
+        }
       } else {
         xport.send(null);
       }
@@ -1663,7 +1705,9 @@ JX.install('Request', {
         if (response.error) {
           this._fail(response.error);
         } else {
-          JX.Stratcom.mergeData(this._block, response.javelin_metadata || {});
+          JX.Stratcom.mergeData(
+            this._block,
+            response.javelin_metadata || {});
           this._done(response);
           JX.initBehaviors(response.javelin_behaviors || {});
         }
@@ -1678,7 +1722,7 @@ JX.install('Request', {
     _fail : function(error) {
       this._cleanup();
 
-      this.invoke('error', error);
+      this.invoke('error', error, this);
       this.invoke('finally');
     },
 
@@ -1691,7 +1735,7 @@ JX.install('Request', {
         }
       }
 
-      this.invoke('done', this.getRaw() ? response : response.payload);
+      this.invoke('done', this.getRaw() ? response : response.payload, this);
       this.invoke('finally');
     },
 
@@ -1716,13 +1760,20 @@ JX.install('Request', {
       }
       JX.Request._xhr = [];
     },
-    ERROR_TIMEOUT : -9000
+    ERROR_TIMEOUT : -9000,
+    defaultDataSerializer : function(data) {
+      var uri = [];
+      for (var k in data) {
+        uri.push(encodeURIComponent(k) + '=' + encodeURIComponent(data[k]));
+      }
+      return uri.join('&');
+    }
   },
 
   properties : {
     URI : null,
     data : null,
-
+    dataSerializer : null,
     /**
      * Configure which HTTP method to use for the request. Permissible values
      * are "POST" (default) or "GET".
@@ -1730,6 +1781,7 @@ JX.install('Request', {
      * @param string HTTP method, one of "POST" or "GET".
      */
     method : 'POST',
+    file : null,
     raw : false,
 
     /**
@@ -2368,6 +2420,7 @@ JX.$N = function(tag, attr, content) {
  * @task test Testing DOM Properties
  * @task convenience Convenience Methods
  * @task query Finding Nodes in the DOM
+ * @task view Changing View State
  */
 JX.install('DOM', {
   statics : {
@@ -2781,8 +2834,17 @@ JX.install('DOM', {
      */
     focus : function(node) {
       try { node.focus(); } catch (lol_ie) {}
-    }
+    },
 
+    /**
+     * Scroll to the position of an element in the document.
+     * @task view
+     * @param Node Node to move document scroll position to, if possible.
+     * @return void
+     */
+     scrollTo : function(node) {
+       window.scrollTo(0, JX.$V(node).y);
+     }
   }
 });
 

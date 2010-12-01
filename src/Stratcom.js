@@ -44,9 +44,33 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
-    _dataref : 0,
+
+    /**
+     * Node metadata is stored in a series of blocks to prevent collisions
+     * between indexes that are generated on the server side (and potentially
+     * concurrently). Block 0 is for metadata on the initial page load, block 1
+     * is for metadata added at runtime with JX.Stratcom.siglize(), and blocks
+     * 2 and up are for metadata generated from other sources (e.g. JX.Request).
+     * Use allocateMetadataBlock() to reserve a block, and mergeData() to fill
+     * a block with data.
+     *
+     * When a JX.Request is sent, a block is allocated for it and any metadata
+     * it returns is filled into that block.
+     */
     _dataBlock : 2,
 
+    /**
+     * Within each datablock, data is identified by a unique index. The data
+     * pointer on a node looks like this:
+     *
+     *  FD_1_2
+     *
+     * ...where 1 is the block, and 2 is the index within that block. Normally,
+     * blocks are filled on the server side, so index allocation takes place
+     * there. However, when data is provided with JX.Stratcom.sigilize(), we
+     * need to allocate indexes on the client.
+     */
+    _dataIndex : 0,
 
     /**
      * Dispatch a simple event that does not have a corresponding native event
@@ -395,15 +419,17 @@ JX.install('Stratcom', {
      * Merge metadata. You must call this (even if you have no metadata) to
      * start the Stratcom queue.
      *
-     * @param  int           The block of this metadata
+     * @param  int          The datablock to merge data into.
      * @param  dict          Dictionary of metadata.
      * @return void
      * @task internal
      */
     mergeData : function(block, data) {
       this._data[block] = data;
-      JX.Stratcom.ready = true;
-      JX.__rawEventQueue({type: 'start-queue'});
+      if (block == 0) {
+        JX.Stratcom.ready = true;
+        JX.__rawEventQueue({type: 'start-queue'});
+      }
     },
 
 
@@ -483,33 +509,25 @@ JX.install('Stratcom', {
         }
       }
 
-      var data = undefined;
       var matches = (node.className || '').match(this._matchData);
-
       if (matches) {
-        var block = matches[1];
-        var idx = matches[2];
-        if (this._data[block] && this._data[block][idx] !== undefined) {
-          data = this._data[block][idx];
+        var block = this._data[matches[1]];
+        var index = matches[2];
+        if (block && (index in block)) {
+          return block[index];
         }
       }
 
-      if (data === undefined) {
-        data = JX.Stratcom._setData(node, {});
-      }
-
-      return data;
+      return JX.Stratcom._setData(node, {});
     },
-
 
     /**
-     * Allocate a metadata block, normally for the purpose of passing it to an
-     * ajax request.
-     */
-    allocateMetadataBlock : function() {
-      return this._dataBlock++;
-    },
 
+     * @task internal
+     */
+     allocateMetadataBlock : function() {
+       return this._dataBlock++;
+    },
 
     /**
      * Attach metadata to a node. This data can later be retrieved through
@@ -523,10 +541,10 @@ JX.install('Stratcom', {
      */
     _setData : function(node, data) {
       if (!this._data[1]) { // data block 1 is reserved for javascript
-        this._data[1] = [];
+        this._data[1] = {};
       }
-      this._data[1][this._dataref] = data;
-      node.className = 'FD_1_' + (this._dataref++) + ' ' + node.className;
+      this._data[1][this._dataIndex] = data;
+      node.className = 'FD_1_' + (this._dataIndex++) + ' ' + node.className;
       return data;
     }
   }
