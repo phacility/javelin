@@ -250,7 +250,7 @@ JX.install = function(new_name, new_junk) {
             throw new Error(
               'JX.install("' + name + '", ...): ' +
               'installed member "' + member_name + '" is not a scalar or ' +
-              'function. Prototypal inheritence in Javascript aliases object ' +
+              'function. Prototypal inheritance in Javascript aliases object ' +
               'references across instances so all instances are initialized ' +
               'to point at the exact same object. This is almost certainly ' +
               'not what you intended. Make this member static to share it ' +

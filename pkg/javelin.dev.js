@@ -572,7 +572,7 @@ JX.install = function(new_name, new_junk) {
             throw new Error(
               'JX.install("' + name + '", ...): ' +
               'installed member "' + member_name + '" is not a scalar or ' +
-              'function. Prototypal inheritence in Javascript aliases object ' +
+              'function. Prototypal inheritance in Javascript aliases object ' +
               'references across instances so all instances are initialized ' +
               'to point at the exact same object. This is almost certainly ' +
               'not what you intended. Make this member static to share it ' +
@@ -810,14 +810,11 @@ JX.install('Event', {
      * For example, if you want to react to the escape key being pressed, you
      * could install a listener like this:
      *
-     *  JX.Stratcom.listen(
-     *    'keydown',
-     *    'example',
-     *    function (e) {
-     *      if (e.getSpecialKey() == 'esc') {
-     *        JX.log("You pressed 'Escape'! Well done! Bravo!");
-     *      }
-     *    });
+     *  JX.Stratcom.listen('keydown', 'example', function(e) {
+     *    if (e.getSpecialKey() == 'esc') {
+     *      JX.log("You pressed 'Escape'! Well done! Bravo!");
+     *    }
+     *  });
      *
      *
      * @return string|null ##null## if there is no associated special key,
@@ -837,7 +834,30 @@ JX.install('Event', {
       } while (c && JX.Event._keymap[c])
 
       return c;
+    },
+
+    /**
+     * Get the node corresponding to the specified key in this event's node map.
+     * This is a simple helper method that makes the API for accessing nodes
+     * less ugly.
+     *
+     *  JX.Stratcom.listen('click', 'tag:a', function(e) {
+     *    var a = e.getNode('nearest:a');
+     *    // do something with the link that was clicked
+     *  });
+     *
+     * @param  string     sigil or stratcom node key
+     * @return node|null  Node mapped to the specified key, or null if it the
+     *                    key does not exist. The available keys include:
+     *                    - 'tag:'+tag - first node of each type
+     *                    - 'id:'+id - all nodes with an id
+     *                    - sigil - first node of each sigil
+     * @task info
+     */
+    getNode: function(key) {
+      return this.getNodes()[key] || null;
     }
+
   },
 
   statics : {
@@ -947,11 +967,6 @@ JX.install('Event', {
     }
   }
 });
-
-
-
-
-
 /**
  *  @requires javelin-install javelin-event javelin-util javelin-magical-init
  *  @provides javelin-stratcom
@@ -998,6 +1013,7 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
+    _typeMap : {focusin: 'focus', focusout: 'blur'},
 
     /**
      * Node metadata is stored in a series of blocks to prevent collisions
@@ -1160,9 +1176,9 @@ JX.install('Stratcom', {
             if (__DEV__) {
               if (path[kk] == 'tag:#document') {
                 throw new Error(
-                  'JX.Stratcom.listen(..., "tag:#document", ...): '+
-                  'listen for document events as "tag:window", not '+
-                  '"tag:#document", in order to get consistent behavior '+
+                  'JX.Stratcom.listen(..., "tag:#document", ...): ' +
+                  'listen for document events as "tag:window", not ' +
+                  '"tag:#document", in order to get consistent behavior ' +
                   'across browsers.');
               }
             }
@@ -1195,7 +1211,7 @@ JX.install('Stratcom', {
      * @task internal
      */
     dispatch : function(event) {
-
+      // TODO: simplify this :P
       var target;
       try {
         target = event.srcElement || event.target;
@@ -1207,45 +1223,42 @@ JX.install('Stratcom', {
       }
 
       var path = [];
-      var nodes = [];
-      var data = {};
+      var nodes = {};
+      var push = function(key, node) {
+        // we explicitly only store the first occurrence of each key
+        if (!(key in nodes)) {
+          nodes[key] = node;
+          path.push(key);
+        }
+      };
+
       var cursor = target;
       while (cursor) {
-        var data_source = cursor.className || '';
-        if (typeof data_source.baseVal != "undefined") {
-          // For SVG elements, className is an SVGAnimatedString,
-          // and we have to get baseVal to get a plain string
-          data_source = data_source.baseVal;
+        push('tag:' + cursor.nodeName.toLowerCase(), cursor);
+
+        var id = cursor.id;
+        if (id) {
+          push('id:' + id, cursor);
         }
-        var token;
-        token = (data_source.match(this._matchName) || [])[1];
+
+        var source = cursor.className || '';
+        // className is an SVGAnimatedString for SVG elements, use baseVal
+        var token = ((source.baseVal || source).match(this._matchName) || [])[1];
         if (token) {
-          data[token] = this.getData(cursor);
-          nodes[token] = cursor;
-          path.push(token);
+          push(token, cursor);
         }
-        if (cursor.id) {
-          token = 'id:'+cursor.id;
-          data[token] = cursor;
-          path.push(token);
-        }
+
         cursor = cursor.parentNode;
       }
 
-      if (target) {
-        var tag_sigil = 'tag:'+target.nodeName.toLowerCase();
-        path.push(tag_sigil);
-        data[tag_sigil] = null;
+      var etype = event.type;
+      if (etype in this._typeMap) {
+        etype = this._typeMap[etype];
       }
 
-      var etype = event.type;
-      var tmap = {
-        focusin: 'focus',
-        focusout: 'blur'
-      };
-
-      if (etype in tmap) {
-        etype = tmap[etype];
+      var data = {};
+      for (var key in nodes) {
+        data[key] = this.getData(nodes[key]);
       }
 
       var proxy = new JX.Event()

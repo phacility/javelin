@@ -24,14 +24,16 @@
   var loaded = false;
   var onload = [];
   var master_event_queue = [];
-  JX.__rawEventQueue = function (what) {
+  var root = document.documentElement;
+  var has_add_event_listener = !!root.addEventListener;
 
-    what = what || window.event;
+  JX.__rawEventQueue = function(what) {
     master_event_queue.push(what);
 
 
-    // Evade static analysis.
-    if (JX['Stratcom'] && JX['Stratcom'].ready) {
+    // Evade static analysis - JX.Stratcom
+    var Stratcom = JX['Stratcom'];
+    if (Stratcom && Stratcom.ready) {
       //  Empty the queue now so that exceptions don't cause us to repeatedly
       //  try to handle events.
       var local_queue = master_event_queue;
@@ -54,30 +56,42 @@
 
         }
 
-        JX['Stratcom'].dispatch(evt);
+        Stratcom.dispatch(evt);
       }
     } else {
-      var t = what.srcElement || what.target;
-      if (t
-          && (what.type in {click:1, submit:1})
-          && (' '+t.className+' ').match(/ FI_CAPTURE /)) {
+      var target = what.srcElement || what.target;
+      if (target &&
+          (what.type in {click: 1, submit: 1}) &&
+          (/ FI_CAPTURE /).test(' ' + target.className + ' ')) {
         what.returnValue = false;
         what.preventDefault && what.preventDefault();
         document.body.id = 'event_capture';
+
+        // For versions of IE that use attachEvent, the event object is somehow
+        // stored globally by reference, and all the references we push to the
+        // master_event_queue will always refer to the most recent event. We
+        // work around this by popping the useless global event off the queue,
+        // and pushing a clone of the event that was just fired using the IE's
+        // proprietary createEventObject function.
+        // see: http://msdn.microsoft.com/en-us/library/ms536390(v=vs.85).aspx
+        if (!add_event_listener && document.createEventObject) {
+          master_event_queue.pop();
+          master_event_queue.push(document.createEventObject(what));
+        }
+
         return false;
       }
     }
   }
 
-  JX.enableDispatch = function(root, event) {
-    if (root.addEventListener) {
-      root.addEventListener(event, JX.__rawEventQueue, true);
-    } else {
-      root.attachEvent('on'+event, JX.__rawEventQueue);
+  JX.enableDispatch = function(target, type) {
+    if (target.addEventListener) {
+      target.addEventListener(type, JX.__rawEventQueue, true);
+    } else if (target.attachEvent) {
+      target.attachEvent('on' + type, JX.__rawEventQueue);
     }
   };
 
-  var root = document.documentElement;
   var document_events = [
     'click',
     'change',
@@ -90,15 +104,26 @@
     'drop',
     'dragenter',
     'dragleave',
-    'dragover',
-    //  Opera is multilol: it propagates focus/blur oddly and propagates submit
-    //  in a way different from other browsers.
-    !window.opera && 'submit',
-     window.opera && 'focus',
-     window.opera && 'blur'
+    'dragover'
   ];
+
+  //  Simulate focus and blur in old versions of IE using focusin and focusout
+  //  TODO: Document the gigantic IE mess here with focus/blur.
+  //  TODO: beforeactivate/beforedeactivate?
+  //  http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
+  if (!has_add_event_listener) {
+    document_events.push('focusin', 'focusout');
+  }
+
+  //  Opera is multilol: it propagates focus / blur odd, and submit differently
+  if (window.opera) {
+    document_events.push('focus', 'blur');
+  } else {
+    document_events.push('submit');
+  }
+
   for (var ii = 0; ii < document_events.length; ++ii) {
-    document_events[ii] && JX.enableDispatch(root, document_events[ii]);
+    JX.enableDispatch(root, document_events[ii]);
   }
 
   //  In particular, we're interested in capturing window focus/blur here so
@@ -109,12 +134,13 @@
     'focus',
     'blur'
   ];
+
   for (var ii = 0; ii < window_events.length; ++ii) {
     JX.enableDispatch(window, window_events[ii]);
   }
 
   JX.__simulate = function(node, event) {
-    if (root.attachEvent) {
+    if (!has_add_event_listener) {
       var e = {target: node, type: event};
       JX.__rawEventQueue(e);
       if (e.returnValue === false) {
@@ -123,38 +149,22 @@
     }
   };
 
-  //  TODO: Document the gigantic IE mess here with focus/blur.
-  //  TODO: beforeactivate/beforedeactivate?
-  //  http://www.quirksmode.org/blog/archives/2008/04/delegating_the.html
-  if (!root.addEventListener) {
-    root.onfocusin  = JX.__rawEventQueue;
-    root.onfocusout = JX.__rawEventQueue;
-  }
-
-  root = document;
-  if (root.addEventListener) {
-    if (navigator.userAgent.match(/WebKit/)) {
-      var timeout = setInterval(function() {
-        if (/loaded|complete/.test(document.readyState)) {
-          JX.__rawEventQueue({type: 'domready'});
-          clearTimeout(timeout);
-        }
-      }, 3);
-    } else {
-      root.addEventListener('DOMContentLoaded', function() {
-        JX.__rawEventQueue({type: 'domready'});
-        }, true);
-    }
+  if (has_add_event_listener) {
+    document.addEventListener('DOMContentLoaded', function() {
+      JX.__rawEventQueue({type: 'domready'});
+    }, true);
   } else {
-    var src = 'javascript:void(0)';
-    var action = 'JX.__rawEventQueue({\'type\':\'domready\'});';
-
-    //  TODO: this is throwing, do we need it?
-    //             'this.parentNode.removeChild(this);';
+    var ready =
+      "if (this.readyState == 'complete') {" +
+        "JX.__rawEventQueue({type: 'domready'});" +
+      "}";
 
     document.write(
-      '<script onreadystatechange="'+action+'" defer="defer" src="'+src+'">'+
-      '<\/s'+'cript\>');
+      '<script' +
+      ' defer="defer"' +
+      ' src="javascript:void(0)"' +
+      ' onreadystatechange="' + ready + '"' +
+      '><\/sc' + 'ript\>');
   }
 
   JX.onload = function(func) {

@@ -97,14 +97,11 @@ JX.install('Event', {
      * For example, if you want to react to the escape key being pressed, you
      * could install a listener like this:
      *
-     *  JX.Stratcom.listen(
-     *    'keydown',
-     *    'example',
-     *    function (e) {
-     *      if (e.getSpecialKey() == 'esc') {
-     *        JX.log("You pressed 'Escape'! Well done! Bravo!");
-     *      }
-     *    });
+     *  JX.Stratcom.listen('keydown', 'example', function(e) {
+     *    if (e.getSpecialKey() == 'esc') {
+     *      JX.log("You pressed 'Escape'! Well done! Bravo!");
+     *    }
+     *  });
      *
      *
      * @return string|null ##null## if there is no associated special key,
@@ -124,7 +121,30 @@ JX.install('Event', {
       } while (c && JX.Event._keymap[c])
 
       return c;
+    },
+
+    /**
+     * Get the node corresponding to the specified key in this event's node map.
+     * This is a simple helper method that makes the API for accessing nodes
+     * less ugly.
+     *
+     *  JX.Stratcom.listen('click', 'tag:a', function(e) {
+     *    var a = e.getNode('nearest:a');
+     *    // do something with the link that was clicked
+     *  });
+     *
+     * @param  string     sigil or stratcom node key
+     * @return node|null  Node mapped to the specified key, or null if it the
+     *                    key does not exist. The available keys include:
+     *                    - 'tag:'+tag - first node of each type
+     *                    - 'id:'+id - all nodes with an id
+     *                    - sigil - first node of each sigil
+     * @task info
+     */
+    getNode: function(key) {
+      return this.getNodes()[key] || null;
     }
+
   },
 
   statics : {
@@ -234,8 +254,3 @@ JX.install('Event', {
     }
   }
 });
-
-
-
-
-

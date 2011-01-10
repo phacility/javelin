@@ -44,6 +44,7 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
+    _typeMap : {focusin: 'focus', focusout: 'blur'},
 
     /**
      * Node metadata is stored in a series of blocks to prevent collisions
@@ -206,9 +207,9 @@ JX.install('Stratcom', {
             if (__DEV__) {
               if (path[kk] == 'tag:#document') {
                 throw new Error(
-                  'JX.Stratcom.listen(..., "tag:#document", ...): '+
-                  'listen for document events as "tag:window", not '+
-                  '"tag:#document", in order to get consistent behavior '+
+                  'JX.Stratcom.listen(..., "tag:#document", ...): ' +
+                  'listen for document events as "tag:window", not ' +
+                  '"tag:#document", in order to get consistent behavior ' +
                   'across browsers.');
               }
             }
@@ -241,7 +242,7 @@ JX.install('Stratcom', {
      * @task internal
      */
     dispatch : function(event) {
-
+      // TODO: simplify this :P
       var target;
       try {
         target = event.srcElement || event.target;
@@ -253,45 +254,42 @@ JX.install('Stratcom', {
       }
 
       var path = [];
-      var nodes = [];
-      var data = {};
+      var nodes = {};
+      var push = function(key, node) {
+        // we explicitly only store the first occurrence of each key
+        if (!(key in nodes)) {
+          nodes[key] = node;
+          path.push(key);
+        }
+      };
+
       var cursor = target;
       while (cursor) {
-        var data_source = cursor.className || '';
-        if (typeof data_source.baseVal != "undefined") {
-          // For SVG elements, className is an SVGAnimatedString,
-          // and we have to get baseVal to get a plain string
-          data_source = data_source.baseVal;
+        push('tag:' + cursor.nodeName.toLowerCase(), cursor);
+
+        var id = cursor.id;
+        if (id) {
+          push('id:' + id, cursor);
         }
-        var token;
-        token = (data_source.match(this._matchName) || [])[1];
+
+        var source = cursor.className || '';
+        // className is an SVGAnimatedString for SVG elements, use baseVal
+        var token = ((source.baseVal || source).match(this._matchName) || [])[1];
         if (token) {
-          data[token] = this.getData(cursor);
-          nodes[token] = cursor;
-          path.push(token);
+          push(token, cursor);
         }
-        if (cursor.id) {
-          token = 'id:'+cursor.id;
-          data[token] = cursor;
-          path.push(token);
-        }
+
         cursor = cursor.parentNode;
       }
 
-      if (target) {
-        var tag_sigil = 'tag:'+target.nodeName.toLowerCase();
-        path.push(tag_sigil);
-        data[tag_sigil] = null;
+      var etype = event.type;
+      if (etype in this._typeMap) {
+        etype = this._typeMap[etype];
       }
 
-      var etype = event.type;
-      var tmap = {
-        focusin: 'focus',
-        focusout: 'blur'
-      };
-
-      if (etype in tmap) {
-        etype = tmap[etype];
+      var data = {};
+      for (var key in nodes) {
+        data[key] = this.getData(nodes[key]);
       }
 
       var proxy = new JX.Event()

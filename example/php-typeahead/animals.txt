@@ -42,7 +42,8 @@ dog
 donkey
 dormouse
 dromedary
-duckbill
+duck
+duckbill platypus
 dugong
 eland
 elephant
@@ -108,7 +109,6 @@ goat
 mouse
 mule
 musk
-deer
 musk-ox
 muskrat
 mustang

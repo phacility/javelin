@@ -64,7 +64,7 @@ JX.install('Typeahead', {
 
     this._root = JX.$N(
       'div',
-      {className: 'LTypeaheadResults jx-typeahead-results'});
+      {className: 'jx-typeahead-results'});
     this._display = [];
 
     JX.DOM.listen(
@@ -117,20 +117,7 @@ JX.install('Typeahead', {
      *
      * @task config
      */
-    normalizer : null,
-
-    /**
-     * Boolean. If true (default), disable the control once the user makes a
-     * selection. This is good for a "search" or "lookup" typeahead where the
-     * suggestions are queries or documents and the action when the user makes a
-     * choice is to take the user to a result page, but you may want to disable
-     * it if your use case is more complex.
-     *
-     * @task config
-     * @param bool True (default) to disable the control once the user makes a
-     *             choice.
-     */
-    disableOnChoose : true
+    normalizer : null
   },
 
   members : {
@@ -165,6 +152,20 @@ JX.install('Typeahead', {
      */
     setDatasource : function(datasource) {
       datasource.bindToTypeahead(this);
+    },
+
+
+    /**
+     * Override the <input /> selected in the constructor with some other input.
+     * This is primarily useful when building a control on top of the typeahead,
+     * like @{JX.Tokenizer}.
+     *
+     * @task config
+     * @param node An <input /> node to use as the primary control.
+     */
+    setInputNode : function(input) {
+      this._control = input;
+      return this;
     },
 
 
@@ -217,8 +218,8 @@ JX.install('Typeahead', {
         if (__DEV__) {
           throw new Error(
             "JX.Typeahead._update(): " +
-              "No listener responded to Typeahead 'change' event. Create a " +
-              "datasource and call setDatasource().");
+            "No listener responded to Typeahead 'change' event. Create a " +
+            "datasource and call setDatasource().");
         }
       }
     },
@@ -284,12 +285,6 @@ JX.install('Typeahead', {
 
       this._control.value = target.name;
       this.hide();
-
-      if (this.getDisableOnChoose()) {
-        this._control.blur();
-        this._control.disabled = true;
-        this._stop = true;
-      }
     },
 
 
@@ -303,9 +298,19 @@ JX.install('Typeahead', {
 
 
     /**
-     * @task internal
+     * @task control
      */
-    _submit : function() {
+    disable : function() {
+      this._control.blur();
+      this._control.disabled = true;
+      this._stop = true;
+    },
+
+
+    /**
+     * @task control
+     */
+    submit : function() {
       if (this._focus >= 0 && this._display[this._focus]) {
         this._choose(this._display[this._focus]);
         return true;
@@ -321,6 +326,7 @@ JX.install('Typeahead', {
     setValue : function(value) {
       this._control.value = value;
     },
+
     getValue : function() {
       return this._control.value;
     },
@@ -343,7 +349,7 @@ JX.install('Typeahead', {
             }
             break;
           case 'return':
-            if (this._submit()) {
+            if (this.submit()) {
               event.prevent();
               return;
             }
@@ -354,6 +360,9 @@ JX.install('Typeahead', {
               event.prevent();
             }
             break;
+          case 'tab':
+            // If the user tabs out of the field, don't refresh.
+            return;
         }
       }
 
