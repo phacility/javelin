@@ -155,6 +155,9 @@ JX.install = function(new_name, new_junk) {
           this.__id__ = '__obj__' + (++JX.install._nextObjectID);
           this.__super__ = JX[junk.extend] || JX.bag;
           this.__parent__ = JX[name].prototype;
+          if (JX[name].__prototyping__) {
+            return;
+          }
           return (junk.construct || JX.bag).apply(this, arguments);
           // TODO: Allow mixins to initialize here?
           // TODO: Also, build mixins?
@@ -185,10 +188,13 @@ JX.install = function(new_name, new_junk) {
         JX[name].__readable__ = 'JX.' + name;
       }
 
+      JX[name].__prototyping__ = 0;
+
       var proto;
       if (junk.extend) {
-        // TODO: Flag this junk so it knows it's prototyping?
+        JX[junk.extend].__prototyping__++;
         proto = JX[name].prototype = new JX[junk.extend]();
+        JX[junk.extend].__prototyping__--;
       } else {
         proto = JX[name].prototype = {};
       }
