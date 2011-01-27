@@ -2,7 +2,7 @@
 
 require_once '../../support/php/Javelin.php';
 
-$query = $_SERVER['q'];
+$query = $_GET['q'];
 
 $list = file_get_contents('animals.txt');
 $list = explode("\n", trim($list));
