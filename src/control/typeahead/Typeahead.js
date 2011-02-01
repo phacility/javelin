@@ -84,7 +84,7 @@ JX.install('Typeahead', {
       'mousedown',
       'tag:a',
       JX.bind(this, function(e) {
-        this._choose(e.getTarget());
+        this._choose(e.getNode('tag:a'));
         e.prevent();
       }));
 

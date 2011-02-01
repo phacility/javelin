@@ -18,33 +18,26 @@ class Javelin {
   public static function renderTag($tag, $content, $attributes = array()) {
     $javelin = self::getInstance();
 
-    $classes = array();
     foreach ($attributes as $k => $v) {
       switch ($k) {
         case 'sigil':
-          $classes[] = 'FN_'.$v;
+          $attributes['data-sigil'] = $v;
           unset($attributes[$k]);
           break;
         case 'meta':
           $id = count($javelin->metadata);
           $javelin->metadata[$id] = $v;
-          $classes[] = 'FD_'.$javelin->block.'_'.$id;
+          $attributes['data-meta'] = $javelin->block.'_'.$id;
           unset($attributes[$k]);
           break;
         case 'mustcapture':
-          $classes[] = 'FI_CAPTURE';
+          $attributes['data-mustcapture'] = '1';
           unset($attributes[$k]);
           break;
         default:
           break;
       }
     }
-
-    if (isset($attributes['class'])) {
-      $classes[] = $attributes['class'];
-    }
-    $classes = implode(' ', $classes);
-    $attributes['class'] = $classes;
 
     foreach ($attributes as $k => $v) {
       $v = htmlspecialchars($v, ENT_QUOTES, 'UTF-8');

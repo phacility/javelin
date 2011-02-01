@@ -257,8 +257,12 @@ JX.$N = function(tag, attr, content) {
   }
 
   if (attr.sigil) {
-    JX.Stratcom.sigilize(node, attr.sigil, attr.meta);
+    JX.Stratcom.addSigil(node, attr.sigil);
     delete attr.sigil;
+  }
+
+  if (attr.meta) {
+    JX.Stratcom.addData(node, attr.meta);
     delete attr.meta;
   }
 
@@ -268,17 +272,6 @@ JX.$N = function(tag, attr, content) {
         '$N(' + tag + ', ...): ' +
         'use the key "meta" to specify metadata, not "data" or "metadata".');
     }
-    if (attr.meta) {
-      throw new Error(
-        '$N(' + tag + ', ...): ' +
-        'if you specify "meta" metadata, you must also specify a "sigil".');
-    }
-  }
-
-  // prevent sigil from being wiped by blind copying the className
-  if (attr.className) {
-    JX.DOM.alterClass(node, attr.className, true);
-    delete attr.className;
   }
 
   JX.copy(node, attr);
@@ -442,7 +435,7 @@ JX.install('DOM', {
      * @author jgabbard
      */
     nearest : function(node, sigil) {
-      while (node && !JX.Stratcom.hasSigil(node, sigil)) {
+      while (node && node.getAttribute && !JX.Stratcom.hasSigil(node, sigil)) {
         node = node.parentNode;
       }
       return node;

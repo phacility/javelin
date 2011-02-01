@@ -47,7 +47,7 @@ JX.install('Request', {
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
       var data = this.getData() || {};
-      data.__async__ = true;
+      data.__ajax__ = true;
 
       this._block = JX.Stratcom.allocateMetadataBlock();
       data.__metablock__ = this._block;
@@ -242,7 +242,7 @@ JX.install('Request', {
   },
 
   initialize : function() {
-    JX.Stratcom.listen('unload', 'tag:window', JX.Request.shutdown);
+    JX.Stratcom.listen('unload', null, JX.Request.shutdown);
   }
 
 });

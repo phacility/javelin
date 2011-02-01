@@ -64,11 +64,7 @@ JX.install('Tokenizer', {
       this._tokens = [];
       this._tokenMap = {};
 
-      var focus = JX.$N('input', {
-        className: 'jx-tokenizer-input',
-        type: 'text',
-        value: this._orig.value
-      });
+      var focus = this.buildInput(this._orig.value);
       this._focus = focus;
 
       JX.DOM.listen(
@@ -84,8 +80,8 @@ JX.install('Tokenizer', {
         JX.bind(
           this,
           function(e) {
-            if (e.getNodes().remove) {
-              this._remove(e.getData().token.key);
+            if (e.getNode('remove')) {
+              this._remove(e.getNodeData('token').key);
             } else if (e.getTarget() == this._root) {
               this.focus();
             }
@@ -225,20 +221,7 @@ JX.install('Tokenizer', {
 
       var focus = this._focus;
       var root = this._root;
-
-      var token = JX.$N('a', {
-        className: 'jx-tokenizer-token'
-      }, value);
-
-      var input = JX.$N('input', {
-        type: 'hidden',
-        value: key,
-        name: this._orig.name+'['+(this._seq++)+']'
-      });
-
-      var remove = JX.$N('a', {
-        className: 'jx-tokenizer-x'
-      }, JX.HTML('&times;'));
+      var token = this.buildToken(key, value);
 
       this._tokenMap[key] = {
         value : value,
@@ -247,15 +230,40 @@ JX.install('Tokenizer', {
       };
       this._tokens.push(key);
 
-      JX.Stratcom.sigilize(token, 'token', {key : key});
-      JX.Stratcom.sigilize(remove, 'remove');
-
-      token.appendChild(input);
-      token.appendChild(remove);
-
       root.insertBefore(token, focus);
 
       return true;
+    },
+
+    buildInput: function(value) {
+      return JX.$N('input', {
+        className: 'jx-tokenizer-input',
+        type: 'text',
+        value: value
+      });
+    },
+
+    /**
+     * Generate a token based on a key and value. The "token" and "remove"
+     * sigils are observed by a listener in start().
+     */
+    buildToken: function(key, value) {
+      var input = JX.$N('input', {
+        type: 'hidden',
+        value: key,
+        name: this._orig.name + '[' + (this._seq++) + ']'
+      });
+
+      var remove = JX.$N('a', {
+        className: 'jx-tokenizer-x',
+        sigil: 'remove'
+      }, JX.HTML('&times;'));
+
+      return JX.$N('a', {
+        className: 'jx-tokenizer-token',
+        sigil: 'token',
+        meta: {key: key}
+      }, [value, input, remove]);
     },
 
     getTokens : function() {

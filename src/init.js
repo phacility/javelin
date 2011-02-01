@@ -30,7 +30,6 @@
   JX.__rawEventQueue = function(what) {
     master_event_queue.push(what);
 
-
     // Evade static analysis - JX.Stratcom
     var Stratcom = JX['Stratcom'];
     if (Stratcom && Stratcom.ready) {
@@ -62,7 +61,8 @@
       var target = what.srcElement || what.target;
       if (target &&
           (what.type in {click: 1, submit: 1}) &&
-          (/ FI_CAPTURE /).test(' ' + target.className + ' ')) {
+          target.getAttribute &&
+          target.getAttribute('data-mustcapture') === '1') {
         what.returnValue = false;
         what.preventDefault && what.preventDefault();
         document.body.id = 'event_capture';

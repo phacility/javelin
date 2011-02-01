@@ -9,7 +9,7 @@
 
 JX.behavior = function(name, control_function) {
   if (__DEV__) {
-    if (name in JX.behavior._behaviors) {
+    if (JX.behavior._behaviors.hasOwnProperty(name)) {
       throw new Error(
         'JX.behavior("'+name+'", ...): '+
         'behavior is already registered.');
@@ -40,7 +40,7 @@ JX.initBehaviors = function(map) {
     }
     var configs = map[name];
     if (!configs.length) {
-      if (name in JX.behavior._initialized) {
+      if (JX.behavior._initialized.hasOwnProperty(name)) {
         continue;
       } else {
         configs = [null];

@@ -179,20 +179,25 @@ JX.install('TypeaheadSource', {
       var n = Math.min(this.getMaximumResultCount(), hits.length);
       var nodes = [];
       for (var kk = 0; kk < n; kk++) {
-        var data = this._raw[hits[kk]];
-        nodes.push(JX.$N(
-          'a',
-          {
-            href: data.uri,
-            name: data.name,
-            rel: data.id,
-            className: 'jx-result'
-          },
-          data.display));
+        nodes.push(this.createNode(this._raw[hits[kk]]));
       }
 
       this._typeahead.showResults(nodes);
     },
+
+    createNode : function(data) {
+      return JX.$N(
+        'a',
+        {
+          href: data.uri,
+          name: data.name,
+          rel: data.id,
+          className: 'jx-result'
+        },
+        data.display
+      );
+    },
+
     normalize : function(str) {
       return (this.getNormalizer() || JX.bag())(str);
     },

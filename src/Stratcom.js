@@ -31,6 +31,7 @@
  * @task listen   Listening to Events
  * @task handle   Responding to Events
  * @task sigil    Managing Sigils
+ * @task meta     Managing Metadata
  * @task internal Internals
  */
 JX.install('Stratcom', {
@@ -39,8 +40,6 @@ JX.install('Stratcom', {
     _targets : {},
     _handlers : [],
     _need : {},
-    _matchName : /\bFN_([^ ]+)/,
-    _matchData : /\bFD_([^ ]+)_([^ ]+)/,
     _auto : '*',
     _data : {},
     _execContext : [],
@@ -62,13 +61,13 @@ JX.install('Stratcom', {
 
     /**
      * Within each datablock, data is identified by a unique index. The data
-     * pointer on a node looks like this:
+     * pointer (data-meta attribute) on a node looks like this:
      *
-     *  FD_1_2
+     *  1_2
      *
      * ...where 1 is the block, and 2 is the index within that block. Normally,
      * blocks are filled on the server side, so index allocation takes place
-     * there. However, when data is provided with JX.Stratcom.sigilize(), we
+     * there. However, when data is provided with JX.Stratcom.addData(), we
      * need to allocate indexes on the client.
      */
     _dataIndex : 0,
@@ -208,9 +207,12 @@ JX.install('Stratcom', {
               if (path[kk] == 'tag:#document') {
                 throw new Error(
                   'JX.Stratcom.listen(..., "tag:#document", ...): ' +
-                  'listen for document events as "tag:window", not ' +
-                  '"tag:#document", in order to get consistent behavior ' +
-                  'across browsers.');
+                  'listen for all events using null, not "tag:#document"');
+              }
+              if (path[kk] == 'tag:window') {
+                throw new Error(
+                  'JX.Stratcom.listen(..., "tag:window", ...): ' +
+                  'listen for window events using null, not "tag:window"');
               }
             }
             if (!type_target[path[kk]]) {
@@ -242,29 +244,27 @@ JX.install('Stratcom', {
      * @task internal
      */
     dispatch : function(event) {
-      // TODO: simplify this :P
-      var target;
-      try {
-        target = event.srcElement || event.target;
-        if (target === window || (!target || target.nodeName == '#document')) {
-          target = {nodeName: 'window'};
-        }
-      } catch (x) {
-        target = null;
-      }
-
       var path = [];
       var nodes = {};
       var push = function(key, node) {
         // we explicitly only store the first occurrence of each key
-        if (!(key in nodes)) {
+        if (!nodes.hasOwnProperty(key)) {
           nodes[key] = node;
           path.push(key);
         }
       };
 
+      var target = event.srcElement || event.target;
+
+      // Since you can only listen by tag, id or sigil, which are all
+      // attributes of an Element (the DOM interface), we unset the target
+      // if it isn't an Element (window and Document are Nodes but not Elements)
+      if (!target || !target.getAttribute) {
+        target = null;
+      }
+
       var cursor = target;
-      while (cursor) {
+      while (cursor && cursor.getAttribute) {
         push('tag:' + cursor.nodeName.toLowerCase(), cursor);
 
         var id = cursor.id;
@@ -272,11 +272,12 @@ JX.install('Stratcom', {
           push('id:' + id, cursor);
         }
 
-        var source = cursor.className || '';
-        // className is an SVGAnimatedString for SVG elements, use baseVal
-        var token = ((source.baseVal || source).match(this._matchName) || [])[1];
-        if (token) {
-          push(token, cursor);
+        var sigils = cursor.getAttribute('data-sigil');
+        if (sigils) {
+          sigils = sigils.split(' ');
+          for (var ii = 0; ii < sigils.length; ii++) {
+            push(sigils[ii], cursor);
+          }
         }
 
         cursor = cursor.parentNode;
@@ -287,16 +288,10 @@ JX.install('Stratcom', {
         etype = this._typeMap[etype];
       }
 
-      var data = {};
-      for (var key in nodes) {
-        data[key] = this.getData(nodes[key]);
-      }
-
       var proxy = new JX.Event()
         .setRawEvent(event)
         .setType(etype)
         .setTarget(target)
-        .setData(data)
         .setNodes(nodes)
         .setPath(path.reverse());
 
@@ -432,40 +427,6 @@ JX.install('Stratcom', {
 
 
     /**
-     * Attach a sigil (and, optionally, metadata) to a node. Note that you can
-     * not overwrite, remove or replace a sigil.
-     *
-     * @param   Node    Node without any sigil.
-     * @param   string  Sigil to name the node with.
-     * @param   object? Optional metadata object to attach to the node.
-     * @return  void
-     * @task sigil
-     */
-    sigilize : function(node, sigil, data) {
-      if (__DEV__) {
-        if (node.className.match(this._matchName)) {
-          throw new Error(
-            'JX.Stratcom.sigilize(<node>, ' + sigil + ', ...): ' +
-            'node already has a sigil, sigils may not be overwritten.');
-        }
-        if (typeof data != 'undefined' &&
-            (data === null || typeof data != 'object')) {
-          throw new Error(
-            'JX.Stratcom.sigilize(..., ..., <nonobject>): ' +
-            'data to attach to node is not an object. You must use ' +
-            'objects, not primitives, for metadata.');
-        }
-      }
-
-      if (data) {
-        JX.Stratcom._setData(node, data);
-      }
-
-      node.className = 'FN_' + sigil + ' ' + node.className;
-    },
-
-
-    /**
      * Determine if a node has a specific sigil.
      *
      * @param  Node    Node to test.
@@ -475,75 +436,120 @@ JX.install('Stratcom', {
      * @task sigil
      */
     hasSigil : function(node, sigil) {
-      if (!node.className) {
-        // Some nodes don't have a className, notably 'document'. We hit
-        // 'document' when following .parentNode chains, e.g. in
-        // JX.DOM.nearest(), so exit early if we don't have a className to avoid
-        // fataling on 'node.className.match' being undefined.
-        return false;
+      if (__DEV__) {
+        if (!node || !node.getAttribute) {
+          throw new Error(
+            'JX.Stratcom.hasSigil(<non-element>, ...): ' +
+            'node is not an element. Most likely, you\'re passing window or ' +
+            'document, which are not elements and can\'t have sigils.');
+        }
       }
-      return (node.className.match(this._matchName) || [])[1] == sigil;
+
+      var sigils = node.getAttribute('data-sigil');
+      return sigils && (' ' + sigils + ' ').indexOf(' ' + sigil + ' ') > -1;
+    },
+
+
+    /**
+     * Add a sigil to a node.
+     *
+     * @param   Node    Node to add the sigil to.
+     * @param   string  Sigil to name the node with.
+     * @return  void
+     * @task sigil
+     */
+    addSigil: function(node, sigil) {
+      if (__DEV__) {
+        if (!node || !node.getAttribute) {
+          throw new Error(
+            'JX.Stratcom.addSigil(<non-element>, ...): ' +
+            'node is not an element. Most likely, you\'re passing window or ' +
+            'document, which are not elements and can\'t have sigils.');
+        }
+      }
+
+      var sigils = node.getAttribute('data-sigil');
+      if (sigils && !JX.Stratcom.hasSigil(node, sigil)) {
+        sigil = sigils + ' ' + sigil;
+      }
+
+      node.setAttribute('data-sigil', sigil);
     },
 
 
     /**
      * Retrieve a node's metadata.
      *
-     * @param  Node    Node from which to retrieve data.
-     * @return object  Data attached to the node, or an empty dictionary if
-     *                 the node has no data attached. In this case, the empty
-     *                 dictionary is set as the node's metadata -- i.e.,
-     *                 subsequent calls to getData() will retrieve the same
-     *                 object.
-     *
-     * @task sigil
+     * @param   Node    Node from which to retrieve data.
+     * @return  object  Data attached to the node. If no data has been attached
+     *                  to the node yet, an empty object will be returned, but
+     *                  subsequent calls to this method will always retrieve the
+     *                  same object.
+     * @task meta
      */
     getData : function(node) {
       if (__DEV__) {
-        if (!node) {
+        if (!node || !node.getAttribute) {
           throw new Error(
-            'JX.Stratcom.getData(<empty>): ' +
-            'you must provide a node to get associated data from.');
+            'JX.Stratcom.getData(<non-element>): ' +
+            'node is not an element. Most likely, you\'re passing window or ' +
+            'document, which are not elements and can\'t have data.');
         }
       }
 
-      var matches = (node.className || '').match(this._matchData);
-      if (matches) {
-        var block = this._data[matches[1]];
-        var index = matches[2];
+      var meta_id = (node.getAttribute('data-meta') || '').split('_');
+      if (meta_id[0] && meta_id[1]) {
+        var block = this._data[meta_id[0]];
+        var index = meta_id[1];
         if (block && (index in block)) {
           return block[index];
         }
       }
 
-      return JX.Stratcom._setData(node, {});
-    },
-
-    /**
-
-     * @task internal
-     */
-     allocateMetadataBlock : function() {
-       return this._dataBlock++;
-    },
-
-    /**
-     * Attach metadata to a node. This data can later be retrieved through
-     * @{JX.Stratcom.getData()}, or @{JX.Event.getData()}.
-     *
-     * @param   Node    Node which data should be attached to.
-     * @param   object  Data to attach.
-     * @return  object  Attached data.
-     *
-     * @task internal
-     */
-    _setData : function(node, data) {
-      if (!this._data[1]) { // data block 1 is reserved for javascript
+      var data = {};
+      if (!this._data[1]) { // data block 1 is reserved for JavaScript
         this._data[1] = {};
       }
       this._data[1][this._dataIndex] = data;
-      node.className = 'FD_1_' + (this._dataIndex++) + ' ' + node.className;
+      node.setAttribute('data-meta', '1_' + (this._dataIndex++));
       return data;
+    },
+
+
+    /**
+     * Add data to a node's metadata.
+     *
+     * @param   Node    Node which data should be attached to.
+     * @param   object  Data to add to the node's metadata.
+     * @return  object  Data attached to the node that is returned by
+     *                  JX.Stratcom.getData().
+     * @task meta
+     */
+    addData : function(node, data) {
+      if (__DEV__) {
+        if (!node || !node.getAttribute) {
+          throw new Error(
+            'JX.Stratcom.addData(<non-element>, ...): ' +
+            'node is not an element. Most likely, you\'re passing window or ' +
+            'document, which are not elements and can\'t have sigils.');
+        }
+        if (!data || typeof data != 'object') {
+          throw new Error(
+            'JX.Stratcom.addData(..., <nonobject>): ' +
+            'data to attach to node is not an object. You must use ' +
+            'objects, not primitives, for metadata.');
+        }
+      }
+
+      return JX.copy(JX.Stratcom.getData(node), data);
+    },
+
+
+    /**
+     * @task internal
+     */
+    allocateMetadataBlock : function() {
+      return this._dataBlock++;
     }
   }
 });

@@ -103,7 +103,6 @@ JX.install('Event', {
      *    }
      *  });
      *
-     *
      * @return string|null ##null## if there is no associated special key,
      *                     or one of the strings 'delete', 'tab', 'return',
      *                     'esc', 'left', 'up', 'right', or 'down'.
@@ -115,13 +114,9 @@ JX.install('Event', {
         return null;
       }
 
-      var c = r.keyCode;
-      do {
-        c = JX.Event._keymap[c] || null;
-      } while (c && JX.Event._keymap[c])
-
-      return c;
+      return JX.Event._keymap[r.keyCode] || null;
     },
+
 
     /**
      * Get the node corresponding to the specified key in this event's node map.
@@ -129,7 +124,7 @@ JX.install('Event', {
      * less ugly.
      *
      *  JX.Stratcom.listen('click', 'tag:a', function(e) {
-     *    var a = e.getNode('nearest:a');
+     *    var a = e.getNode('tag:a');
      *    // do something with the link that was clicked
      *  });
      *
@@ -141,10 +136,29 @@ JX.install('Event', {
      *                    - sigil - first node of each sigil
      * @task info
      */
-    getNode: function(key) {
+    getNode : function(key) {
       return this.getNodes()[key] || null;
-    }
+    },
 
+
+    /**
+     * Get the metadata associated with the node that corresponds to the key
+     * in this event's node map.  This is a simple helper method that makes
+     * the API for accessing metadata associated with specific nodes less ugly.
+     *
+     *  JX.Stratcom.listen('click', 'tag:a', function(event) {
+     *    var anchorData = event.getNodeData('tag:a');
+     *    // do something with the metadata of the link that was clicked
+     *  });
+     *
+     * @param  string   sigil or stratcom node key
+     * @return dict     dictionary of the node's metadata
+     * @task info
+     */
+    getNodeData : function(key) {
+      // Evade static analysis - JX.Stratcom
+      return JX['Stratcom'].getData(this.getNode(key));
+    }
   },
 
   statics : {
@@ -157,10 +171,10 @@ JX.install('Event', {
       38    : 'up',
       39    : 'right',
       40    : 'down',
-      63232 : 38,
-      63233 : 40,
-      62234 : 37,
-      62235 : 39
+      63232 : 'up',
+      63233 : 'down',
+      62234 : 'left',
+      62235 : 'right'
     }
   },
 
