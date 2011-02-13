@@ -82,6 +82,11 @@ JX.install('TypeaheadSource', {
       return;
     },
 
+    clearCache : function() {
+      this._raw = {};
+      this._lookup = {};
+    },
+
     addResult : function(obj) {
       obj = (this.getTransformer() || this._defaultTransformer)(obj);
 

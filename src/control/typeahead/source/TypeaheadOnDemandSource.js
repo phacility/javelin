@@ -13,7 +13,7 @@ JX.install('TypeaheadOnDemandSource', {
   extend : 'TypeaheadSource',
 
   construct : function(uri) {
-    this.__super__.call(this);
+    JX.TypeaheadSource.call(this);
     this.uri = uri;
     this.haveData = {
       '' : true

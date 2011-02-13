@@ -256,9 +256,14 @@ JX.install('Stratcom', {
 
       var target = event.srcElement || event.target;
 
-      // Since you can only listen by tag, id or sigil, which are all
-      // attributes of an Element (the DOM interface), we unset the target
-      // if it isn't an Element (window and Document are Nodes but not Elements)
+      // Touch events may originate from text nodes, but we want to start our
+      // traversal from the nearest Element, so we grab the parentNode instead.
+      if (target && target.nodeType === 3) {
+        target = target.parentNode;
+      }
+
+      // Since you can only listen by tag, id, or sigil we unset the target if
+      // it isn't an Element. Document and window are Nodes but not Elements.
       if (!target || !target.getAttribute) {
         target = null;
       }
@@ -295,7 +300,7 @@ JX.install('Stratcom', {
         .setNodes(nodes)
         .setPath(path.reverse());
 
-//      JX.log('~> '+proxy.toString());
+      //JX.log('~> '+proxy.toString());
 
       return this._dispatchProxy(proxy);
     },

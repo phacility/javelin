@@ -55,12 +55,6 @@
  * all classes:
  *
  *   - ##instance.__id__## Globally unique identifier attached to each instance.
- *   - ##instance.__super__## Reference to the parent class constructor, if one
- *      exists. Allows use of ##this.__super__.apply(this, ...)## to call the
- *      superclass's constructor.
- *   - ##instance.__parent__## Reference to the parent class prototype, if one
- *      exists. Allows use of ##this.__parent__.someMethod.apply(this, ...)##
- *      to call the superclass's methods.
  *   - ##prototype.__class__## Reference to the class constructor.
  *   - ##constructor.__path__## List of path tokens used emit events. It is
  *       probably never useful to access this directly.
@@ -153,8 +147,6 @@ JX.install = function(new_name, new_junk) {
       JX[name] = (function(name, junk) {
         var result = function() {
           this.__id__ = '__obj__' + (++JX.install._nextObjectID);
-          this.__super__ = JX[junk.extend] || JX.bag;
-          this.__parent__ = JX[name].prototype;
           if (JX[name].__prototyping__) {
             return;
           }

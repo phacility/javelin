@@ -377,12 +377,6 @@ if (__DEV__) {
  * all classes:
  *
  *   - ##instance.__id__## Globally unique identifier attached to each instance.
- *   - ##instance.__super__## Reference to the parent class constructor, if one
- *      exists. Allows use of ##this.__super__.apply(this, ...)## to call the
- *      superclass's constructor.
- *   - ##instance.__parent__## Reference to the parent class prototype, if one
- *      exists. Allows use of ##this.__parent__.someMethod.apply(this, ...)##
- *      to call the superclass's methods.
  *   - ##prototype.__class__## Reference to the class constructor.
  *   - ##constructor.__path__## List of path tokens used emit events. It is
  *       probably never useful to access this directly.
@@ -475,8 +469,6 @@ JX.install = function(new_name, new_junk) {
       JX[name] = (function(name, junk) {
         var result = function() {
           this.__id__ = '__obj__' + (++JX.install._nextObjectID);
-          this.__super__ = JX[junk.extend] || JX.bag;
-          this.__parent__ = JX[name].prototype;
           if (JX[name].__prototyping__) {
             return;
           }
@@ -1245,9 +1237,14 @@ JX.install('Stratcom', {
 
       var target = event.srcElement || event.target;
 
-      // Since you can only listen by tag, id or sigil, which are all
-      // attributes of an Element (the DOM interface), we unset the target
-      // if it isn't an Element (window and Document are Nodes but not Elements)
+      // Touch events may originate from text nodes, but we want to start our
+      // traversal from the nearest Element, so we grab the parentNode instead.
+      if (target && target.nodeType === 3) {
+        target = target.parentNode;
+      }
+
+      // Since you can only listen by tag, id, or sigil we unset the target if
+      // it isn't an Element. Document and window are Nodes but not Elements.
       if (!target || !target.getAttribute) {
         target = null;
       }
@@ -1284,7 +1281,7 @@ JX.install('Stratcom', {
         .setNodes(nodes)
         .setPath(path.reverse());
 
-//      JX.log('~> '+proxy.toString());
+      //JX.log('~> '+proxy.toString());
 
       return this._dispatchProxy(proxy);
     },
@@ -2682,17 +2679,23 @@ JX.install('DOM', {
      * @task stratcom
      * @param Node        The node to listen for events underneath.
      * @param string|list One or more event types to listen for.
-     * @param list?       A path to listen on.
+     * @param list?       A path to listen on, or a list of paths.
      * @param function    Callback to invoke when a matching event occurs.
      * @return object     A reference to the installed listener. You can later
      *                    remove the listener by calling this object's remove()
      *                    method.
      */
     listen : function(node, type, path, callback) {
-      return JX.Stratcom.listen(
-        type,
-        ['id:'+JX.DOM.uniqID(node)].concat(JX.$AX(path || [])),
-        callback);
+      var id = ['id:' + JX.DOM.uniqID(node)];
+      path = JX.$AX(path || []);
+      if (!path.length) {
+        path = id;
+      } else {
+        for (var ii = 0; ii < path.length; ii++) {
+          path[ii] = id.concat(JX.$AX(path[ii]));
+        }
+      }
+      return JX.Stratcom.listen(type, path, callback);
     },
 
     uniqID : function(node) {

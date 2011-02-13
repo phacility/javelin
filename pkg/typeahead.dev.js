@@ -502,6 +502,11 @@ JX.install('TypeaheadSource', {
       return;
     },
 
+    clearCache : function() {
+      this._raw = {};
+      this._lookup = {};
+    },
+
     addResult : function(obj) {
       obj = (this.getTransformer() || this._defaultTransformer)(obj);
 
@@ -661,7 +666,7 @@ JX.install('TypeaheadPreloadedSource', {
   extend : 'TypeaheadSource',
 
   construct : function(uri) {
-    this.__super__.call(this);
+    JX.TypeaheadSource.call(this);
     this.uri = uri;
   },
 
@@ -716,7 +721,7 @@ JX.install('TypeaheadOnDemandSource', {
   extend : 'TypeaheadSource',
 
   construct : function(uri) {
-    this.__super__.call(this);
+    JX.TypeaheadSource.call(this);
     this.uri = uri;
     this.haveData = {
       '' : true
