@@ -1,0 +1,4 @@
+{
+  "project_id" : "javelin",
+  "conduit_uri" : "https://secure.phabricator.com/api/"
+}
