@@ -1,2 +1,11 @@
 .DS_Store
 ._*
+*.o
+*.so
+*.a
+
+externals/libfbjs/parser.lex.cpp
+externals/libfbjs/parser.yacc.cpp
+externals/libfbjs/parser.yacc.hpp
+externals/libfbjs/parser.yacc.output
+
