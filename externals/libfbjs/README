@@ -1,0 +1,39 @@
+== Building ==
+It's recommended that you build this software with the latest versions of flex
+and bison.
+
+You can download flex here:
+http://flex.sourceforge.net/
+
+And bison here:
+http://www.gnu.org/software/bison/
+
+This software was developed using flex version 2.5.35 and bison version 2.3.
+Please note that flex 2.5.4 is OLDER than 2.5.35, and will not be able to build
+this software.
+
+To build simply execute `make fbjs`. You can ignore the sign warning in
+`yy_get_next_buffer`; I'm pretty sure that's a bug in flex and not in libfbjs.
+
+
+== How to use ==
+To apply the FBJS2 transformations to a program `make fbjs` and pipe a program
+to `fbjs`. In cli.cpp you'll find the code needed to invoke this transformation.
+
+To use the FBJS2 parser in other software you may want to check out
+jsbeautify.cpp. Documentation is paltry, but it should be pretty easy to get up
+to speed if you have a familiarity of Javascript and C++.
+
+
+== Notes ==
+* NodeString expressions are implemented poorly right now. Instead of parsing
+  what's in the string we just grab the raw contents from code. This was just
+  a hack because I didn't feel like writing the state machine to convert \x,
+  \u, \0, etc into bytes.
+* There will be a memory leak when you attempt to parse a program with a syntax
+  error in it. This is because the authority of freeing allocated nodes is left
+  to the parent node. The problem is that the allocated child nodes aren't added
+  to the AST until the very last reduciton. Thus, when a ParseException is
+  raised the allocated nodes are lost since they never became associated with a
+  managed node.
+* Handling of virtual semicolons is probably not to spec.

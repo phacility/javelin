@@ -1,0 +1,23 @@
+cpp_library(
+  name = 'libfbjs',
+  srcs = ['parser.ll',
+          'parser.yy',
+          'node.cpp',
+          'parser.cpp',
+          'walker.cpp',
+         ],
+  deps = [ ':libfbjs_support' ],
+)
+
+cpp_library(
+  name = 'libfbjs_support',
+  srcs = ['dmg_fp_dtoa.c',
+          'dmg_fp_g_fmt.c',
+         ],
+  known_warnings = ['dmg_fp_dtoa.c', 'dmg_fp_g_fmt.c'],
+  preprocessor_flags = ['-DIEEE_8087=1',
+                        '-DNO_HEX_FP=1',
+                        '-DLong=int32_t',
+                        '-DULong=uint32_t',
+                        '-include stdint.h'],
+)
