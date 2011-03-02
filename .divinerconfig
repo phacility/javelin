@@ -1,5 +1,6 @@
 {
-  "name" : "javelin",
+  "name" : "Javelin",
+  "src_base" : "https://github.com/epriestley/javelin/blob/master",
   "phutil_libraries" : {
     "javelin-diviner" : "support/diviner"
   },
