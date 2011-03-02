@@ -6,10 +6,19 @@
 
 
 
+phutil_require_module('diviner', 'atoms/class');
+phutil_require_module('diviner', 'atoms/file');
+phutil_require_module('diviner', 'atoms/function');
+phutil_require_module('diviner', 'atoms/method');
 phutil_require_module('diviner', 'engine/base');
 
 phutil_require_module('phutil', 'filesystem');
 phutil_require_module('phutil', 'filesystem/filefinder');
+phutil_require_module('phutil', 'future');
+phutil_require_module('phutil', 'future/exec');
+phutil_require_module('phutil', 'moduleutils');
+phutil_require_module('phutil', 'parser/docblock');
+phutil_require_module('phutil', 'utils');
 
 
 phutil_require_source('JavelinDivinerEngine.php');
