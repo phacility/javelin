@@ -5,4 +5,4 @@ javelinsymbols: javelinsymbols.cpp
 	$(CXX) -o $@ -Wall -I$(EXTERNALS) $^ $(LIBFBJS)libfbjs.a
 
 clean:
-  rm -rf javelinsymbols.o
+	rm -rf javelinsymbols.o

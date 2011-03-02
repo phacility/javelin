@@ -9,3 +9,4 @@ externals/libfbjs/parser.yacc.cpp
 externals/libfbjs/parser.yacc.hpp
 externals/libfbjs/parser.yacc.output
 
+support/javelinsymbols/javelinsymbols
