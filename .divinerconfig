@@ -1,0 +1,9 @@
+{
+  "name" : "javelin",
+  "phutil_libraries" : {
+    "javelin-diviner" : "support/diviner"
+  },
+  "engines" : [
+    ["JavelinDivinerEngine", {}]
+  ]
+}

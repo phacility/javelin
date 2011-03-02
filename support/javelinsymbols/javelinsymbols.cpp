@@ -1,10 +1,9 @@
+#include "libfbjs/node.hpp"
+#include "libfbjs/parser.hpp"
+
 #include <iostream>
 #include <string.h>
 #include <map>
-
-#define NOT_FBMAKE 1
-#include "libfbjs/node.hpp"
-#include "libfbjs/parser.hpp"
 
 using namespace fbjs;
 using namespace std;
@@ -53,6 +52,9 @@ string get_static_member_symbol(Node *node) {
   }
 
   for_nodes(node, ii) {
+    if (!(*ii)) {
+      break;
+    }
     if (typeid(**ii) == typeid(NodeIdentifier)) {
       NodeIdentifier *n = static_cast<NodeIdentifier *>(*ii);
       if (symbol.length()) {
@@ -66,11 +68,6 @@ string get_static_member_symbol(Node *node) {
   
   return symbol;
 }
-
-/*
-string get_type_name(Node *node) {
-  if (typeid(*node) == typeid
-  */
 
 int main(int argc, char* argv[]) {
   try {

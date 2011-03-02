@@ -9,8 +9,8 @@ else
   CPPFLAGS += -ggdb -g -O0 -DDEBUG
 endif
 
-javelinsymbols: javelinsymbols.cpp
+jsast: jsast.cpp
 	$(CXX) -o $@ -Wall -I$(EXTERNALS) $^ $(LIBFBJS)libfbjs.a
 
 clean:
-	rm -rf javelinsymbols.o
+	rm -rf jsast.o
