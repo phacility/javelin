@@ -197,7 +197,15 @@ void ReductionWalker::visit(NodeIf& node) {
       ++it;
       Node* elseBlock = *it;
       if (elseBlock == NULL) {
-        remove();
+        // If we're the child of a statement list, we can safely delete the 
+        // whole if/else node. But if we're a child of an if statement, we can 
+        // not remove the node or we'll leave the parent with a surprising and
+        // segfaulty number of child nodes, e.g. if (x) {} else if (0) {}
+        if (dynamic_cast<NodeStatementList*>(parent()->node())) {
+          remove();
+        } else {
+          replace(NULL);
+        }
       } else {
         replace(node.removeChild(it));
       }
