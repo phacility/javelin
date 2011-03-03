@@ -4,7 +4,11 @@
   "phutil_libraries" : {
     "javelin-diviner" : "support/diviner"
   },
+  "groups" : {
+    "facebook" : "Information for Facebook Employees"
+  },
   "engines" : [
+    ["DivinerArticleEngine", {}],
     ["JavelinDivinerEngine", {}]
   ]
 }
