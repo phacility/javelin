@@ -107,13 +107,14 @@ namespace fbjs {
         } else {
           (*ii)->accept(*walker);
         }
-        if (_remove) {
-          if (!_skip_delete) {
-            delete _node->removeChild(ii);
+        if (walker->_remove) {
+          Node* old_node = _node->removeChild(ii);
+          if (!walker->_skip_delete && old_node) {
+            delete old_node;
           }
         } else if (*ii != walker->_node) {
           Node* old_node = _node->replaceChild(walker->_node, ii);
-          if (!_skip_delete && old_node) {
+          if (!walker->_skip_delete && old_node) {
             delete old_node;
           }
         }
