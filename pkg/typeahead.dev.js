@@ -401,6 +401,8 @@ JX.install('Typeahead', {
     }
   }
 });
+
+
 /**
  * @requires javelin-install
  * @provides javelin-typeahead-normalizer
@@ -418,6 +420,8 @@ JX.install('TypeaheadNormalizer', {
     }
   }
 });
+
+
 /**
  * @requires javelin-install
  *           javelin-util
@@ -645,6 +649,8 @@ JX.install('TypeaheadSource', {
 });
 
 
+
+
 /**
  * @requires javelin-install
  *           javelin-util
@@ -703,6 +709,8 @@ JX.install('TypeaheadPreloadedSource', {
     }
   }
 });
+
+
 
 
 
@@ -790,6 +798,8 @@ JX.install('TypeaheadOnDemandSource', {
     }
   }
 });
+
+
 
 
 /**
@@ -897,11 +907,16 @@ JX.install('Tokenizer', {
         JX.bind(
           this,
           function() {
-            JX.DOM.setContent(this._orig.parentNode, root);
+            var container = this._orig.parentNode;
+            JX.DOM.setContent(container, root);
             var map = this._initialValue || {};
             for (var k in map) {
               this.addToken(k, map[k]);
             }
+            JX.DOM.appendContent(
+              container,
+              JX.$N('div', {style: {clear: 'both'}})
+            );
             this._redraw();
           }));
     },
@@ -1003,9 +1018,6 @@ JX.install('Tokenizer', {
       // Firefox. If we don't do this, it doesn't redraw the input so pasting
       // in an email address doesn't give you a very good behavior.
       focus.value = focus.value;
-
-      var h = JX.$V(focus).add(JX.$V.getDim(focus)).y - JX.$V(root).y;
-      root.style.height = h + 'px';
     },
 
     addToken : function(key, value) {

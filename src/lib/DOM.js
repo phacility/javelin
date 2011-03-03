@@ -518,6 +518,20 @@ JX.install('DOM', {
      *                    method.
      */
     listen : function(node, type, path, callback) {
+      if (__DEV__) {
+        var types = JX.$AX(type);
+        for (var ix = 0; ix < types.length; ix++) {
+          var t = types[ix];
+
+          if (!(t in JX.__allowedEvents)) {
+            throw new Error(
+              'JX.DOM.listen(...): ' +
+              'can only listen to events registered in init.js. "' +
+               t + '" not found.');
+          }
+        }
+      }
+
       var id = ['id:' + JX.DOM.uniqID(node)];
       path = JX.$AX(path || []);
       if (!path.length) {

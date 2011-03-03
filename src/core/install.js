@@ -147,9 +147,6 @@ JX.install = function(new_name, new_junk) {
       JX[name] = (function(name, junk) {
         var result = function() {
           this.__id__ = '__obj__' + (++JX.install._nextObjectID);
-          if (JX[name].__prototyping__) {
-            return;
-          }
           return (junk.construct || JX.bag).apply(this, arguments);
           // TODO: Allow mixins to initialize here?
           // TODO: Also, build mixins?
@@ -174,19 +171,20 @@ JX.install = function(new_name, new_junk) {
       })(name, junk);
 
       // Copy in all the static methods and properties.
-      JX.copy(JX[name], junk.statics);
+      for (var k in junk.statics) {
+        // Can't use JX.copy() here yet since it may not have loaded.
+        JX[name][k] = junk.statics[k];
+      }
 
       if (__DEV__) {
         JX[name].__readable__ = 'JX.' + name;
       }
 
-      JX[name].__prototyping__ = 0;
-
       var proto;
       if (junk.extend) {
-        JX[junk.extend].__prototyping__++;
-        proto = JX[name].prototype = new JX[junk.extend]();
-        JX[junk.extend].__prototyping__--;
+        var Inheritance = function() {};
+        Inheritance.prototype = JX[junk.extend].prototype;
+        proto = JX[name].prototype = new Inheritance();
       } else {
         proto = JX[name].prototype = {};
       }
@@ -262,7 +260,9 @@ JX.install = function(new_name, new_junk) {
 
       // This execution order intentionally allows you to override methods
       // generated from the "properties" initializer.
-      JX.copy(proto, junk.members);
+      for (var k in junk.members) {
+        proto[k] = junk.members[k];
+      }
 
 
       // Build this ridiculous event model thing. Basically, this defines
@@ -378,8 +378,14 @@ JX.install = function(new_name, new_junk) {
         };
       }
 
-      // Finally, run the init function if it was provided.
-      (junk.initialize || JX.bag)();
+      if (junk.initialize) {
+        if (JX.Stratcom && JX.Stratcom.ready) {
+          junk.initialize.apply(null);
+        } else {
+          // This is a holding queue, defined in init.js.
+          JX['install-init'](junk.initialize);
+        }
+      }
     }
 
     // In effect, this exits the loop as soon as we didn't make any progress
@@ -387,3 +393,5 @@ JX.install = function(new_name, new_junk) {
     // dependencies for.
   } while (name);
 }
+
+JX.flushHoldingQueue('install', JX.install);

@@ -235,7 +235,7 @@ JX.install('Stratcom', {
 
     /**
      * Dispatch a native Javascript event through the Stratcom control flow.
-     * Generally, this is automatically called for you by the master dipatcher
+     * Generally, this is automatically called for you by the master dispatcher
      * installed by ##init.js##. When you want to dispatch an application event,
      * you should instead call invoke().
      *
@@ -426,6 +426,9 @@ JX.install('Stratcom', {
       this._data[block] = data;
       if (block == 0) {
         JX.Stratcom.ready = true;
+        JX.flushHoldingQueue('install-init', function(fn) {
+          fn();
+        });
         JX.__rawEventQueue({type: 'start-queue'});
       }
     },
@@ -450,7 +453,7 @@ JX.install('Stratcom', {
         }
       }
 
-      var sigils = node.getAttribute('data-sigil');
+      var sigils = node.getAttribute('data-sigil') || false;
       return sigils && (' ' + sigils + ' ').indexOf(' ' + sigil + ' ') > -1;
     },
 

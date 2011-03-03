@@ -263,11 +263,17 @@ JX.go = function(uri) {
 
   // Foil static analysis, etc. Strictly speaking, JX.go() doesn't really need
   // to be in javelin-utils so we could do this properly at some point.
-  JX['Stratcom'] && JX['Stratcom'].invoke('go', null, {uri:  uri});
-
-  (uri && (window.location = uri)) || window.location.reload(true);
+  if (!JX['Stratcom'] ||
+      !JX['Stratcom'].invoke('go', null, {uri: uri}).getPrevented()) {
+    // Only call window.location if a subscriber of the 'go' event has not
+    // prevented the default action, i.e. following the uri.
+    (uri && (window.location = uri)) || window.location.reload(true);
+  }
 };
 
+JX.id = function(any) {
+  return any;
+};
 
 if (__DEV__) {
   if (!window.console || !window.console.log) {

@@ -56,4 +56,5 @@ JX.initBehaviors = function(map) {
 !function(JX) {
   JX.behavior._behaviors = {};
   JX.behavior._initialized = {};
+  JX.flushHoldingQueue('behavior', JX.behavior);
 }(JX);

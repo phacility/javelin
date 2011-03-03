@@ -2,7 +2,6 @@
  * Javelin core; installs Javelin and Stratcom event delegation.
  *
  * @provides javelin-magical-init
- * @nopackage
  *
  * @javelin-installs JX.__rawEventQueue
  * @javelin-installs JX.__simulate
@@ -19,6 +18,33 @@
   }
 
   window.JX = {};
+
+  // The holding queues hold calls to functions (JX.install() and JX.behavior())
+  // before they load, so if you're async-loading them later in the document
+  // the page will execute correctly regardless of the order resources arrive
+  // in.
+
+  var holding_queues = {};
+
+  function makeHoldingQueue(name) {
+    if (JX[name]) {
+      return;
+    }
+    holding_queues[name] = [];
+    JX[name] = function() { holding_queues[name].push(arguments); }
+  }
+
+  JX.flushHoldingQueue = function(name, fn) {
+    for (var ii = 0; ii < holding_queues[name].length; ii++) {
+      fn.apply(null, holding_queues[name][ii]);
+    }
+    holding_queues[name] = {};
+  }
+
+  makeHoldingQueue('install');
+  makeHoldingQueue('behavior');
+  makeHoldingQueue('install-init');
+
   window['__DEV__'] = window['__DEV__'] || 0;
 
   var loaded = false;
@@ -85,6 +111,10 @@
   }
 
   JX.enableDispatch = function(target, type) {
+    if (__DEV__) {
+      JX.__allowedEvents[type] = true;
+    }
+
     if (target.addEventListener) {
       target.addEventListener(type, JX.__rawEventQueue, true);
     } else if (target.attachEvent) {
@@ -100,11 +130,16 @@
     'mouseover',
     'mouseout',
     'mouseup',
+    'keyup',
     'keydown',
     'drop',
     'dragenter',
     'dragleave',
-    'dragover'
+    'dragover',
+    'touchstart',
+    'touchmove',
+    'touchend',
+    'touchcancel'
   ];
 
   //  Simulate focus and blur in old versions of IE using focusin and focusout
@@ -122,6 +157,13 @@
     document_events.push('submit');
   }
 
+  if (__DEV__) {
+    JX.__allowedEvents = {};
+    if ('onpagehide' in window) {
+      JX.__allowedEvents.unload = true;
+    }
+  }
+
   for (var ii = 0; ii < document_events.length; ++ii) {
     JX.enableDispatch(root, document_events[ii]);
   }
@@ -134,6 +176,7 @@
     'focus',
     'blur'
   ];
+
 
   for (var ii = 0; ii < window_events.length; ++ii) {
     JX.enableDispatch(window, window_events[ii]);

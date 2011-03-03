@@ -86,7 +86,6 @@ JX.install('Workflow', {
         var form = event.getNode('jx-dialog');
         var data = JX.DOM.serialize(form);
         data[t.name] = true;
-        data.__wflow__ = true;
 
         var active = JX.Workflow._stack[JX.Workflow._stack.length - 1];
         var e = active.invoke('submit', {form: form, data: data});
@@ -175,7 +174,9 @@ JX.install('Workflow', {
       var uri = this.getURI();
       var method = this.getMethod();
       var r = new JX.Request(uri, JX.bind(this, this._onload));
-      r.setData(this.getData());
+      var data = this.getData();
+      data.__wflow__ = true;
+      r.setData(data);
       r.setDataSerializer(this.getDataSerializer());
       if (method) {
         r.setMethod(method);

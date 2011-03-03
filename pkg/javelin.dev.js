@@ -263,11 +263,17 @@ JX.go = function(uri) {
 
   // Foil static analysis, etc. Strictly speaking, JX.go() doesn't really need
   // to be in javelin-utils so we could do this properly at some point.
-  JX['Stratcom'] && JX['Stratcom'].invoke('go', null, {uri:  uri});
-
-  (uri && (window.location = uri)) || window.location.reload(true);
+  if (!JX['Stratcom'] ||
+      !JX['Stratcom'].invoke('go', null, {uri: uri}).getPrevented()) {
+    // Only call window.location if a subscriber of the 'go' event has not
+    // prevented the default action, i.e. following the uri.
+    (uri && (window.location = uri)) || window.location.reload(true);
+  }
 };
 
+JX.id = function(any) {
+  return any;
+};
 
 if (__DEV__) {
   if (!window.console || !window.console.log) {
@@ -320,6 +326,8 @@ if (__DEV__) {
   })(window.alert);
 
 }
+
+
 /**
  * @requires javelin-util
  * @provides javelin-install
@@ -469,9 +477,6 @@ JX.install = function(new_name, new_junk) {
       JX[name] = (function(name, junk) {
         var result = function() {
           this.__id__ = '__obj__' + (++JX.install._nextObjectID);
-          if (JX[name].__prototyping__) {
-            return;
-          }
           return (junk.construct || JX.bag).apply(this, arguments);
           // TODO: Allow mixins to initialize here?
           // TODO: Also, build mixins?
@@ -496,19 +501,20 @@ JX.install = function(new_name, new_junk) {
       })(name, junk);
 
       // Copy in all the static methods and properties.
-      JX.copy(JX[name], junk.statics);
+      for (var k in junk.statics) {
+        // Can't use JX.copy() here yet since it may not have loaded.
+        JX[name][k] = junk.statics[k];
+      }
 
       if (__DEV__) {
         JX[name].__readable__ = 'JX.' + name;
       }
 
-      JX[name].__prototyping__ = 0;
-
       var proto;
       if (junk.extend) {
-        JX[junk.extend].__prototyping__++;
-        proto = JX[name].prototype = new JX[junk.extend]();
-        JX[junk.extend].__prototyping__--;
+        var Inheritance = function() {};
+        Inheritance.prototype = JX[junk.extend].prototype;
+        proto = JX[name].prototype = new Inheritance();
       } else {
         proto = JX[name].prototype = {};
       }
@@ -584,7 +590,9 @@ JX.install = function(new_name, new_junk) {
 
       // This execution order intentionally allows you to override methods
       // generated from the "properties" initializer.
-      JX.copy(proto, junk.members);
+      for (var k in junk.members) {
+        proto[k] = junk.members[k];
+      }
 
 
       // Build this ridiculous event model thing. Basically, this defines
@@ -700,8 +708,14 @@ JX.install = function(new_name, new_junk) {
         };
       }
 
-      // Finally, run the init function if it was provided.
-      (junk.initialize || JX.bag)();
+      if (junk.initialize) {
+        if (JX.Stratcom && JX.Stratcom.ready) {
+          junk.initialize.apply(null);
+        } else {
+          // This is a holding queue, defined in init.js.
+          JX['install-init'](junk.initialize);
+        }
+      }
     }
 
     // In effect, this exits the loop as soon as we didn't make any progress
@@ -709,6 +723,10 @@ JX.install = function(new_name, new_junk) {
     // dependencies for.
   } while (name);
 }
+
+JX.flushHoldingQueue('install', JX.install);
+
+
 /**
  * @requires javelin-install
  * @provides javelin-event
@@ -979,6 +997,8 @@ JX.install('Event', {
     }
   }
 });
+
+
 /**
  *  @requires javelin-install javelin-event javelin-util javelin-magical-init
  *  @provides javelin-stratcom
@@ -1216,7 +1236,7 @@ JX.install('Stratcom', {
 
     /**
      * Dispatch a native Javascript event through the Stratcom control flow.
-     * Generally, this is automatically called for you by the master dipatcher
+     * Generally, this is automatically called for you by the master dispatcher
      * installed by ##init.js##. When you want to dispatch an application event,
      * you should instead call invoke().
      *
@@ -1407,6 +1427,9 @@ JX.install('Stratcom', {
       this._data[block] = data;
       if (block == 0) {
         JX.Stratcom.ready = true;
+        JX.flushHoldingQueue('install-init', function(fn) {
+          fn();
+        });
         JX.__rawEventQueue({type: 'start-queue'});
       }
     },
@@ -1431,7 +1454,7 @@ JX.install('Stratcom', {
         }
       }
 
-      var sigils = node.getAttribute('data-sigil');
+      var sigils = node.getAttribute('data-sigil') || false;
       return sigils && (' ' + sigils + ' ').indexOf(' ' + sigil + ' ') > -1;
     },
 
@@ -1539,6 +1562,8 @@ JX.install('Stratcom', {
     }
   }
 });
+
+
 /**
  * @provides javelin-behavior
  *
@@ -1597,7 +1622,10 @@ JX.initBehaviors = function(map) {
 !function(JX) {
   JX.behavior._behaviors = {};
   JX.behavior._initialized = {};
+  JX.flushHoldingQueue('behavior', JX.behavior);
 }(JX);
+
+
 /**
  * @requires javelin-install
  *           javelin-stratcom
@@ -1846,6 +1874,8 @@ JX.install('Request', {
   }
 
 });
+
+
 
 /**
  * @requires javelin-install javelin-event
@@ -2166,6 +2196,8 @@ JX.install('$V', {
 
   }
 });
+
+
 /**
  * @requires javelin-install javelin-util javelin-vector javelin-stratcom
  * @provides javelin-dom
@@ -2686,6 +2718,20 @@ JX.install('DOM', {
      *                    method.
      */
     listen : function(node, type, path, callback) {
+      if (__DEV__) {
+        var types = JX.$AX(type);
+        for (var ix = 0; ix < types.length; ix++) {
+          var t = types[ix];
+
+          if (!(t in JX.__allowedEvents)) {
+            throw new Error(
+              'JX.DOM.listen(...): ' +
+              'can only listen to events registered in init.js. "' +
+               t + '" not found.');
+          }
+        }
+      }
+
       var id = ['id:' + JX.DOM.uniqID(node)];
       path = JX.$AX(path || []);
       if (!path.length) {
@@ -2894,6 +2940,8 @@ JX.install('DOM', {
   }
 });
 
+
+
 /**
  *  Simple JSON serializer.
  *
@@ -2946,5 +2994,147 @@ JX.install('JSON', {
     _esc : function(str) {
       return '"'+str.replace(/\\/g, '\\\\').replace(/"/g, '\\"')+'"';
     }
+  }
+});
+
+
+/**
+ * @provides javelin-uri
+ * @requires javelin-install
+ *           javelin-util
+ * @javelin
+ */
+
+/**
+ * Oh hey, I'm just a handy function that returns a JX.URI so you can
+ * concisely write something like
+ *
+ * JX.$U(http://zombo.com/).getDomain()
+ */
+JX.$U = function(uri) {
+  return new JX.URI(uri);
+};
+
+/**
+ * Convert a string URI into a maleable object
+ *
+ *   var uri = JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
+ *   uri.getProtocol();  // http
+ *   uri.getDomain();    // www.facebook.com
+ *   uri.getPath();      // /asdf.php
+ *   uri.getQueryData(); // {"a":"b", "c":"d"}
+ *   uri.getFragment();  // anchor123
+ *
+ * And back into a string
+ *
+ *   uri.setFragment('clowntown');
+ *   uri.toString() // http://www.facebook.com/asdf.php?a=b&c=d#clowntown
+ *
+ */
+JX.install('URI', {
+  statics : {
+    _uriPattern : /(?:([^:\/?#]+):)?(?:\/\/([^:\/?#]*)(?::(\d*))?)?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/,
+    _queryPattern : /(?:^|&)([^&=]*)=?([^&]*)/g
+  },
+
+  /**
+   * Construct a URI
+   *
+   * Accepts either absolute or relative URIs. Relative URIs may have protocol
+   * and domain properties set to undefined
+   *
+   * @param string    absolute or relative URI
+   */
+  construct : function(uri) {
+    // need to set the default value here rather than in the properties map,
+    // or else we get some crazy global state breakage
+    this.setQueryData({});
+
+    if (uri) {
+      // parse the url
+      var result = JX.URI._uriPattern.exec(uri);
+
+      this.setProtocol(result[1]);
+      this.setDomain(result[2]);
+      this.setPort(result[3]);
+      var path = result[4];
+      var query = result[5];
+      this.setFragment(result[6]);
+
+      // parse the path
+      this.setPath(path.charAt(0) == '/' ? path : '/' + path);
+
+      // parse the query data
+      if (query) {
+        var queryData = {};
+        var data;
+        while ((data = JX.URI._queryPattern.exec(query)) != null) {
+          queryData[decodeURIComponent(data[1])] = decodeURIComponent(data[2]);
+        }
+        this.setQueryData(queryData);
+      }
+    }
+  },
+
+  properties : {
+    protocol: undefined,
+    domain: undefined,
+    port: undefined,
+    path: '/',
+    queryData: undefined,
+    fragment: undefined
+  },
+
+  members : {
+
+    /**
+     * Append and override query data values
+     * Remove a query key by setting it undefined
+     *
+     * @param map
+     * @return @{JX.URI} self
+     */
+    addQueryData : function(map) {
+      JX.copy(this.getQueryData(), map);
+      return this;
+    },
+
+    toString : function() {
+      if (__DEV__) {
+        if (this.getPath() && this.getPath().charAt(0) != '/') {
+          throw new Error(
+            'JX.URI.toString(): ' +
+            'Path does not begin with a "/" which means this URI will likely' +
+            'be malformed. Ensure any string passed to .setPath() leads "/"');
+        }
+      }
+      var str = '';
+      if (this.getProtocol()) {
+        str += this.getProtocol() + '://';
+      }
+      str += this.getDomain() || '';
+      str += this.getPath() || '/';
+      str += this._getQueryString();
+      if (this.getFragment()) {
+        str += '#' + this.getFragment();
+      }
+      return str;
+    },
+
+    _getQueryString : function() {
+      var queryData = this.getQueryData();
+      var queryString = '';
+      for (var key in queryData) {
+        if (queryData[key] != null) {
+          queryString += queryString ? '&' : '?';
+          queryString += encodeURIComponent(key);
+          if (queryData[key] !== '') {
+            queryString += '=' + encodeURIComponent(queryData[key]);
+          }
+        }
+      }
+      return queryString;
+    }
+
   }
 });
