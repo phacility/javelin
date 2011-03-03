@@ -69,13 +69,13 @@ $data = array();
 foreach ($files as $file) {
   echo "Reading {$file}...\n";
   $content = Filesystem::readFile($root.$file);
-  
+
   // Strip out Facebook-specific bookkeeping code.
   $content = preg_replace(
     "@/\*\+([a-z]+)\*/.*?/\*-\\1\*/([ ]*\n)*@s",
     "\n",
     $content);
-    
+
   $data[$file] = $content;
 }
 
@@ -92,15 +92,15 @@ foreach ($packages as $package => $items) {
     $content[] = $data[$item];
   }
   $content = implode("\n\n", $content);
-  
+
   echo "Writing {$package}.dev.js...\n";
   Filesystem::writeFile($local.'/pkg/'.$package.'.dev.js', $content);
-    
+
   echo "Writing {$package}.min.js...\n";
   $exec = new ExecFuture($local.'/support/jsxmin/jsxmin __DEV__:0');
   $exec->write($content);
   list($stdout) = $exec->resolvex();
-  
+
   Filesystem::writeFile($local.'/pkg/'.$package.'.min.js', $stdout);
 }
 
