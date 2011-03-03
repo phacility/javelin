@@ -13,4 +13,4 @@ javelinsymbols: javelinsymbols.cpp
 	$(CXX) $(CPPFLAGS) -o $@ -Wall -I$(EXTERNALS) $^ $(LIBFBJS)libfbjs.a
 
 clean:
-	rm -rf javelinsymbols.o
+	rm -rf javelinsymbols

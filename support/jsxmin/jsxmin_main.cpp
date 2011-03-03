@@ -18,8 +18,10 @@ static void jsxminify(NodeProgram* root, string &replacements) {
   VariableRenaming variable_renaming;
   variable_renaming.process(root);
 
+/*
   PropertyRenaming property_renaming;
   property_renaming.process(root);
+*/
 }
 
 int main(int argc, char* argv[]) {
