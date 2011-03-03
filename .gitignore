@@ -11,6 +11,7 @@ externals/libfbjs/parser.yacc.output
 
 support/javelinsymbols/javelinsymbols
 support/jsast/jsast
+support/jsxmin/jsxmin
 
 docs/
 
