@@ -71,6 +71,8 @@ class JavelinDivinerEngine extends DivinerEngine {
       list($block, $line) = $data;
       $map[$line] = $block;
     }
+    
+    $atoms = $file_atom->getAllChildren();
 
     $atoms = mpull($atoms, null, 'getLine');
     ksort($atoms);
@@ -91,6 +93,52 @@ class JavelinDivinerEngine extends DivinerEngine {
       if (isset($map[$block_id])) {
         $atom->setRawDocblock($map[$block_id]);
         unset($map[$block_id]);
+      }
+      
+      if (($atom instanceof DivinerMethodAtom) ||
+          ($atom instanceof DivinerFunctionAtom)) {
+
+        $metadata = $atom->getDocblockMetadata();
+        $return = idx($metadata, 'return');
+        if ($return) {
+          $split = preg_split('/\s+/', trim($return), $limit = 2);
+          if (!empty($split[0])) {
+            $type = $split[0];
+          } else {
+            $type = 'wild';
+          }
+
+          $docs = null;
+          if (!empty($split[1])) {
+            $docs = $split[1];
+          }
+      
+          $dict = array(
+            'doctype' => $type,
+            'docs'    => $docs,
+          );
+
+          $atom->setReturnTypeAttributes($dict);
+        }
+        
+        $docs = idx($metadata, 'param', '');
+        if ($docs) {
+          $docs = explode("\n", $docs);
+          foreach ($atom->getParameters() as $param => $dict) {
+            $doc = array_shift($docs);
+            if ($doc) {
+              $split = preg_split('/\s+/', trim($doc), $limit = 2);
+              if (!empty($split[0])) {
+                $dict['doctype'] = $split[0];
+              }
+              if (!empty($split[1])) {
+                $dict['docs'] = $split[1];
+              }
+            }
+            $atom->addParameter($param, $dict);
+          }
+        }
+
       }
     }
 
@@ -194,6 +242,9 @@ class JavelinDivinerEngine extends DivinerEngine {
 */
           break;
         case 'extend':
+          $this->expectNode($value, 'StringLiteral');
+          $class->addParentClass('JX.'.$this->getNodeValue($value));
+          break;
         case 'events':
         case 'canCallAsFunction':
           // echo "{$name}: NOT IMPLEMENTED!\n";

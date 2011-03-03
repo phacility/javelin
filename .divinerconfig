@@ -5,7 +5,11 @@
     "javelin-diviner" : "support/diviner"
   },
   "groups" : {
-    "facebook" : "Information for Facebook Employees"
+    "facebook" : "Information for Facebook Employees",
+    "util" : "Utilities",
+    "event" : "Event Model",
+    "dom" : "DOM and Markup",
+    "control" : "Controls and UI"
   },
   "engines" : [
     ["DivinerArticleEngine", {}],
