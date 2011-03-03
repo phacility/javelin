@@ -31,6 +31,8 @@ $files = array(
   'lib/control/typeahead/source/TypeaheadOnDemandSource.js',
   'lib/control/typeahead/normalizer/TypeaheadNormalizer.js',
   'lib/control/tokenizer/Tokenizer.js',
+
+  'docs/Base.js',
 );
 
 $packages = array(
