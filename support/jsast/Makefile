@@ -10,7 +10,7 @@ else
 endif
 
 jsast: jsast.cpp
-	$(CXX) -o $@ -Wall -I$(EXTERNALS) $^ $(LIBFBJS)libfbjs.a
+	$(CXX) $(CPPFLAGS) -o $@ -Wall -I$(EXTERNALS) $^ $(LIBFBJS)libfbjs.a
 
 clean:
-	rm -rf jsast.o
+	rm -rf jsast
