@@ -174,7 +174,7 @@ function render_body($body, $tab) {
     <div id="menu">
       <a href="?" {$sel_home}>Home</a>
       <a href="?overview" {$sel_overview}>Overview</a>
-      <a href="http://javelin.fbdocs.com/">Documentation</a>
+      <a href="http://www.phabricator.com/docs/javelin/">Documentation</a>
       <a href="http://github.com/epriestley/javelin">Download</a>
       <div style="clear: both;"></div>
     </div>
