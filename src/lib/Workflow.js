@@ -6,6 +6,7 @@
  *           javelin-install
  *           javelin-util
  *           javelin-mask
+ *           javelin-uri
  * @provides javelin-workflow
  * @javelin
  */
@@ -108,22 +109,22 @@ JX.install('Workflow', {
       // It is permissible to send back a falsey redirect to force a page
       // reload, so we need to take this branch if the key is present.
       if (r && (typeof r.redirect != 'undefined')) {
-        JX.go(r.redirect, true);
+        JX.$U(r.redirect).go();
       } else if (r && r.dialog) {
         this._push();
         this._root = JX.$N(
           'div',
           {className: 'jx-client-dialog'},
-          JX.HTML(r.dialog));
+          JX.$H(r.dialog));
         JX.DOM.listen(
           this._root,
           'click',
           'tag:button',
           JX.Workflow._onbutton);
         document.body.appendChild(this._root);
-        var d = JX.$V.getDim(this._root);
-        var v = JX.$V.getViewport();
-        var s = JX.$V.getScroll();
+        var d = JX.Vector.getDim(this._root);
+        var v = JX.Vector.getViewport();
+        var s = JX.Vector.getScroll();
         JX.$V((v.x - d.x) / 2, s.y + 100).setPos(this._root);
         try {
           JX.DOM.focus(JX.DOM.find(this._root, 'button', '__default__'));

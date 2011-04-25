@@ -71,8 +71,10 @@ JX.install('TypeaheadOnDemandSource', {
     },
 
     ondata : function(when, value, results) {
-      for (var ii = 0; ii < results.length; ii++) {
-        this.addResult(results[ii]);
+      if (results) {
+        for (var ii = 0; ii < results.length; ii++) {
+          this.addResult(results[ii]);
+        }
       }
       this.haveData[value] = true;
       if (when != this.lastChange) {

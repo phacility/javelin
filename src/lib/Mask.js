@@ -16,7 +16,7 @@ JX.install('Mask', {
       if (!JX.Mask._depth) {
         JX.Mask._mask = JX.$N('div', {className: 'jx-mask'});
         document.body.appendChild(JX.Mask._mask);
-        JX.$V.getDocument().setDim(JX.Mask._mask);
+        JX.Vector.getDocument().setDim(JX.Mask._mask);
       }
       ++JX.Mask._depth;
     },

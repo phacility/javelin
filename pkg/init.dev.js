@@ -12,7 +12,6 @@
  */
 (function() {
 
-
   if (window.JX) {
     return;
   }
@@ -74,11 +73,9 @@
         if (!loaded && evt.type == 'domready') {
           document.body && (document.body.id = null);
           loaded = true;
-
           for (var ii = 0; ii < onload.length; ii++) {
             onload[ii]();
           }
-
         }
 
         Stratcom.dispatch(evt);
@@ -125,6 +122,7 @@
   var document_events = [
     'click',
     'change',
+    'submit',
     'keypress',
     'mousedown',
     'mouseover',
@@ -150,11 +148,9 @@
     document_events.push('focusin', 'focusout');
   }
 
-  //  Opera is multilol: it propagates focus / blur odd, and submit differently
+  //  Opera is multilol: it propagates focus / blur oddly
   if (window.opera) {
     document_events.push('focus', 'blur');
-  } else {
-    document_events.push('submit');
   }
 
   if (__DEV__) {
@@ -217,6 +213,4 @@
       onload.push(func);
     }
   }
-
-
 })();

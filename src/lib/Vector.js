@@ -5,27 +5,38 @@
  */
 
 /**
- * Query and update positions and dimensions of nodes (and other things)
- * within a document. 'V' stands for 'Vector'. Each vector has two elements,
- * 'x' and 'y', which usually represent width/height (a "dimension vector") or
- * left/top (a "position vector").
+ * Handy convenience function that returns a JX.Vector instance so you can
+ * concisely write something like:
+ *
+ *  JX.$V(x, y).add(10, 10);
+ * or
+ *  JX.$V(node).add(50, 50).setDim(node);
+ */
+JX.$V = function(x, y) {
+  return new JX.Vector(x, y);
+};
+
+/**
+ * Query and update positions and dimensions of nodes (and other things) within
+ * within a document. Each vector has two elements, 'x' and 'y', which usually
+ * represent width/height ('dimension vector') or left/top ('position vector').
  *
  * Vectors are used to manage the sizes and positions of elements, events,
  * the document, and the viewport (the visible section of the document, i.e.
  * how much of the page the user can actually see in their browser window).
- * Unlike most Javelin classes, @{JX.$V} exposes two bare properties, 'x' and
- * 'y'. You can read and manipulate these directly:
+ * Unlike most Javelin classes, @{JX.Vector} exposes two bare properties,
+ * 'x' and 'y'. You can read and manipulate these directly:
  *
  *   // Give the user information about elements when they click on them.
  *   JX.Stratcom.listen(
  *     'click',
  *     null,
  *     function(e) {
- *       var p = JX.$V(e);
- *       var d = JX.$V.getDim(e.getTarget());
+ *       var p = new JX.Vector(e);
+ *       var d = JX.Vector.getDim(e.getTarget());
  *
- *       alert('You clicked at <'+p.x+','+p.y'>; the element you clicked '+
- *             'is '+d.x+' pixels wide and '+d.y+' pixels high.');
+ *       alert('You clicked at <' + p.x + ',' + p.y + '> and the element ' +
+ *             'you clicked is ' + d.x + 'px wide and ' + d.y + 'px high.');
  *     });
  *
  * You can also update positions and dimensions using vectors:
@@ -35,45 +46,44 @@
  *     'click',
  *     null,
  *     function(e) {
- *       var t = e.getTarget();
- *       JX.$V(t).add(10, 10).setDim(t);
+ *       var target = e.getTarget();
+ *       JX.$V(target).add(10, 10).setDim(target);
  *     });
  *
  * Additionally, vectors can be used to query document and viewport information:
  *
- *   var v = JX.$V.getViewport(); // Viewport (window) width and height.
- *   var d = JX.$V.getDocument(); // Document width and height.
+ *   var v = JX.Vector.getViewport(); // Viewport (window) width and height.
+ *   var d = JX.Vector.getDocument(); // Document width and height.
  *   var visible_area = parseInt(100 * (v.x * v.y) / (d.x * d.y), 10);
- *   alert('You can currently see '+visible_area'+ percent of the document.');
+ *   alert('You can currently see ' + visible_area + ' % of the document.');
  *
  * @author epriestley
  *
  * @task query  Querying Positions and Dimensions
  * @task update Changing Positions and Dimensions
  * @task manip  Manipulating Vectors
- *
  */
-JX.install('$V', {
+JX.install('Vector', {
 
   /**
    * Construct a vector, either from explicit coordinates or from a node
    * or event. You can pass two Numbers to construct an explicit vector:
    *
-   *   var v = JX.$V(35, 42);
+   *   var p = new JX.Vector(35, 42);
    *
    * Otherwise, you can pass a @{JX.Event} or a Node to implicitly construct a
    * vector:
    *
-   *   var u = JX.$V(some_event);
-   *   var v = JX.$V(some_node);
+   *   var q = new JX.Vector(some_event);
+   *   var r = new JX.Vector(some_node);
    *
-   * These are just like calling getPos() on the @{JX.Event} or Node.
+   * These are just like calling JX.Vector.getPos() on the @{JX.Event} or Node.
    *
-   * For convenience, @{JX.$V()} constructs a new vector even without the 'new'
-   * keyword. That is, these are equivalent:
+   * For convenience, @{JX.$V()} constructs a new vector so you don't need to
+   * use the 'new' keyword. That is, these are equivalent:
    *
-   *   var q = new JX.$V(x, y);
-   *   var r = JX.$V(x, y);
+   *   var s = new JX.Vector(x, y);
+   *   var t = JX.$V(x, y);
    *
    * Methods like getScroll(), getViewport() and getDocument() also create
    * new vectors.
@@ -86,21 +96,18 @@ JX.install('$V', {
    * @param wild      'x' component of the vector, or a @{JX.Event}, or a Node.
    * @param Number?   If providing an 'x' component, the 'y' component of the
    *                  vector.
-   * @return @{JX.$V} Specified vector.
+   * @return @{JX.Vector} Specified vector.
    * @task query
    */
   construct : function(x, y) {
-    if (this == JX || this == window) {
-      return new JX.$V(x, y);
-    }
     if (typeof y == 'undefined') {
-      return JX.$V.getPos(x);
+      return JX.Vector.getPos(x);
     }
 
     this.x = parseFloat(x);
     this.y = parseFloat(y);
   },
-  canCallAsFunction : true,
+
   members : {
     x : null,
     y : null,
@@ -126,7 +133,7 @@ JX.install('$V', {
     /**
      * Change the size of a node by setting its dimensions to the vector's
      * coordinates. For instance, if you want to change an element to be 100px
-     * by  100px:
+     * by 100px:
      *
      *   JX.$V(100, 100).setDim(node);
      *
@@ -168,16 +175,17 @@ JX.install('$V', {
      * @param wild      Value to add to the vector's x component, or another
      *                  vector.
      * @param Number?   Value to add to the vector's y component.
-     * @return @{JX.$V} New vector, with summed components.
+     * @return @{JX.Vector} New vector, with summed components.
      * @task manip
      */
     add : function(x, y) {
-      if (x instanceof JX.$V) {
+      if (x instanceof JX.Vector) {
         return this.add(x.x, x.y);
       }
-      return JX.$V(this.x + parseFloat(x), this.y + parseFloat(y));
+      return new JX.Vector(this.x + parseFloat(x), this.y + parseFloat(y));
     }
   },
+
   statics : {
     _viewport: null,
 
@@ -194,16 +202,15 @@ JX.install('$V', {
      * See also getDim(), used to determine an element's dimensions.
      *
      * @param  Node|@{JX.Event}  Node or event to determine the position of.
-     * @return @{JX.$V}          New vector with the argument's position.
+     * @return @{JX.Vector}      New vector with the argument's position.
      * @task query
      */
     getPos : function(node) {
-
       JX.Event && (node instanceof JX.Event) && (node = node.getRawEvent());
 
       if (('pageX' in node) || ('clientX' in node)) {
-        var c = JX.$V._viewport;
-        return JX.$V(
+        var c = JX.Vector._viewport;
+        return new JX.Vector(
           node.pageX || (node.clientX + c.scrollLeft),
           node.pageY || (node.clientY + c.scrollTop));
       }
@@ -216,7 +223,7 @@ JX.install('$V', {
         y += node.offsetTop;
       }
 
-      return JX.$V(x, y);
+      return new JX.Vector(x, y);
     },
 
     /**
@@ -232,7 +239,7 @@ JX.install('$V', {
      * @task query
      */
     getDim : function(node) {
-      return JX.$V(node.offsetWidth, node.offsetHeight);
+      return new JX.Vector(node.offsetWidth, node.offsetHeight);
     },
 
     /**
@@ -247,12 +254,16 @@ JX.install('$V', {
      * @task query
      */
     getScroll : function() {
-      //  We can't use $V._viewport here because there's diversity between
-      //  browsers with respect to where position/dimension and scroll position
-      //  information is stored.
+      // We can't use JX.Vector._viewport here because there's diversity between
+      // browsers with respect to where position/dimension and scroll position
+      // information is stored.
       var b = document.body;
       var e = document.documentElement;
-      return JX.$V(b.scrollLeft || e.scrollLeft, b.scrollTop || e.scrollTop);
+      var w = window;
+      return new JX.Vector(
+        w.pageXOffset || b.scrollLeft || e.scrollLeft,
+        w.pageYOffset || b.scrollTop || e.scrollTop
+      );
     },
 
     /**
@@ -268,10 +279,10 @@ JX.install('$V', {
      * @task query
      */
     getViewport : function() {
-      var c = JX.$V._viewport;
+      var c = JX.Vector._viewport;
       var w = window;
 
-      return JX.$V(
+      return new JX.Vector(
         w.innerWidth || c.clientWidth || 0,
         w.innerHeight || c.clientHeight || 0
       );
@@ -288,8 +299,8 @@ JX.install('$V', {
      * @task query
      */
     getDocument : function() {
-      var c = JX.$V._viewport;
-      return JX.$V(c.scrollWidth || 0, c.scrollHeight || 0);
+      var c = JX.Vector._viewport;
+      return new JX.Vector(c.scrollWidth || 0, c.scrollHeight || 0);
     }
   },
 
@@ -307,13 +318,13 @@ JX.install('$V', {
   initialize : function() {
     var c = ((c = document) && (c = c.documentElement)) ||
             ((c = document) && (c = c.body))
-    JX.$V._viewport = c;
+    JX.Vector._viewport = c;
 
     if (__DEV__) {
-      JX.$V.prototype.toString = function() {
-        return '<'+this.x+', '+this.y+'>';
+      JX.Vector.prototype.toString = function() {
+        return '<' + this.x + ', ' + this.y + '>';
       }
     }
-
   }
+
 });

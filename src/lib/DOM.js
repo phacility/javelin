@@ -75,53 +75,41 @@ if (__DEV__) {
  * the edge cases are crazy and you should always be reasonably able to emit
  * a cohesive tag instead of an unappendable fragment.
  *
+ * You may use @{JX.$H} as a shortcut for creating new JX.HTML instances.
+ *
  * @task build String into HTML
  * @task nodes HTML into Nodes
  */
 JX.install('HTML', {
 
-  /**
-   * Build a new HTML object from a trustworthy string.
-   *
-   * @task build
-   * @param string A string which you want to be treated as HTML, because you
-   *               know it is from a trusted source and any data in it has been
-   *               properly escaped.
-   * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
-   */
   construct : function(str) {
-    if (this == JX || this == window) {
-      return new JX.HTML(str);
-    }
-
     if (__DEV__) {
       var tags = ['legend', 'thead', 'tbody', 'tfoot', 'column', 'colgroup',
                   'caption', 'tr', 'th', 'td', 'option'];
-
-      var evil_stuff = new RegExp('^\\s*<('+tags.join('|')+')\\b', 'i');
+      var evil_stuff = new RegExp('^\\s*<(' + tags.join('|') + ')\\b', 'i');
       var match = null;
       if (match = str.match(evil_stuff)) {
         throw new Error(
-          'JX.HTML("<'+match[1]+'>..."): '+
-          'call initializes an HTML object with an invalid partial fragment '+
-          'and can not be converted into DOM nodes. The enclosing tag of an '+
-          'HTML content string must be appendable to a document fragment. '+
+          'new JX.HTML("<' + match[1] + '>..."): ' +
+          'call initializes an HTML object with an invalid partial fragment ' +
+          'and can not be converted into DOM nodes. The enclosing tag of an ' +
+          'HTML content string must be appendable to a document fragment. ' +
           'For example, <table> is allowed but <tr> or <tfoot> are not.');
       }
 
       var really_evil = /<script\b/;
       if (str.match(really_evil)) {
         throw new Error(
-          'JX.HTML("...<script>..."): '+
-          'call initializes an HTML object with an embedded script tag! '+
+          'new JX.HTML("...<script>..."): ' +
+          'call initializes an HTML object with an embedded script tag! ' +
           'Are you crazy?! Do NOT do this!!!');
       }
 
       var wont_work = /<object\b/;
       if (str.match(wont_work)) {
         throw new Error(
-          'JX.HTML("...<object>..."): '+
-          'call initializes an HTML object with an embedded <object> tag. IE '+
+          'new JX.HTML("...<object>..."): ' +
+          'call initializes an HTML object with an embedded <object> tag. IE ' +
           'will not do the right thing with this.');
       }
 
@@ -133,7 +121,7 @@ JX.install('HTML', {
 
     this._content = str;
   },
-  canCallAsFunction : true,
+
   members : {
     _content : null,
     /**
@@ -157,6 +145,21 @@ JX.install('HTML', {
     }
   }
 });
+
+
+/**
+ * Build a new HTML object from a trustworthy string. JX.$H is a shortcut for
+ * creating new JX.HTML instances.
+ *
+ * @task build
+ * @param string A string which you want to be treated as HTML, because you
+ *               know it is from a trusted source and any data in it has been
+ *               properly escaped.
+ * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
+ */
+JX.$H = function(str) {
+  return new JX.HTML(str);
+};
 
 
 /**
@@ -215,7 +218,7 @@ JX.install('HTML', {
  * That is, the content will be properly escaped and will not create a
  * vulnerability. If you want to set HTML content, you can use @{JX.HTML}:
  *
- *   JX.$N('div', JX.HTML(some_html));
+ *   JX.$N('div', JX.$H(some_html));
  *
  * **This is potentially unsafe**, so make sure you understand what you're
  * doing. You should usually avoid passing HTML around in string form. See
@@ -442,6 +445,16 @@ JX.install('DOM', {
     },
 
 
+    /**
+     * Serializes a form.
+     *
+     * Note: This function explicity does not match for submit inputs as there
+     * could be multiple in a form. It's the caller's obligation to add the
+     * submit input value if desired.
+     *
+     * @param Node The form element to serialze.
+     * @return a dictionary representation of the inputs in the form.
+     */
     serialize : function(form) {
       var elements = form.getElementsByTagName('*');
       var data = {};
@@ -452,8 +465,8 @@ JX.install('DOM', {
         var type = elements[ii].type;
         var tag  = elements[ii].tagName;
         if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
-             type in {text: 1, hidden: 1, password: 1} ||
-              tag in {TEXTAREA: 1, SELECT: 1}) {
+             type in {text: 1, hidden: 1, password: 1, email: 1} ||
+             tag in {TEXTAREA: 1, SELECT: 1}) {
           data[elements[ii].name] = elements[ii].value;
         }
       }
@@ -632,8 +645,8 @@ JX.install('DOM', {
         proxy.style.width = x ? (x+'px') : '';
         JX.DOM.setContent(
           proxy,
-          JX.HTML(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
-        var metrics = JX.$V.getDim(proxy);
+          JX.$H(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
+        var metrics = JX.Vector.getDim(proxy);
       document.body.removeChild(proxy);
       return metrics;
     },

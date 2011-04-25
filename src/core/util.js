@@ -1,6 +1,7 @@
 /**
  * Javelin utility functions.
  *
+ * @requires javelin-magical-init
  * @provides javelin-util
  *
  * @javelin-installs JX.$A
@@ -10,12 +11,10 @@
  * @javelin-installs JX.bag
  * @javelin-installs JX.keys
  * @javelin-installs JX.defer
- * @javelin-installs JX.go
  * @javelin-installs JX.log
  *
  * @javelin
  */
-
 
 /**
  * Convert an array-like object (usually ##arguments##) into a real Array. An
@@ -249,26 +248,6 @@ JX.keys = function(obj) {
 JX.defer = function(func, timeout) {
   var t = setTimeout(func, timeout || 0);
   return {stop : function() { clearTimeout(t); }}
-};
-
-
-/**
- * Redirect the browser to another page by changing the window location.
- *
- * @param  string    Optional URI to redirect the browser to. If no URI is
- *                   provided, the current page will be reloaded.
- * @return void
- */
-JX.go = function(uri) {
-
-  // Foil static analysis, etc. Strictly speaking, JX.go() doesn't really need
-  // to be in javelin-utils so we could do this properly at some point.
-  if (!JX['Stratcom'] ||
-      !JX['Stratcom'].invoke('go', null, {uri: uri}).getPrevented()) {
-    // Only call window.location if a subscriber of the 'go' event has not
-    // prevented the default action, i.e. following the uri.
-    (uri && (window.location = uri)) || window.location.reload(true);
-  }
 };
 
 JX.id = function(any) {

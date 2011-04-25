@@ -181,13 +181,16 @@ JX.install('TypeaheadSource', {
         }
       }
 
+      this._typeahead.showResults(this.renderNodes(value, hits));
+    },
+
+    renderNodes : function(value, hits) {
       var n = Math.min(this.getMaximumResultCount(), hits.length);
       var nodes = [];
       for (var kk = 0; kk < n; kk++) {
         nodes.push(this.createNode(this._raw[hits[kk]]));
       }
-
-      this._typeahead.showResults(nodes);
+      return nodes;
     },
 
     createNode : function(data) {

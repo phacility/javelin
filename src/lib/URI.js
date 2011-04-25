@@ -6,10 +6,10 @@
  */
 
 /**
- * Oh hey, I'm just a handy function that returns a JX.URI so you can
- * concisely write something like
+ * Handy convenience function that returns a JX.URI instance so you can
+ * concisely write something like:
  *
- * JX.$U(http://zombo.com/).getDomain()
+ *   JX.$U(http://zombo.com/).getDomain();
  */
 JX.$U = function(uri) {
   return new JX.URI(uri);
@@ -18,12 +18,12 @@ JX.$U = function(uri) {
 /**
  * Convert a string URI into a maleable object
  *
- *   var uri = JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
- *   uri.getProtocol();  // http
- *   uri.getDomain();    // www.facebook.com
- *   uri.getPath();      // /asdf.php
- *   uri.getQueryData(); // {"a":"b", "c":"d"}
- *   uri.getFragment();  // anchor123
+ *   var uri = new JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
+ *   uri.getProtocol();    // http
+ *   uri.getDomain();      // www.facebook.com
+ *   uri.getPath();        // /asdf.php
+ *   uri.getQueryParams(); // {a: 'b', c: 'd'}
+ *   uri.getFragment();    // anchor123
  *
  * And back into a string
  *
@@ -34,7 +34,26 @@ JX.$U = function(uri) {
 JX.install('URI', {
   statics : {
     _uriPattern : /(?:([^:\/?#]+):)?(?:\/\/([^:\/?#]*)(?::(\d*))?)?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/,
-    _queryPattern : /(?:^|&)([^&=]*)=?([^&]*)/g
+    _queryPattern : /(?:^|&)([^&=]*)=?([^&]*)/g,
+
+    /**
+     *  Convert a Javascript object into an HTTP query string.
+     *
+     *  @param  Object  Map of query keys to values.
+     *  @return String  HTTP query string, like 'cow=quack&duck=moo'.
+     */
+    _defaultQuerySerializer : function(obj) {
+      var kv_pairs = [];
+      for (var key in obj) {
+        if (obj[key] != null) {
+          var value = encodeURIComponent(obj[key]);
+          kv_pairs.push(encodeURIComponent(key) + (value ? '=' + value : ''));
+        }
+      }
+
+      return kv_pairs.join('&');
+    }
+
   },
 
   /**
@@ -48,7 +67,7 @@ JX.install('URI', {
   construct : function(uri) {
     // need to set the default value here rather than in the properties map,
     // or else we get some crazy global state breakage
-    this.setQueryData({});
+    this.setQueryParams({});
 
     if (uri) {
       // parse the url
@@ -71,7 +90,7 @@ JX.install('URI', {
         while ((data = JX.URI._queryPattern.exec(query)) != null) {
           queryData[decodeURIComponent(data[1])] = decodeURIComponent(data[2]);
         }
-        this.setQueryData(queryData);
+        this.setQueryParams(queryData);
       }
     }
   },
@@ -80,9 +99,10 @@ JX.install('URI', {
     protocol: undefined,
     domain: undefined,
     port: undefined,
-    path: '/',
-    queryData: undefined,
-    fragment: undefined
+    path: undefined,
+    queryParams: undefined,
+    fragment: undefined,
+    querySerializer: undefined
   },
 
   members : {
@@ -94,9 +114,23 @@ JX.install('URI', {
      * @param map
      * @return @{JX.URI} self
      */
-    addQueryData : function(map) {
-      JX.copy(this.getQueryData(), map);
+    addQueryParams : function(map) {
+      JX.copy(this.getQueryParams(), map);
       return this;
+    },
+
+    /**
+     * Set a specific query parameter
+     * Remove a query key by setting it undefined
+     *
+     * @param string
+     * @param wild
+     * @return @{JX.URI} self
+     */
+    setQueryParam : function(key, value) {
+      var map = {};
+      map[key] = value;
+      return this.addQueryParams(map);
     },
 
     toString : function() {
@@ -113,7 +147,13 @@ JX.install('URI', {
         str += this.getProtocol() + '://';
       }
       str += this.getDomain() || '';
-      str += this.getPath() || '/';
+
+      // If there is a domain or a protocol, we need to provide '/' for the
+      // path. If we don't have either and also don't have a path, we can omit
+      // it to produce a partial URI without path information which begins
+      // with "?", "#", or is empty.
+      str += this.getPath() || (str ? '/' : '');
+
       str += this._getQueryString();
       if (this.getFragment()) {
         str += '#' + this.getFragment();
@@ -122,18 +162,27 @@ JX.install('URI', {
     },
 
     _getQueryString : function() {
-      var queryData = this.getQueryData();
-      var queryString = '';
-      for (var key in queryData) {
-        if (queryData[key] != null) {
-          queryString += queryString ? '&' : '?';
-          queryString += encodeURIComponent(key);
-          if (queryData[key] !== '') {
-            queryString += '=' + encodeURIComponent(queryData[key]);
-          }
-        }
+      var str = (
+        this.getQuerySerializer() || JX.URI._defaultQuerySerializer
+      )(this.getQueryParams());
+      return str ? '?' + str : '';
+    },
+
+    /**
+     * Redirect the browser to another page by changing the window location. If
+     * the URI is empty, reloads the current page.
+     *
+     * You can install a Stratcom listener for the 'go' event if you need to log
+     * or prevent redirects.
+     *
+     * @return void
+     */
+    go : function() {
+      var uri = this.toString();
+      if (JX.Stratcom.invoke('go', null, {uri: uri}).getPrevented()) {
+        return;
       }
-      return queryString;
+      (uri && (window.location = uri)) || window.location.reload(true);
     }
 
   }

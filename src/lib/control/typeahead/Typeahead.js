@@ -67,7 +67,7 @@ JX.install('Typeahead', {
       {className: 'jx-typeahead-results'});
     this._display = [];
 
-    JX.DOM.listen(
+    this._listener = JX.DOM.listen(
       this._control,
       ['focus', 'blur', 'keypress', 'keydown'],
       null,
@@ -90,7 +90,7 @@ JX.install('Typeahead', {
 
   },
 
-  events : ['choose', 'query', 'start', 'change'],
+  events : ['choose', 'query', 'start', 'change', 'show'],
 
   properties : {
 
@@ -124,6 +124,7 @@ JX.install('Typeahead', {
     _root : null,
     _control : null,
     _hardpoint : null,
+    _listener : null,
     _value : null,
     _stop : false,
     _focus : -1,
@@ -195,11 +196,14 @@ JX.install('Typeahead', {
      * @return void
      */
     showResults : function(results) {
-      this._display = results;
-      if (results.length) {
-        JX.DOM.setContent(this._root, results);
+      var obj = {show: results};
+      var e = this.invoke('show', obj);
+      this._display = obj.show;
+
+      if (this._display.length && !e.getPrevented()) {
+        JX.DOM.setContent(this._root, this._display);
         this._changeFocus(Number.NEGATIVE_INFINITY);
-        var d = JX.$V.getDim(this._hardpoint);
+        var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
         d.setPos(this._root);
         this._hardpoint.appendChild(this._root);
@@ -235,7 +239,6 @@ JX.install('Typeahead', {
       // visually indicate that we're waiting on the server.
       this.hide();
     },
-
 
     /**
      * @task internal
@@ -397,6 +400,12 @@ JX.install('Typeahead', {
         this.hide();
       } else {
         this._update(e);
+      }
+    },
+
+    removeListener : function() {
+      if (this._listener) {
+        this._listener.remove();
       }
     }
   }

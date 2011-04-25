@@ -119,6 +119,19 @@ JX.install('Event', {
 
 
     /**
+     * Get whether the mouse button associated with the mouse event is the
+     * right-side button in a browser-agnostic way.
+     *
+     * @return bool
+     * @task info
+     */
+    isRightButton : function() {
+      var r = this.getRawEvent();
+      return r.which == 3 || r.button == 2;
+    },
+
+
+    /**
      * Get the node corresponding to the specified key in this event's node map.
      * This is a simple helper method that makes the API for accessing nodes
      * less ugly.

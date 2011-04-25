@@ -117,7 +117,9 @@ JX.install('Request', {
         if (xport.readyState != 4) {
           return;
         }
-        if (xport.status < 200 || xport.status >= 300) {
+        // XHR requests to 'file:///' domains return 0 for success, which is why
+        // we treat it as a good result in addition to HTTP 2XX responses.
+        if (xport.status !== 0 && (xport.status < 200 || xport.status >= 300)) {
           this._fail();
           return;
         }
