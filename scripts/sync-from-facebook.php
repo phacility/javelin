@@ -70,15 +70,7 @@ $root = Filesystem::resolvePath($argv[1]).'/html/js/javelin/';
 $data = array();
 foreach ($files as $file) {
   echo "Reading {$file}...\n";
-  $content = Filesystem::readFile($root.$file);
-
-  // Strip out Facebook-specific bookkeeping code.
-  $content = preg_replace(
-    "@/\*\+([a-z]+)\*/.*?/\*-\\1\*/([ ]*\n)*@s",
-    "\n",
-    $content);
-
-  $data[$file] = $content;
+  $data[$file] = Filesystem::readFile($root.$file);
 }
 
 $local = dirname(dirname(__FILE__));
