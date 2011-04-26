@@ -446,20 +446,23 @@ JX.install('DOM', {
 
 
     /**
-     * Serializes a form.
+     * Converts a form into a list of <name, value> pairs.
      *
      * Note: This function explicity does not match for submit inputs as there
      * could be multiple in a form. It's the caller's obligation to add the
      * submit input value if desired.
      *
-     * @param Node The form element to serialze.
-     * @return a dictionary representation of the inputs in the form.
+     * @param   Node  The form element to convert into a list of pairs.
+     * @return  List  A list of <name, value> pairs.
      */
-    serialize : function(form) {
+    convertFormToListOfPairs : function(form) {
       var elements = form.getElementsByTagName('*');
-      var data = {};
+      var data = [];
       for (var ii = 0; ii < elements.length; ++ii) {
         if (!elements[ii].name) {
+          continue;
+        }
+        if (elements[ii].disabled) {
           continue;
         }
         var type = elements[ii].type;
@@ -467,8 +470,25 @@ JX.install('DOM', {
         if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
              type in {text: 1, hidden: 1, password: 1, email: 1} ||
              tag in {TEXTAREA: 1, SELECT: 1}) {
-          data[elements[ii].name] = elements[ii].value;
+          data.push([elements[ii].name, elements[ii].value]);
         }
+      }
+      return data;
+    },
+
+
+    /**
+     * Converts a form into a dictionary mapping input names to values. This
+     * will overwrite duplicate inputs in an undefined way.
+     *
+     * @param   Node  The form element to convert into a dictionary.
+     * @return  Dict  A dictionary of form values.
+     */
+    convertFormToDictionary : function(form) {
+      var data = {};
+      var pairs = JX.DOM.convertFormToListOfPairs(form);
+      for (var ii = 0; ii < pairs.length; ii++) {
+        data[pairs[ii][0]] = data[pairs[ii][1]];
       }
       return data;
     },

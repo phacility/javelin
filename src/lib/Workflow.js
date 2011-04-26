@@ -42,9 +42,13 @@ JX.install('Workflow', {
         }
       }
 
-      var workflow = new JX.Workflow(
-        form.getAttribute('action'),
-        JX.copy(data || {}, JX.DOM.serialize(form)));
+      var pairs = JX.DOM.convertFormToListOfPairs(form);
+      for (var k in data) {
+        pairs.push([k, data[k]]);
+      }
+
+      var workflow = new JX.Workflow(form.getAttribute('action'), {});
+      workflow.setDataWithListOfPairs(pairs);
       workflow.setMethod(form.getAttribute('method'));
       workflow.listen('finally', function() {
         for (var ii = 0; ii < inputs.length; ii++) {
@@ -105,6 +109,7 @@ JX.install('Workflow', {
   members : {
     _root : null,
     _pushed : false,
+    _data : null,
     _onload : function(r) {
       // It is permissible to send back a falsey redirect to force a page
       // reload, so we need to take this branch if the key is present.
@@ -175,9 +180,9 @@ JX.install('Workflow', {
       var uri = this.getURI();
       var method = this.getMethod();
       var r = new JX.Request(uri, JX.bind(this, this._onload));
-      var data = this.getData();
-      data.__wflow__ = true;
-      r.setData(data);
+      var list_of_pairs = this._data;
+      list_of_pairs.push(['__wflow__', true]);
+      r.setDataWithListOfPairs(list_of_pairs);
       r.setDataSerializer(this.getDataSerializer());
       if (method) {
         r.setMethod(method);
@@ -193,13 +198,25 @@ JX.install('Workflow', {
         // event instead.
       }));
       r.send();
+    },
+
+    setData : function(dictionary) {
+      this._data = [];
+      for (var k in dictionary) {
+        this._data.push([k, dictionary[k]]);
+      }
+      return this;
+    },
+
+    setDataWithListOfPairs : function(list_of_pairs) {
+      this._data = list_of_pairs;
+      return this;
     }
   },
 
   properties : {
     handler : null,
     closeHandler : null,
-    data : null,
     dataSerializer : null,
     method : null,
     URI : null
