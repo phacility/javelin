@@ -51,7 +51,6 @@ JX.install('Request', {
       list_of_pairs.push(['__ajax__', true]);
 
       this._block = JX.Stratcom.allocateMetadataBlock();
-      data.__metablock__ = this._block;
       list_of_pairs.push(['__metablock__', this._block]);
 
       var q = (this.getDataSerializer() ||
@@ -229,7 +228,9 @@ JX.install('Request', {
       var uri = [];
       for (var ii = 0; ii < list_of_pairs.length; ii++) {
         var pair = list_of_pairs[ii];
-        uri.push(encodeURIComponent(pair[0] + '=' + pair[1]));
+        var name = encodeURIComponent(pair[0]);
+        var value = encodeURIComponent(pair[1]);
+        uri.push(name + '=' + value);
       }
       return uri.join('&');
     }

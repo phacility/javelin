@@ -1685,6 +1685,7 @@ JX.install('Request', {
     _transport : null,
     _finished : false,
     _block : null,
+    _data : null,
 
     send : function() {
       var xport = null;
@@ -1705,14 +1706,14 @@ JX.install('Request', {
 
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
-      var data = this.getData() || {};
-      data.__ajax__ = true;
+      var list_of_pairs = this._data || [];
+      list_of_pairs.push(['__ajax__', true]);
 
       this._block = JX.Stratcom.allocateMetadataBlock();
-      data.__metablock__ = this._block;
+      list_of_pairs.push(['__metablock__', this._block]);
 
       var q = (this.getDataSerializer() ||
-               JX.Request.defaultDataSerializer)(data);
+               JX.Request.defaultDataSerializer)(list_of_pairs);
       var uri = this.getURI();
       var method = this.getMethod().toUpperCase();
 
@@ -1852,6 +1853,19 @@ JX.install('Request', {
       delete JX.Request._xhr[this._xhrkey];
       this._timer && this._timer.stop();
       this._transport.abort();
+    },
+
+    setData : function(dictionary) {
+      this._data = [];
+      for (var k in dictionary) {
+        this._data.push([k, dictionary[k]]);
+      }
+      return this;
+    },
+
+    setDataWithListOfPairs : function(list_of_pairs) {
+      this._data = list_of_pairs;
+      return this;
     }
 
   },
@@ -1869,10 +1883,13 @@ JX.install('Request', {
       JX.Request._xhr = [];
     },
     ERROR_TIMEOUT : -9000,
-    defaultDataSerializer : function(data) {
+    defaultDataSerializer : function(list_of_pairs) {
       var uri = [];
-      for (var k in data) {
-        uri.push(encodeURIComponent(k) + '=' + encodeURIComponent(data[k]));
+      for (var ii = 0; ii < list_of_pairs.length; ii++) {
+        var pair = list_of_pairs[ii];
+        var name = encodeURIComponent(pair[0]);
+        var value = encodeURIComponent(pair[1]);
+        uri.push(name + '=' + value);
       }
       return uri.join('&');
     }
@@ -1880,7 +1897,6 @@ JX.install('Request', {
 
   properties : {
     URI : null,
-    data : null,
     dataSerializer : null,
     /**
      * Configure which HTTP method to use for the request. Permissible values
@@ -2690,20 +2706,23 @@ JX.install('DOM', {
 
 
     /**
-     * Serializes a form.
+     * Converts a form into a list of <name, value> pairs.
      *
      * Note: This function explicity does not match for submit inputs as there
      * could be multiple in a form. It's the caller's obligation to add the
      * submit input value if desired.
      *
-     * @param Node The form element to serialze.
-     * @return a dictionary representation of the inputs in the form.
+     * @param   Node  The form element to convert into a list of pairs.
+     * @return  List  A list of <name, value> pairs.
      */
-    serialize : function(form) {
+    convertFormToListOfPairs : function(form) {
       var elements = form.getElementsByTagName('*');
-      var data = {};
+      var data = [];
       for (var ii = 0; ii < elements.length; ++ii) {
         if (!elements[ii].name) {
+          continue;
+        }
+        if (elements[ii].disabled) {
           continue;
         }
         var type = elements[ii].type;
@@ -2711,8 +2730,25 @@ JX.install('DOM', {
         if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
              type in {text: 1, hidden: 1, password: 1, email: 1} ||
              tag in {TEXTAREA: 1, SELECT: 1}) {
-          data[elements[ii].name] = elements[ii].value;
+          data.push([elements[ii].name, elements[ii].value]);
         }
+      }
+      return data;
+    },
+
+
+    /**
+     * Converts a form into a dictionary mapping input names to values. This
+     * will overwrite duplicate inputs in an undefined way.
+     *
+     * @param   Node  The form element to convert into a dictionary.
+     * @return  Dict  A dictionary of form values.
+     */
+    convertFormToDictionary : function(form) {
+      var data = {};
+      var pairs = JX.DOM.convertFormToListOfPairs(form);
+      for (var ii = 0; ii < pairs.length; ii++) {
+        data[pairs[ii][0]] = data[pairs[ii][1]];
       }
       return data;
     },
