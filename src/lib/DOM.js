@@ -4,6 +4,7 @@
  *
  * @javelin-installs JX.$
  * @javelin-installs JX.$N
+ * @javelin-installs JX.$H
  *
  * @javelin
  */

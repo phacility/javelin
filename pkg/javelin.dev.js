@@ -1929,6 +1929,9 @@ JX.install('Request', {
 /**
  * @requires javelin-install javelin-event
  * @provides javelin-vector
+ *
+ * @javelin-installs JX.$V
+ *
  * @javelin
  */
 
@@ -2264,6 +2267,7 @@ JX.install('Vector', {
  *
  * @javelin-installs JX.$
  * @javelin-installs JX.$N
+ * @javelin-installs JX.$H
  *
  * @javelin
  */

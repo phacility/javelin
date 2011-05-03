@@ -22,3 +22,4 @@
 # Mac OSX build artifacts
 /support/jsast/jsast.dSYM/
 /support/jsxmin/jsxmin.dSYM/
+/support/javelinsymbols/javelinsymbols.dSYM/

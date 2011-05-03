@@ -116,14 +116,15 @@ JX.install('Workflow', {
       if (JX.Workflow._disabled) {
         return;
       }
+
       var t = event.getTarget();
       if (t.name == '__cancel__' || t.name == '__close__') {
         JX.Workflow._pop();
       } else {
 
         var form = event.getNode('jx-dialog');
-        var data = JX.DOM.serialize(form);
-        data[t.name] = true;
+        var data = JX.DOM.convertFormToListOfPairs(form);
+        data.push([t.name, true]);
 
         var active = JX.Workflow._stack[JX.Workflow._stack.length - 1];
         var e = active.invoke('submit', {form: form, data: data});
@@ -131,7 +132,7 @@ JX.install('Workflow', {
           active._destroy();
           active
             .setURI(form.getAttribute('action') || active.getURI())
-            .setData(data)
+            .setDataWithListOfPairs(data)
             .start();
         }
       }
@@ -157,7 +158,7 @@ JX.install('Workflow', {
         JX.DOM.listen(
           this._root,
           'click',
-          'tag:button',
+          [['jx-workflow-button'], ['tag:button']],
           JX.Workflow._onbutton);
         document.body.appendChild(this._root);
         var d = JX.Vector.getDim(this._root);
