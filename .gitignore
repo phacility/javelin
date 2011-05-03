@@ -13,6 +13,12 @@
 /support/jsast/jsast
 /support/jsxmin/jsxmin
 
+# Diviner artifacts 
 /docs/
+/.divinercache/
 
 /support/diviner/.phutil_module_cache
+
+# Mac OSX build artifacts
+/support/jsast/jsast.dSYM/
+/support/jsxmin/jsxmin.dSYM/

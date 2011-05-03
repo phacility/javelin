@@ -12,7 +12,7 @@ JX.behavior('tic-tac-toe', function() {
       }
 
       var node = e.getNodes()['tic-tac-cell'];
-      var data = e.getData()['tic-tac-cell'];
+      var data = e.getNodeData('tic-tac-cell');
       var board = e.getNodes()['tic-tac-board'];
 
       var move = game[data.pos];

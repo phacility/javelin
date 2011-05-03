@@ -67,7 +67,7 @@ JX.install('Typeahead', {
       {className: 'jx-typeahead-results'});
     this._display = [];
 
-    JX.DOM.listen(
+    this._listener = JX.DOM.listen(
       this._control,
       ['focus', 'blur', 'keypress', 'keydown'],
       null,
@@ -90,7 +90,7 @@ JX.install('Typeahead', {
 
   },
 
-  events : ['choose', 'query', 'start', 'change'],
+  events : ['choose', 'query', 'start', 'change', 'show'],
 
   properties : {
 
@@ -124,6 +124,7 @@ JX.install('Typeahead', {
     _root : null,
     _control : null,
     _hardpoint : null,
+    _listener : null,
     _value : null,
     _stop : false,
     _focus : -1,
@@ -195,11 +196,14 @@ JX.install('Typeahead', {
      * @return void
      */
     showResults : function(results) {
-      this._display = results;
-      if (results.length) {
-        JX.DOM.setContent(this._root, results);
+      var obj = {show: results};
+      var e = this.invoke('show', obj);
+      this._display = obj.show;
+
+      if (this._display.length && !e.getPrevented()) {
+        JX.DOM.setContent(this._root, this._display);
         this._changeFocus(Number.NEGATIVE_INFINITY);
-        var d = JX.$V.getDim(this._hardpoint);
+        var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
         d.setPos(this._root);
         this._hardpoint.appendChild(this._root);
@@ -235,7 +239,6 @@ JX.install('Typeahead', {
       // visually indicate that we're waiting on the server.
       this.hide();
     },
-
 
     /**
      * @task internal
@@ -397,6 +400,12 @@ JX.install('Typeahead', {
         this.hide();
       } else {
         this._update(e);
+      }
+    },
+
+    removeListener : function() {
+      if (this._listener) {
+        this._listener.remove();
       }
     }
   }
@@ -605,13 +614,16 @@ JX.install('TypeaheadSource', {
         }
       }
 
+      this._typeahead.showResults(this.renderNodes(value, hits));
+    },
+
+    renderNodes : function(value, hits) {
       var n = Math.min(this.getMaximumResultCount(), hits.length);
       var nodes = [];
       for (var kk = 0; kk < n; kk++) {
         nodes.push(this.createNode(this._raw[hits[kk]]));
       }
-
-      this._typeahead.showResults(nodes);
+      return nodes;
     },
 
     createNode : function(data) {
@@ -787,8 +799,10 @@ JX.install('TypeaheadOnDemandSource', {
     },
 
     ondata : function(when, value, results) {
-      for (var ii = 0; ii < results.length; ii++) {
-        this.addResult(results[ii]);
+      if (results) {
+        for (var ii = 0; ii < results.length; ii++) {
+          this.addResult(results[ii]);
+        }
       }
       this.haveData[value] = true;
       if (when != this.lastChange) {
@@ -864,21 +878,28 @@ JX.install('Tokenizer', {
         }
       }
 
-      this._orig = JX.DOM.find(this._containerNode, 'input', 'tokenizer');
+      this._orig = JX.DOM.find(this._containerNode, 'input', 'tokenizer-input');
       this._tokens = [];
       this._tokenMap = {};
 
       var focus = this.buildInput(this._orig.value);
       this._focus = focus;
 
+      var input_container = JX.DOM.scry(
+        this._containerNode,
+        'div',
+        'tokenizer-input-container'
+      );
+      input_container = input_container[0] || this._containerNode;
+
       JX.DOM.listen(
         focus,
-        ['click', 'focus', 'blur', 'keydown'],
+        ['click', 'focus', 'blur', 'keydown', 'keypress'],
         null,
         JX.bind(this, this.handleEvent));
 
       JX.DOM.listen(
-        this._containerNode,
+        input_container,
         'click',
         null,
         JX.bind(
@@ -914,7 +935,7 @@ JX.install('Tokenizer', {
               this.addToken(k, map[k]);
             }
             JX.DOM.appendContent(
-              container,
+              root,
               JX.$N('div', {style: {clear: 'both'}})
             );
             this._redraw();
@@ -929,20 +950,22 @@ JX.install('Tokenizer', {
     setTypeahead : function(typeahead) {
 
       typeahead.setAllowNullSelection(false);
+      typeahead.removeListener();
 
       typeahead.listen(
         'choose',
-        JX.bind(
-          this,
-          function(result) {
-            JX.Stratcom.context().prevent();
-            if (this.addToken(result.rel, result.name)) {
+        JX.bind(this, function(result) {
+          JX.Stratcom.context().prevent();
+          if (this.addToken(result.rel, result.name)) {
+            if (this.shouldHideResultsOnChoose()) {
               this._typeahead.hide();
-              this._focus.value = '';
-              this._redraw();
-              this.focus();
             }
-          }));
+            this._focus.value = '';
+            this._redraw();
+            this.focus();
+          }
+        })
+      );
 
       typeahead.listen(
         'query',
@@ -971,6 +994,10 @@ JX.install('Tokenizer', {
       this._typeahead = typeahead;
 
       return this;
+    },
+
+    shouldHideResultsOnChoose : function() {
+      return true;
     },
 
     handleEvent : function(e) {
@@ -1063,7 +1090,7 @@ JX.install('Tokenizer', {
       var remove = JX.$N('a', {
         className: 'jx-tokenizer-x',
         sigil: 'remove'
-      }, JX.HTML('&times;'));
+      }, JX.$H('&times;'));
 
       return JX.$N('a', {
         className: 'jx-tokenizer-token',

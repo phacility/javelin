@@ -1,6 +1,7 @@
 /**
  * Javelin utility functions.
  *
+ * @requires javelin-magical-init
  * @provides javelin-util
  *
  * @javelin-installs JX.$A
@@ -10,12 +11,10 @@
  * @javelin-installs JX.bag
  * @javelin-installs JX.keys
  * @javelin-installs JX.defer
- * @javelin-installs JX.go
  * @javelin-installs JX.log
  *
  * @javelin
  */
-
 
 /**
  * Convert an array-like object (usually ##arguments##) into a real Array. An
@@ -251,26 +250,6 @@ JX.defer = function(func, timeout) {
   return {stop : function() { clearTimeout(t); }}
 };
 
-
-/**
- * Redirect the browser to another page by changing the window location.
- *
- * @param  string    Optional URI to redirect the browser to. If no URI is
- *                   provided, the current page will be reloaded.
- * @return void
- */
-JX.go = function(uri) {
-
-  // Foil static analysis, etc. Strictly speaking, JX.go() doesn't really need
-  // to be in javelin-utils so we could do this properly at some point.
-  if (!JX['Stratcom'] ||
-      !JX['Stratcom'].invoke('go', null, {uri: uri}).getPrevented()) {
-    // Only call window.location if a subscriber of the 'go' event has not
-    // prevented the default action, i.e. following the uri.
-    (uri && (window.location = uri)) || window.location.reload(true);
-  }
-};
-
 JX.id = function(any) {
   return any;
 };
@@ -388,8 +367,8 @@ if (__DEV__) {
  *   - ##prototype.__class__## Reference to the class constructor.
  *   - ##constructor.__path__## List of path tokens used emit events. It is
  *       probably never useful to access this directly.
- *   - ##constructor.__readable__## //DEV ONLY!// Readable class name. You could
- *       plausibly use this when constructing error messages.
+ *   - ##constructor.__readable__## Readable class name. You could use this
+ *       for introspection.
  *   - ##constructor.__events__## //DEV ONLY!// List of events supported by
  *       this class.
  *   - ##constructor.listen()## Listen to all instances of this class. See
@@ -422,6 +401,15 @@ JX.install = function(new_name, new_junk) {
     return;
   }
 
+  if (__DEV__) {
+    if ('name' in new_junk) {
+      throw new Error(
+        'JX.install("' + new_name + '", {"name": ...}): ' +
+        'trying to install with "name" property.' +
+        'Either remove it or call JX.createClass directly.');
+    }
+  }
+
   // Since we may end up loading things out of order (e.g., Dog extends Animal
   // but we load Dog first) we need to keep a list of things that we've been
   // asked to install but haven't yet been able to install around.
@@ -432,6 +420,7 @@ JX.install = function(new_name, new_junk) {
   do {
     var junk;
     var name = null;
+    var initialize;
     for (var ii = 0; ii < JX.install._queue.length; ++ii) {
       junk = JX.install._queue[ii][1];
       if (junk.extend && !JX[junk.extend]) {
@@ -441,279 +430,25 @@ JX.install = function(new_name, new_junk) {
       }
 
       // Install time! First, get this out of the queue.
-      name = JX.install._queue[ii][0];
-      JX.install._queue.splice(ii, 1);
+      name = JX.install._queue.splice(ii, 1)[0][0];
       --ii;
 
-      if (__DEV__) {
-        var valid = {
-          construct : 1,
-          statics : 1,
-          members : 1,
-          extend : 1,
-          initialize: 1,
-          properties : 1,
-          events : 1,
-          canCallAsFunction : 1
-        };
-        for (var k in junk) {
-          if (!(k in valid)) {
-            throw new Error(
-              'JX.install("' + name + '", {"' + k + '": ...}): ' +
-              'trying to install unknown property `' + k + '`.');
-          }
-        }
-        if (junk.constructor !== {}.constructor) {
-          throw new Error(
-            'JX.install("' + name + '", {"constructor": ...}): ' +
-            'property `constructor` should be called `construct`.');
-        }
-      }
-
-      // First, build the constructor. If construct is just a function, this
-      // won't change its behavior (unless you have provided a really awesome
-      // function, in which case it will correctly punish you for your attempt
-      // at creativity).
-      JX[name] = (function(name, junk) {
-        var result = function() {
-          this.__id__ = '__obj__' + (++JX.install._nextObjectID);
-          return (junk.construct || JX.bag).apply(this, arguments);
-          // TODO: Allow mixins to initialize here?
-          // TODO: Also, build mixins?
-        };
-
-        if (__DEV__) {
-          if (!junk.canCallAsFunction) {
-            var inner = result;
-            result = function() {
-              if (this === window || this === JX) {
-                throw new Error("<" + JX[name].__readable__ + ">: " +
-                                "Tried to construct an instance " +
-                                "without the 'new' operator. Either use " +
-                                "'new' or set 'canCallAsFunction' where you " +
-                                "install the class.");
-              }
-              return inner.apply(this, arguments);
-            };
-          }
-        }
-        return result;
-      })(name, junk);
-
-      // Copy in all the static methods and properties.
-      for (var k in junk.statics) {
-        // Can't use JX.copy() here yet since it may not have loaded.
-        JX[name][k] = junk.statics[k];
-      }
-
-      if (__DEV__) {
-        JX[name].__readable__ = 'JX.' + name;
-      }
-
-      var proto;
       if (junk.extend) {
-        var Inheritance = function() {};
-        Inheritance.prototype = JX[junk.extend].prototype;
-        proto = JX[name].prototype = new Inheritance();
-      } else {
-        proto = JX[name].prototype = {};
+        junk.extend = JX[junk.extend];
       }
 
-      proto.__class__ = JX[name];
+      initialize = junk.initialize;
+      delete junk.initialize;
+      junk.name = 'JX.' + name;
 
-      // Build getters and setters from the `prop' map.
-      for (var k in (junk.properties || {})) {
-        var base = k.charAt(0).toUpperCase()+k.substr(1);
-        var prop = '__auto__' + k;
-        proto[prop] = junk.properties[k];
-        proto['set' + base] = (function(prop) {
-          return function(v) {
-            this[prop] = v;
-            return this;
-          }
-        })(prop);
+      JX[name] = JX.createClass(junk);
 
-        proto['get' + base] = (function(prop) {
-          return function() {
-            return this[prop];
-          }
-        })(prop);
-      }
-
-      if (__DEV__) {
-
-        // Check for aliasing in default values of members. If we don't do this,
-        // you can run into a problem like this:
-        //
-        //  JX.install('List', { members : { stuff : [] }});
-        //
-        //  var i_love = new JX.List();
-        //  var i_hate = new JX.List();
-        //
-        //  i_love.stuff.push('Psyduck');  // I love psyduck!
-        //  JX.log(i_hate.stuff);          // Show stuff I hate.
-        //
-        // This logs ["Psyduck"] because the push operation modifies
-        // JX.List.prototype.stuff, which is what both i_love.stuff and
-        // i_hate.stuff resolve to. To avoid this, set the default value to
-        // null (or any other scalar) and do "this.stuff = [];" in the
-        // constructor.
-
-        for (var member_name in junk.members) {
-          if (junk.extend && member_name[0] == '_') {
-            throw new Error(
-              'JX.install("' + name + '", ...): ' +
-              'installed member "' + member_name + '" must not be named with ' +
-              'a leading underscore because it is in a subclass. Variables ' +
-              'are analyzed and crushed one file at a time, and crushed ' +
-              'member variables in subclasses alias crushed member variables ' +
-              'in superclasses. Remove the underscore, refactor the class so ' +
-              'it does not extend anything, or fix the minifier to be ' +
-              'capable of safely crushing subclasses.');
-          }
-          var member_value = junk.members[member_name];
-          if (typeof member_value == 'object' && member_value !== null) {
-            throw new Error(
-              'JX.install("' + name + '", ...): ' +
-              'installed member "' + member_name + '" is not a scalar or ' +
-              'function. Prototypal inheritance in Javascript aliases object ' +
-              'references across instances so all instances are initialized ' +
-              'to point at the exact same object. This is almost certainly ' +
-              'not what you intended. Make this member static to share it ' +
-              'across instances, or initialize it in the constructor to ' +
-              'prevent reference aliasing and give each instance its own ' +
-              'copy of the value.');
-          }
-        }
-      }
-
-
-      // This execution order intentionally allows you to override methods
-      // generated from the "properties" initializer.
-      for (var k in junk.members) {
-        proto[k] = junk.members[k];
-      }
-
-
-      // Build this ridiculous event model thing. Basically, this defines
-      // two instance methods, invoke() and listen(), and one static method,
-      // listen(). If you listen to an instance you get events for that
-      // instance; if you listen to a class you get events for all instances
-      // of that class (including instances of classes which extend it).
-      //
-      // This is rigged up through Stratcom. Each class has a path component
-      // like "class:Dog", and each object has a path component like
-      // "obj:23". When you invoke on an object, it emits an event with
-      // a path that includes its class, all parent classes, and its object
-      // ID.
-      //
-      // Calling listen() on an instance listens for just the object ID.
-      // Calling listen() on a class listens for that class's name. This
-      // has the effect of working properly, but installing them is pretty
-      // messy.
-      if (junk.events && junk.events.length) {
-
-        var parent = JX[junk.extend] || {};
-
-        // If we're in dev, we build up a list of valid events (for this
-        // class or some parent class) and then check them whenever we try
-        // to listen or invoke.
-        if (__DEV__) {
-          var valid_events = parent.__events__ || {};
-          for (var ii = 0; ii < junk.events.length; ++ii) {
-            valid_events[junk.events[ii]] = true;
-          }
-          JX[name].__events__ = valid_events;
-        }
-
-        // Build the class name chain.
-        JX[name].__name__ = 'class:' + name;
-        var ancestry = parent.__path__ || [];
-        JX[name].__path__ = ancestry.concat([JX[name].__name__]);
-
-        proto.invoke = function(type) {
-          if (__DEV__) {
-            if (!(type in this.__class__.__events__)) {
-              throw new Error(
-                this.__class__.__readable__ + '.invoke("' + type + '", ...): ' +
-                'invalid event type. Valid event types are: ' +
-                JX.keys(this.__class__.__events__).join(', ') + '.');
-            }
-          }
-          // Here and below, this nonstandard access notation is used to mask
-          // these callsites from the static analyzer. JX.Stratcom is always
-          // available by the time we hit these execution points.
-          return JX['Stratcom'].invoke(
-            'obj:' + type,
-            this.__class__.__path__.concat([this.__id__]),
-            {args : JX.$A(arguments).slice(1)});
-        };
-
-        proto.listen = function(type, callback) {
-          if (__DEV__) {
-            if (!(type in this.__class__.__events__)) {
-              throw new Error(
-                this.__class__.__readable__ + '.listen("' + type + '", ...): ' +
-                'invalid event type. Valid event types are: ' +
-                JX.keys(this.__class__.__events__).join(', ') + '.');
-            }
-          }
-          return JX['Stratcom'].listen(
-            'obj:' + type,
-            this.__id__,
-            JX.bind(this, function(e) {
-              return callback.apply(this, e.getData().args);
-            }));
-        };
-
-        JX[name].listen = function(type, callback) {
-          if (__DEV__) {
-            if (!(type in this.__events__)) {
-              throw new Error(
-                this.__readable__ + '.listen("' + type + '", ...): ' +
-                'invalid event type. Valid event types are: ' +
-                JX.keys(this.__events__).join(', ') + '.');
-            }
-          }
-          return JX['Stratcom'].listen(
-            'obj:' + type,
-            this.__name__,
-            JX.bind(this, function(e) {
-              return callback.apply(this, e.getData().args);
-            }));
-        };
-      } else if (__DEV__) {
-        var error_message =
-          'class does not define any events. Pass an "events" property to ' +
-          'JX.install() to define events.';
-        JX[name].listen = JX[name].listen || function() {
-          throw new Error(
-            this.__readable__ + '.listen(...): ' +
-            error_message);
-        };
-        JX[name].invoke = JX[name].invoke || function() {
-          throw new Error(
-            this.__readable__ + '.invoke(...): ' +
-            error_message);
-        };
-        proto.listen = proto.listen || function() {
-          throw new Error(
-            this.__class__.__readable__ + '.listen(...): ' +
-            error_message);
-        };
-        proto.invoke = proto.invoke || function() {
-          throw new Error(
-            this.__class__.__readable__ + '.invoke(...): ' +
-            error_message);
-        };
-      }
-
-      if (junk.initialize) {
+      if (initialize) {
         if (JX.Stratcom && JX.Stratcom.ready) {
-          junk.initialize.apply(null);
+          initialize.apply(null);
         } else {
           // This is a holding queue, defined in init.js.
-          JX['install-init'](junk.initialize);
+          JX['install-init'](initialize);
         }
       }
     }
@@ -722,7 +457,290 @@ JX.install = function(new_name, new_junk) {
     // installing things, which means we've installed everything we have the
     // dependencies for.
   } while (name);
-}
+};
+
+
+/**
+ * Creates a class from a map of attributes. Requires ##extend## property to
+ * be an actual Class object and not a "String". Supports ##name## property
+ * to give the created Class a readable name.
+ *
+ * @see JX.install for description of supported attributes.
+ *
+ * @param  junk     Map of properties, see method documentation.
+ * @return function Constructor of a class created
+ */
+JX.createClass = function(junk) {
+  if (typeof JX.install._nextObjectID == 'undefined') {
+    JX.install._nextObjectID = 0;
+  }
+  var name = junk.name || '';
+
+  if (__DEV__) {
+    var valid = {
+      construct : 1,
+      statics : 1,
+      members : 1,
+      extend : 1,
+      properties : 1,
+      events : 1,
+      name : 1
+    };
+    for (var k in junk) {
+      if (!(k in valid)) {
+        throw new Error(
+          'JX.createClass("' + name + '", {"' + k + '": ...}): ' +
+          'trying to create unknown property `' + k + '`.');
+      }
+    }
+    if (junk.constructor !== {}.constructor) {
+      throw new Error(
+        'JX.createClass("' + name + '", {"constructor": ...}): ' +
+        'property `constructor` should be called `construct`.');
+    }
+  }
+
+  // First, build the constructor. If construct is just a function, this
+  // won't change its behavior (unless you have provided a really awesome
+  // function, in which case it will correctly punish you for your attempt
+  // at creativity).
+  var Class = (function(name, junk) {
+    var result = function() {
+      this.__id__ = '__obj__' + (++JX.install._nextObjectID);
+      return (junk.construct || junk.extend || JX.bag).apply(this, arguments);
+      // TODO: Allow mixins to initialize here?
+      // TODO: Also, build mixins?
+    };
+
+    if (__DEV__) {
+      var inner = result;
+      result = function() {
+        if (this == window || this == JX) {
+          throw new Error(
+            '<' + Class.__readable__ + '>: ' +
+            'Tried to construct an instance without the "new" operator.');
+        }
+        return inner.apply(this, arguments);
+      };
+    }
+    return result;
+  })(name, junk);
+
+  Class.__readable__ = name;
+
+  // Copy in all the static methods and properties.
+  for (var k in junk.statics) {
+    // Can't use JX.copy() here yet since it may not have loaded.
+    Class[k] = junk.statics[k];
+  }
+
+  var proto;
+  if (junk.extend) {
+    var Inheritance = function() {};
+    Inheritance.prototype = junk.extend.prototype;
+    proto = Class.prototype = new Inheritance();
+  } else {
+    proto = Class.prototype = {};
+  }
+
+  proto.__class__ = Class;
+
+  // Build getters and setters from the `prop' map.
+  for (var k in (junk.properties || {})) {
+    var base = k.charAt(0).toUpperCase()+k.substr(1);
+    var prop = '__auto__' + k;
+    proto[prop] = junk.properties[k];
+    proto['set' + base] = (function(prop) {
+      return function(v) {
+        this[prop] = v;
+        return this;
+      };
+    })(prop);
+
+    proto['get' + base] = (function(prop) {
+      return function() {
+        return this[prop];
+      };
+    })(prop);
+  }
+
+  if (__DEV__) {
+
+    // Check for aliasing in default values of members. If we don't do this,
+    // you can run into a problem like this:
+    //
+    //  JX.install('List', { members : { stuff : [] }});
+    //
+    //  var i_love = new JX.List();
+    //  var i_hate = new JX.List();
+    //
+    //  i_love.stuff.push('Psyduck');  // I love psyduck!
+    //  JX.log(i_hate.stuff);          // Show stuff I hate.
+    //
+    // This logs ["Psyduck"] because the push operation modifies
+    // JX.List.prototype.stuff, which is what both i_love.stuff and
+    // i_hate.stuff resolve to. To avoid this, set the default value to
+    // null (or any other scalar) and do "this.stuff = [];" in the
+    // constructor.
+
+    for (var member_name in junk.members) {
+      if (junk.extend && member_name[0] == '_') {
+        throw new Error(
+          'JX.createClass("' + name + '", ...): ' +
+          'installed member "' + member_name + '" must not be named with ' +
+          'a leading underscore because it is in a subclass. Variables ' +
+          'are analyzed and crushed one file at a time, and crushed ' +
+          'member variables in subclasses alias crushed member variables ' +
+          'in superclasses. Remove the underscore, refactor the class so ' +
+          'it does not extend anything, or fix the minifier to be ' +
+          'capable of safely crushing subclasses.');
+      }
+      var member_value = junk.members[member_name];
+      if (typeof member_value == 'object' && member_value !== null) {
+        throw new Error(
+          'JX.createClass("' + name + '", ...): ' +
+          'installed member "' + member_name + '" is not a scalar or ' +
+          'function. Prototypal inheritance in Javascript aliases object ' +
+          'references across instances so all instances are initialized ' +
+          'to point at the exact same object. This is almost certainly ' +
+          'not what you intended. Make this member static to share it ' +
+          'across instances, or initialize it in the constructor to ' +
+          'prevent reference aliasing and give each instance its own ' +
+          'copy of the value.');
+      }
+    }
+  }
+
+
+  // This execution order intentionally allows you to override methods
+  // generated from the "properties" initializer.
+  for (var k in junk.members) {
+    proto[k] = junk.members[k];
+  }
+
+
+  // Build this ridiculous event model thing. Basically, this defines
+  // two instance methods, invoke() and listen(), and one static method,
+  // listen(). If you listen to an instance you get events for that
+  // instance; if you listen to a class you get events for all instances
+  // of that class (including instances of classes which extend it).
+  //
+  // This is rigged up through Stratcom. Each class has a path component
+  // like "class:Dog", and each object has a path component like
+  // "obj:23". When you invoke on an object, it emits an event with
+  // a path that includes its class, all parent classes, and its object
+  // ID.
+  //
+  // Calling listen() on an instance listens for just the object ID.
+  // Calling listen() on a class listens for that class's name. This
+  // has the effect of working properly, but installing them is pretty
+  // messy.
+
+  var parent = junk.extend || {};
+  var old_events = parent.__events__;
+  var new_events = junk.events || [];
+  var has_events = old_events || new_events.length;
+
+  if (has_events) {
+    var valid_events = {};
+
+    // If we're in dev, we build up a list of valid events (for this class
+    // and our parent class), and then check them on listen and invoke.
+    if (__DEV__) {
+      for (var key in old_events || {}) {
+        valid_events[key] = true;
+      }
+      for (var ii = 0; ii < new_events.length; ++ii) {
+        valid_events[junk.events[ii]] = true;
+      }
+    }
+
+    Class.__events__ = valid_events;
+
+    // Build the class name chain.
+    Class.__name__ = 'class:' + name;
+    var ancestry = parent.__path__ || [];
+    Class.__path__ = ancestry.concat([Class.__name__]);
+
+    proto.invoke = function(type) {
+      if (__DEV__) {
+        if (!(type in this.__class__.__events__)) {
+          throw new Error(
+            this.__class__.__readable__ + '.invoke("' + type + '", ...): ' +
+            'invalid event type. Valid event types are: ' +
+            JX.keys(this.__class__.__events__).join(', ') + '.');
+        }
+      }
+      // Here and below, this nonstandard access notation is used to mask
+      // these callsites from the static analyzer. JX.Stratcom is always
+      // available by the time we hit these execution points.
+      return JX['Stratcom'].invoke(
+        'obj:' + type,
+        this.__class__.__path__.concat([this.__id__]),
+        {args : JX.$A(arguments).slice(1)});
+    };
+
+    proto.listen = function(type, callback) {
+      if (__DEV__) {
+        if (!(type in this.__class__.__events__)) {
+          throw new Error(
+            this.__class__.__readable__ + '.listen("' + type + '", ...): ' +
+            'invalid event type. Valid event types are: ' +
+            JX.keys(this.__class__.__events__).join(', ') + '.');
+        }
+      }
+      return JX['Stratcom'].listen(
+        'obj:' + type,
+        this.__id__,
+        JX.bind(this, function(e) {
+          return callback.apply(this, e.getData().args);
+        }));
+    };
+
+    Class.listen = function(type, callback) {
+      if (__DEV__) {
+        if (!(type in this.__events__)) {
+          throw new Error(
+            this.__readable__ + '.listen("' + type + '", ...): ' +
+            'invalid event type. Valid event types are: ' +
+            JX.keys(this.__events__).join(', ') + '.');
+        }
+      }
+      return JX['Stratcom'].listen(
+        'obj:' + type,
+        this.__name__,
+        JX.bind(this, function(e) {
+          return callback.apply(this, e.getData().args);
+        }));
+    };
+  } else if (__DEV__) {
+    var error_message =
+      'class does not define any events. Pass an "events" property to ' +
+      'JX.createClass() to define events.';
+    Class.listen = Class.listen || function() {
+      throw new Error(
+        this.__readable__ + '.listen(...): ' +
+        error_message);
+    };
+    Class.invoke = Class.invoke || function() {
+      throw new Error(
+        this.__readable__ + '.invoke(...): ' +
+        error_message);
+    };
+    proto.listen = proto.listen || function() {
+      throw new Error(
+        this.__class__.__readable__ + '.listen(...): ' +
+        error_message);
+    };
+    proto.invoke = proto.invoke || function() {
+      throw new Error(
+        this.__class__.__readable__ + '.invoke(...): ' +
+        error_message);
+    };
+  }
+
+  return Class;
+};
 
 JX.flushHoldingQueue('install', JX.install);
 
@@ -844,6 +862,19 @@ JX.install('Event', {
       }
 
       return JX.Event._keymap[r.keyCode] || null;
+    },
+
+
+    /**
+     * Get whether the mouse button associated with the mouse event is the
+     * right-side button in a browser-agnostic way.
+     *
+     * @return bool
+     * @task info
+     */
+    isRightButton : function() {
+      var r = this.getRawEvent();
+      return r.which == 3 || r.button == 2;
     },
 
 
@@ -1745,7 +1776,9 @@ JX.install('Request', {
         if (xport.readyState != 4) {
           return;
         }
-        if (xport.status < 200 || xport.status >= 300) {
+        // XHR requests to 'file:///' domains return 0 for success, which is why
+        // we treat it as a good result in addition to HTTP 2XX responses.
+        if (xport.status !== 0 && (xport.status < 200 || xport.status >= 300)) {
           this._fail();
           return;
         }
@@ -1884,27 +1917,38 @@ JX.install('Request', {
  */
 
 /**
- * Query and update positions and dimensions of nodes (and other things)
- * within a document. 'V' stands for 'Vector'. Each vector has two elements,
- * 'x' and 'y', which usually represent width/height (a "dimension vector") or
- * left/top (a "position vector").
+ * Handy convenience function that returns a JX.Vector instance so you can
+ * concisely write something like:
+ *
+ *  JX.$V(x, y).add(10, 10);
+ * or
+ *  JX.$V(node).add(50, 50).setDim(node);
+ */
+JX.$V = function(x, y) {
+  return new JX.Vector(x, y);
+};
+
+/**
+ * Query and update positions and dimensions of nodes (and other things) within
+ * within a document. Each vector has two elements, 'x' and 'y', which usually
+ * represent width/height ('dimension vector') or left/top ('position vector').
  *
  * Vectors are used to manage the sizes and positions of elements, events,
  * the document, and the viewport (the visible section of the document, i.e.
  * how much of the page the user can actually see in their browser window).
- * Unlike most Javelin classes, @{JX.$V} exposes two bare properties, 'x' and
- * 'y'. You can read and manipulate these directly:
+ * Unlike most Javelin classes, @{JX.Vector} exposes two bare properties,
+ * 'x' and 'y'. You can read and manipulate these directly:
  *
  *   // Give the user information about elements when they click on them.
  *   JX.Stratcom.listen(
  *     'click',
  *     null,
  *     function(e) {
- *       var p = JX.$V(e);
- *       var d = JX.$V.getDim(e.getTarget());
+ *       var p = new JX.Vector(e);
+ *       var d = JX.Vector.getDim(e.getTarget());
  *
- *       alert('You clicked at <'+p.x+','+p.y'>; the element you clicked '+
- *             'is '+d.x+' pixels wide and '+d.y+' pixels high.');
+ *       alert('You clicked at <' + p.x + ',' + p.y + '> and the element ' +
+ *             'you clicked is ' + d.x + 'px wide and ' + d.y + 'px high.');
  *     });
  *
  * You can also update positions and dimensions using vectors:
@@ -1914,45 +1958,44 @@ JX.install('Request', {
  *     'click',
  *     null,
  *     function(e) {
- *       var t = e.getTarget();
- *       JX.$V(t).add(10, 10).setDim(t);
+ *       var target = e.getTarget();
+ *       JX.$V(target).add(10, 10).setDim(target);
  *     });
  *
  * Additionally, vectors can be used to query document and viewport information:
  *
- *   var v = JX.$V.getViewport(); // Viewport (window) width and height.
- *   var d = JX.$V.getDocument(); // Document width and height.
+ *   var v = JX.Vector.getViewport(); // Viewport (window) width and height.
+ *   var d = JX.Vector.getDocument(); // Document width and height.
  *   var visible_area = parseInt(100 * (v.x * v.y) / (d.x * d.y), 10);
- *   alert('You can currently see '+visible_area'+ percent of the document.');
+ *   alert('You can currently see ' + visible_area + ' % of the document.');
  *
  * @author epriestley
  *
  * @task query  Querying Positions and Dimensions
  * @task update Changing Positions and Dimensions
  * @task manip  Manipulating Vectors
- *
  */
-JX.install('$V', {
+JX.install('Vector', {
 
   /**
    * Construct a vector, either from explicit coordinates or from a node
    * or event. You can pass two Numbers to construct an explicit vector:
    *
-   *   var v = JX.$V(35, 42);
+   *   var p = new JX.Vector(35, 42);
    *
    * Otherwise, you can pass a @{JX.Event} or a Node to implicitly construct a
    * vector:
    *
-   *   var u = JX.$V(some_event);
-   *   var v = JX.$V(some_node);
+   *   var q = new JX.Vector(some_event);
+   *   var r = new JX.Vector(some_node);
    *
-   * These are just like calling getPos() on the @{JX.Event} or Node.
+   * These are just like calling JX.Vector.getPos() on the @{JX.Event} or Node.
    *
-   * For convenience, @{JX.$V()} constructs a new vector even without the 'new'
-   * keyword. That is, these are equivalent:
+   * For convenience, @{JX.$V()} constructs a new vector so you don't need to
+   * use the 'new' keyword. That is, these are equivalent:
    *
-   *   var q = new JX.$V(x, y);
-   *   var r = JX.$V(x, y);
+   *   var s = new JX.Vector(x, y);
+   *   var t = JX.$V(x, y);
    *
    * Methods like getScroll(), getViewport() and getDocument() also create
    * new vectors.
@@ -1965,21 +2008,18 @@ JX.install('$V', {
    * @param wild      'x' component of the vector, or a @{JX.Event}, or a Node.
    * @param Number?   If providing an 'x' component, the 'y' component of the
    *                  vector.
-   * @return @{JX.$V} Specified vector.
+   * @return @{JX.Vector} Specified vector.
    * @task query
    */
   construct : function(x, y) {
-    if (this == JX || this == window) {
-      return new JX.$V(x, y);
-    }
     if (typeof y == 'undefined') {
-      return JX.$V.getPos(x);
+      return JX.Vector.getPos(x);
     }
 
     this.x = parseFloat(x);
     this.y = parseFloat(y);
   },
-  canCallAsFunction : true,
+
   members : {
     x : null,
     y : null,
@@ -2005,7 +2045,7 @@ JX.install('$V', {
     /**
      * Change the size of a node by setting its dimensions to the vector's
      * coordinates. For instance, if you want to change an element to be 100px
-     * by  100px:
+     * by 100px:
      *
      *   JX.$V(100, 100).setDim(node);
      *
@@ -2047,16 +2087,17 @@ JX.install('$V', {
      * @param wild      Value to add to the vector's x component, or another
      *                  vector.
      * @param Number?   Value to add to the vector's y component.
-     * @return @{JX.$V} New vector, with summed components.
+     * @return @{JX.Vector} New vector, with summed components.
      * @task manip
      */
     add : function(x, y) {
-      if (x instanceof JX.$V) {
+      if (x instanceof JX.Vector) {
         return this.add(x.x, x.y);
       }
-      return JX.$V(this.x + parseFloat(x), this.y + parseFloat(y));
+      return new JX.Vector(this.x + parseFloat(x), this.y + parseFloat(y));
     }
   },
+
   statics : {
     _viewport: null,
 
@@ -2073,16 +2114,15 @@ JX.install('$V', {
      * See also getDim(), used to determine an element's dimensions.
      *
      * @param  Node|@{JX.Event}  Node or event to determine the position of.
-     * @return @{JX.$V}          New vector with the argument's position.
+     * @return @{JX.Vector}      New vector with the argument's position.
      * @task query
      */
     getPos : function(node) {
-
       JX.Event && (node instanceof JX.Event) && (node = node.getRawEvent());
 
       if (('pageX' in node) || ('clientX' in node)) {
-        var c = JX.$V._viewport;
-        return JX.$V(
+        var c = JX.Vector._viewport;
+        return new JX.Vector(
           node.pageX || (node.clientX + c.scrollLeft),
           node.pageY || (node.clientY + c.scrollTop));
       }
@@ -2095,7 +2135,7 @@ JX.install('$V', {
         y += node.offsetTop;
       }
 
-      return JX.$V(x, y);
+      return new JX.Vector(x, y);
     },
 
     /**
@@ -2111,7 +2151,7 @@ JX.install('$V', {
      * @task query
      */
     getDim : function(node) {
-      return JX.$V(node.offsetWidth, node.offsetHeight);
+      return new JX.Vector(node.offsetWidth, node.offsetHeight);
     },
 
     /**
@@ -2126,12 +2166,16 @@ JX.install('$V', {
      * @task query
      */
     getScroll : function() {
-      //  We can't use $V._viewport here because there's diversity between
-      //  browsers with respect to where position/dimension and scroll position
-      //  information is stored.
+      // We can't use JX.Vector._viewport here because there's diversity between
+      // browsers with respect to where position/dimension and scroll position
+      // information is stored.
       var b = document.body;
       var e = document.documentElement;
-      return JX.$V(b.scrollLeft || e.scrollLeft, b.scrollTop || e.scrollTop);
+      var w = window;
+      return new JX.Vector(
+        w.pageXOffset || b.scrollLeft || e.scrollLeft,
+        w.pageYOffset || b.scrollTop || e.scrollTop
+      );
     },
 
     /**
@@ -2147,10 +2191,10 @@ JX.install('$V', {
      * @task query
      */
     getViewport : function() {
-      var c = JX.$V._viewport;
+      var c = JX.Vector._viewport;
       var w = window;
 
-      return JX.$V(
+      return new JX.Vector(
         w.innerWidth || c.clientWidth || 0,
         w.innerHeight || c.clientHeight || 0
       );
@@ -2167,8 +2211,8 @@ JX.install('$V', {
      * @task query
      */
     getDocument : function() {
-      var c = JX.$V._viewport;
-      return JX.$V(c.scrollWidth || 0, c.scrollHeight || 0);
+      var c = JX.Vector._viewport;
+      return new JX.Vector(c.scrollWidth || 0, c.scrollHeight || 0);
     }
   },
 
@@ -2186,15 +2230,15 @@ JX.install('$V', {
   initialize : function() {
     var c = ((c = document) && (c = c.documentElement)) ||
             ((c = document) && (c = c.body))
-    JX.$V._viewport = c;
+    JX.Vector._viewport = c;
 
     if (__DEV__) {
-      JX.$V.prototype.toString = function() {
-        return '<'+this.x+', '+this.y+'>';
+      JX.Vector.prototype.toString = function() {
+        return '<' + this.x + ', ' + this.y + '>';
       }
     }
-
   }
+
 });
 
 
@@ -2275,53 +2319,41 @@ if (__DEV__) {
  * the edge cases are crazy and you should always be reasonably able to emit
  * a cohesive tag instead of an unappendable fragment.
  *
+ * You may use @{JX.$H} as a shortcut for creating new JX.HTML instances.
+ *
  * @task build String into HTML
  * @task nodes HTML into Nodes
  */
 JX.install('HTML', {
 
-  /**
-   * Build a new HTML object from a trustworthy string.
-   *
-   * @task build
-   * @param string A string which you want to be treated as HTML, because you
-   *               know it is from a trusted source and any data in it has been
-   *               properly escaped.
-   * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
-   */
   construct : function(str) {
-    if (this == JX || this == window) {
-      return new JX.HTML(str);
-    }
-
     if (__DEV__) {
       var tags = ['legend', 'thead', 'tbody', 'tfoot', 'column', 'colgroup',
                   'caption', 'tr', 'th', 'td', 'option'];
-
-      var evil_stuff = new RegExp('^\\s*<('+tags.join('|')+')\\b', 'i');
+      var evil_stuff = new RegExp('^\\s*<(' + tags.join('|') + ')\\b', 'i');
       var match = null;
       if (match = str.match(evil_stuff)) {
         throw new Error(
-          'JX.HTML("<'+match[1]+'>..."): '+
-          'call initializes an HTML object with an invalid partial fragment '+
-          'and can not be converted into DOM nodes. The enclosing tag of an '+
-          'HTML content string must be appendable to a document fragment. '+
+          'new JX.HTML("<' + match[1] + '>..."): ' +
+          'call initializes an HTML object with an invalid partial fragment ' +
+          'and can not be converted into DOM nodes. The enclosing tag of an ' +
+          'HTML content string must be appendable to a document fragment. ' +
           'For example, <table> is allowed but <tr> or <tfoot> are not.');
       }
 
       var really_evil = /<script\b/;
       if (str.match(really_evil)) {
         throw new Error(
-          'JX.HTML("...<script>..."): '+
-          'call initializes an HTML object with an embedded script tag! '+
+          'new JX.HTML("...<script>..."): ' +
+          'call initializes an HTML object with an embedded script tag! ' +
           'Are you crazy?! Do NOT do this!!!');
       }
 
       var wont_work = /<object\b/;
       if (str.match(wont_work)) {
         throw new Error(
-          'JX.HTML("...<object>..."): '+
-          'call initializes an HTML object with an embedded <object> tag. IE '+
+          'new JX.HTML("...<object>..."): ' +
+          'call initializes an HTML object with an embedded <object> tag. IE ' +
           'will not do the right thing with this.');
       }
 
@@ -2333,7 +2365,7 @@ JX.install('HTML', {
 
     this._content = str;
   },
-  canCallAsFunction : true,
+
   members : {
     _content : null,
     /**
@@ -2357,6 +2389,21 @@ JX.install('HTML', {
     }
   }
 });
+
+
+/**
+ * Build a new HTML object from a trustworthy string. JX.$H is a shortcut for
+ * creating new JX.HTML instances.
+ *
+ * @task build
+ * @param string A string which you want to be treated as HTML, because you
+ *               know it is from a trusted source and any data in it has been
+ *               properly escaped.
+ * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
+ */
+JX.$H = function(str) {
+  return new JX.HTML(str);
+};
 
 
 /**
@@ -2415,7 +2462,7 @@ JX.install('HTML', {
  * That is, the content will be properly escaped and will not create a
  * vulnerability. If you want to set HTML content, you can use @{JX.HTML}:
  *
- *   JX.$N('div', JX.HTML(some_html));
+ *   JX.$N('div', JX.$H(some_html));
  *
  * **This is potentially unsafe**, so make sure you understand what you're
  * doing. You should usually avoid passing HTML around in string form. See
@@ -2642,6 +2689,16 @@ JX.install('DOM', {
     },
 
 
+    /**
+     * Serializes a form.
+     *
+     * Note: This function explicity does not match for submit inputs as there
+     * could be multiple in a form. It's the caller's obligation to add the
+     * submit input value if desired.
+     *
+     * @param Node The form element to serialze.
+     * @return a dictionary representation of the inputs in the form.
+     */
     serialize : function(form) {
       var elements = form.getElementsByTagName('*');
       var data = {};
@@ -2652,8 +2709,8 @@ JX.install('DOM', {
         var type = elements[ii].type;
         var tag  = elements[ii].tagName;
         if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
-             type in {text: 1, hidden: 1, password: 1} ||
-              tag in {TEXTAREA: 1, SELECT: 1}) {
+             type in {text: 1, hidden: 1, password: 1, email: 1} ||
+             tag in {TEXTAREA: 1, SELECT: 1}) {
           data[elements[ii].name] = elements[ii].value;
         }
       }
@@ -2832,8 +2889,8 @@ JX.install('DOM', {
         proxy.style.width = x ? (x+'px') : '';
         JX.DOM.setContent(
           proxy,
-          JX.HTML(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
-        var metrics = JX.$V.getDim(proxy);
+          JX.$H(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
+        var metrics = JX.Vector.getDim(proxy);
       document.body.removeChild(proxy);
       return metrics;
     },
@@ -2991,9 +3048,34 @@ JX.install('JSON', {
         return '{'+out.join(',')+'}';
       }
     },
+
+    // Lifted more or less directly from Crockford's JSON2.
+    _escexp : /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+
+    _meta : {
+      '\b' : '\\b',
+      '\t' : '\\t',
+      '\n' : '\\n',
+      '\f' : '\\f',
+      '\r' : '\\r',
+      '"'  : '\\"',
+      '\\' : '\\\\'
+    },
+
     _esc : function(str) {
-      return '"'+str.replace(/\\/g, '\\\\').replace(/"/g, '\\"')+'"';
+      JX.JSON._escexp.lastIndex = 0;
+      return JX.JSON._escexp.test(str) ?
+        '"' + str.replace(JX.JSON._escexp, JX.JSON._replace) + '"' :
+        '"' + str + '"';
+    },
+
+    _replace : function(m) {
+      if (m in JX.JSON._meta) {
+        return JX.JSON._meta[m];
+      }
+      return '\\u' + (('0000' + m.charCodeAt(0).toString(16)).slice(-4));
     }
+
   }
 });
 
@@ -3006,10 +3088,10 @@ JX.install('JSON', {
  */
 
 /**
- * Oh hey, I'm just a handy function that returns a JX.URI so you can
- * concisely write something like
+ * Handy convenience function that returns a JX.URI instance so you can
+ * concisely write something like:
  *
- * JX.$U(http://zombo.com/).getDomain()
+ *   JX.$U(http://zombo.com/).getDomain();
  */
 JX.$U = function(uri) {
   return new JX.URI(uri);
@@ -3018,12 +3100,12 @@ JX.$U = function(uri) {
 /**
  * Convert a string URI into a maleable object
  *
- *   var uri = JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
- *   uri.getProtocol();  // http
- *   uri.getDomain();    // www.facebook.com
- *   uri.getPath();      // /asdf.php
- *   uri.getQueryData(); // {"a":"b", "c":"d"}
- *   uri.getFragment();  // anchor123
+ *   var uri = new JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
+ *   uri.getProtocol();    // http
+ *   uri.getDomain();      // www.facebook.com
+ *   uri.getPath();        // /asdf.php
+ *   uri.getQueryParams(); // {a: 'b', c: 'd'}
+ *   uri.getFragment();    // anchor123
  *
  * And back into a string
  *
@@ -3034,7 +3116,26 @@ JX.$U = function(uri) {
 JX.install('URI', {
   statics : {
     _uriPattern : /(?:([^:\/?#]+):)?(?:\/\/([^:\/?#]*)(?::(\d*))?)?([^?#]*)(?:\?([^#]*))?(?:#(.*))?/,
-    _queryPattern : /(?:^|&)([^&=]*)=?([^&]*)/g
+    _queryPattern : /(?:^|&)([^&=]*)=?([^&]*)/g,
+
+    /**
+     *  Convert a Javascript object into an HTTP query string.
+     *
+     *  @param  Object  Map of query keys to values.
+     *  @return String  HTTP query string, like 'cow=quack&duck=moo'.
+     */
+    _defaultQuerySerializer : function(obj) {
+      var kv_pairs = [];
+      for (var key in obj) {
+        if (obj[key] != null) {
+          var value = encodeURIComponent(obj[key]);
+          kv_pairs.push(encodeURIComponent(key) + (value ? '=' + value : ''));
+        }
+      }
+
+      return kv_pairs.join('&');
+    }
+
   },
 
   /**
@@ -3048,7 +3149,7 @@ JX.install('URI', {
   construct : function(uri) {
     // need to set the default value here rather than in the properties map,
     // or else we get some crazy global state breakage
-    this.setQueryData({});
+    this.setQueryParams({});
 
     if (uri) {
       // parse the url
@@ -3071,7 +3172,7 @@ JX.install('URI', {
         while ((data = JX.URI._queryPattern.exec(query)) != null) {
           queryData[decodeURIComponent(data[1])] = decodeURIComponent(data[2]);
         }
-        this.setQueryData(queryData);
+        this.setQueryParams(queryData);
       }
     }
   },
@@ -3080,9 +3181,10 @@ JX.install('URI', {
     protocol: undefined,
     domain: undefined,
     port: undefined,
-    path: '/',
-    queryData: undefined,
-    fragment: undefined
+    path: undefined,
+    queryParams: undefined,
+    fragment: undefined,
+    querySerializer: undefined
   },
 
   members : {
@@ -3094,9 +3196,23 @@ JX.install('URI', {
      * @param map
      * @return @{JX.URI} self
      */
-    addQueryData : function(map) {
-      JX.copy(this.getQueryData(), map);
+    addQueryParams : function(map) {
+      JX.copy(this.getQueryParams(), map);
       return this;
+    },
+
+    /**
+     * Set a specific query parameter
+     * Remove a query key by setting it undefined
+     *
+     * @param string
+     * @param wild
+     * @return @{JX.URI} self
+     */
+    setQueryParam : function(key, value) {
+      var map = {};
+      map[key] = value;
+      return this.addQueryParams(map);
     },
 
     toString : function() {
@@ -3113,7 +3229,13 @@ JX.install('URI', {
         str += this.getProtocol() + '://';
       }
       str += this.getDomain() || '';
-      str += this.getPath() || '/';
+
+      // If there is a domain or a protocol, we need to provide '/' for the
+      // path. If we don't have either and also don't have a path, we can omit
+      // it to produce a partial URI without path information which begins
+      // with "?", "#", or is empty.
+      str += this.getPath() || (str ? '/' : '');
+
       str += this._getQueryString();
       if (this.getFragment()) {
         str += '#' + this.getFragment();
@@ -3122,18 +3244,27 @@ JX.install('URI', {
     },
 
     _getQueryString : function() {
-      var queryData = this.getQueryData();
-      var queryString = '';
-      for (var key in queryData) {
-        if (queryData[key] != null) {
-          queryString += queryString ? '&' : '?';
-          queryString += encodeURIComponent(key);
-          if (queryData[key] !== '') {
-            queryString += '=' + encodeURIComponent(queryData[key]);
-          }
-        }
+      var str = (
+        this.getQuerySerializer() || JX.URI._defaultQuerySerializer
+      )(this.getQueryParams());
+      return str ? '?' + str : '';
+    },
+
+    /**
+     * Redirect the browser to another page by changing the window location. If
+     * the URI is empty, reloads the current page.
+     *
+     * You can install a Stratcom listener for the 'go' event if you need to log
+     * or prevent redirects.
+     *
+     * @return void
+     */
+    go : function() {
+      var uri = this.toString();
+      if (JX.Stratcom.invoke('go', null, {uri: uri}).getPrevented()) {
+        return;
       }
-      return queryString;
+      (uri && (window.location = uri)) || window.location.reload(true);
     }
 
   }
