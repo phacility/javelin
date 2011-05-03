@@ -2,68 +2,18 @@
 <?php
 
 require_once dirname(__FILE__).'/__init_script__.php';
+require_once 'sync-spec.php';
 
 if ($argc != 2) {
-  echo "usage: sync-from-facebook <php_root>\n";
+  echo "usage: sync-from-facebook.php <php_root>\n";
   exit(1);
 }
 
 phutil_require_module('phutil', 'filesystem');
 phutil_require_module('phutil', 'future/exec');
 
-$files = array(
-  'core/init.js',
-  'core/util.js',
-  'core/install.js',
-  'core/Event.js',
-  'core/Stratcom.js',
-  'lib/behavior.js',
-  'lib/Request.js',
-  'lib/Vector.js',
-  'lib/DOM.js',
-  'lib/JSON.js',
-  'lib/Mask.js',
-  'lib/Workflow.js',
-  'lib/URI.js',
-  'lib/control/typeahead/Typeahead.js',
-  'lib/control/typeahead/source/TypeaheadSource.js',
-  'lib/control/typeahead/source/TypeaheadPreloadedSource.js',
-  'lib/control/typeahead/source/TypeaheadOnDemandSource.js',
-  'lib/control/typeahead/normalizer/TypeaheadNormalizer.js',
-  'lib/control/tokenizer/Tokenizer.js',
-
-  'docs/Base.js',
-);
-
-$packages = array(
-  'init' => array(
-    'core/init.js',
-  ),
-  'javelin' => array(
-    'core/util.js',
-    'core/install.js',
-    'core/Event.js',
-    'core/Stratcom.js',
-    'lib/behavior.js',
-    'lib/Request.js',
-    'lib/Vector.js',
-    'lib/DOM.js',
-    'lib/JSON.js',
-    'lib/URI.js',
-  ),
-  'typeahead' => array(
-    'lib/control/typeahead/Typeahead.js',
-    'lib/control/typeahead/normalizer/TypeaheadNormalizer.js',
-    'lib/control/typeahead/source/TypeaheadSource.js',
-    'lib/control/typeahead/source/TypeaheadPreloadedSource.js',
-    'lib/control/typeahead/source/TypeaheadOnDemandSource.js',
-    'lib/control/tokenizer/Tokenizer.js',
-  ),
-  'workflow' => array(
-    'lib/Mask.js',
-    'lib/Workflow.js',
-  ),
-);
+$files = JavelinSyncSpec::getFilesToSync();
+$packages = JavelinSyncSpec::getPackageMap();
 
 $root = Filesystem::resolvePath($argv[1]).'/html/js/javelin/';
 
