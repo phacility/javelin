@@ -108,7 +108,7 @@ string get_node_value(Node *node) {
   } else if (typeid(*node) == typeid(NodeIdentifier)) {
     NodeIdentifier *ni = static_cast<NodeIdentifier *>(node);
     return ni->name();
-  }  
+  }
   return "";
 }
 
@@ -130,11 +130,24 @@ void print_tree(Node *node) {
       print_tree(*ii);
     }
   }
+
   printf("]");
-  
   string s = get_node_value(node);
   if (s.length()) {
-    printf(", \"%s\", \"%d\"", s.c_str(), node->lineno());
+    int len = s.length();
+    char *dst = new char[s.length() * 2];
+    const char *src = s.c_str();
+    const char *end = src + len;
+    char *ptr = dst;
+    for (; src != end; src++) {
+      if (*src == '\\' || *src == '"') {
+        (*ptr++) = '\\';
+      }
+      (*ptr++) = *src;
+    }
+    (*ptr) = 0;
+    printf(", \"%s\", \"%d\"", dst, node->lineno());
+    delete[] dst;
   }
 
   printf("]");
