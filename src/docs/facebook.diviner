@@ -11,35 +11,48 @@ serve to completely sever its dependencies on trunk:
   - ##javelinsymbols##: used for lint
   - ##jsast##: used for documentation generation
   - ##jsxmin##: used to crush packages
-  
+
 To build these, first build libfbjs:
 
   javelin/ $ cd externals/libfbjs
   javelin/externals/libfbjs/ $ CXX=/usr/bin/g++ make
-  
+
 Note that **you must specify CXX explicitly because the default CXX is broken**.
 
 Now you should be able to build the individual binaries:
 
   javelin/ $ cd support/javelinsymbols
   javelin/support/javelinsymbols $ CXX=/usr/bin/g++ make
-  
+
   javelin/ $ cd support/jsast
   javelin/support/jsast $ CXX=/usr/bin/g++ make
-  
+
   javelin/ $ cd support/jsxmin
   javelin/support/jsxmin $ CXX=/usr/bin/g++ make
-  
+
 = Synchronizing Javelin =
 
-To synchronize Javelin from trunk, run the synchronize script:
+To synchronize Javelin **from** Facebook trunk, run the synchronize script:
 
   javelin/ $ ./scripts/synchronize-from-facebook.php ~/www
-  
-..where ##~/www## is the root you want to pull Javelin files from. The script
+
+...where ##~/www## is the root you want to pull Javelin files from. The script
 will copy files out of ##html/js/javelin## and build packages, and leave the
 results in your working copy. From there you can review changes and commit, and
 then push, diff, or send a pull request.
+
+To synchronize Javelin **to** Facebook trunk, run the, uh, reverse-synchronize
+script:
+
+  javelin/ $ ./scripts/synchronize-to-facebook.php ~/www
+
+...where ##~/www## is the root you want to push Javelin files to. The script
+will copy files out of the working copy into your ##www## and leave you with a
+dirty ##www##. From there you can review changes.
+
+Once Facebook moves to pure git for ##www## we can probably just submodule
+Javelin into it and get rid of all this nonsense, but the mixed SVN/git
+environment makes that difficult until then.
 
 = Building Documentation =
 
@@ -51,7 +64,7 @@ directory with ##javelin##:
   javelin/
   libphutil/
   somewhere/ $
-  
+
 Now run ##diviner## on ##javelin##:
 
   somewhere/ $ cd javelin
