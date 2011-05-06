@@ -2,6 +2,7 @@
   "project_id" : "javelin",
   "conduit_uri" : "https://secure.phabricator.com/api/",
   "lint_engine" : "PhutilLintEngine",
+  "remote_hooks_installed" : true,
   "phutil_libraries" : {
     "diviner" : "diviner/src"
   }
