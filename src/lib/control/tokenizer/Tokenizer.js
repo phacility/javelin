@@ -1,7 +1,8 @@
 /**
- * @requires javelin-typeahead javelin-dom javelin-util
- *           javelin-stratcom javelin-vector javelin-install
- *           javelin-typeahead-preloaded-source
+ * @requires javelin-dom
+ *           javelin-util
+ *           javelin-stratcom
+ *           javelin-install
  * @provides javelin-tokenizer
  * @javelin
  */

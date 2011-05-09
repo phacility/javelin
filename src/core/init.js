@@ -5,8 +5,10 @@
  *
  * @javelin-installs JX.__rawEventQueue
  * @javelin-installs JX.__simulate
+ * @javelin-installs JX.__allowedEvents
  * @javelin-installs JX.enableDispatch
  * @javelin-installs JX.onload
+ * @javelin-installs JX.flushHoldingQueue
  *
  * @javelin
  */

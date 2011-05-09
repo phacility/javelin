@@ -1,5 +1,9 @@
 /**
- * @requires javelin-install javelin-util javelin-vector javelin-stratcom
+ * @requires javelin-magical-init
+ *           javelin-install
+ *           javelin-util
+ *           javelin-vector
+ *           javelin-stratcom
  * @provides javelin-dom
  *
  * @javelin-installs JX.$

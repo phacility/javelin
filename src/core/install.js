@@ -1,7 +1,11 @@
 /**
  * @requires javelin-util
+ *           javelin-magical-init
  * @provides javelin-install
+ *
  * @javelin-installs JX.install
+ * @javelin-installs JX.createClass
+ *
  * @javelin
  */
 
@@ -135,7 +139,7 @@ JX.install = function(new_name, new_junk) {
       JX[name] = JX.createClass(junk);
 
       if (initialize) {
-        if (JX.Stratcom && JX.Stratcom.ready) {
+        if (JX['Stratcom'] && JX['Stratcom'].ready) {
           initialize.apply(null);
         } else {
           // This is a holding queue, defined in init.js.

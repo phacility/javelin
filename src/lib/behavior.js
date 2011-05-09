@@ -1,5 +1,6 @@
 /**
  * @provides javelin-behavior
+ * @requires javelin-magical-init
  *
  * @javelin-installs JX.behavior
  * @javelin-installs JX.initBehaviors

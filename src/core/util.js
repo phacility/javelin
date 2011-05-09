@@ -1,7 +1,6 @@
 /**
  * Javelin utility functions.
  *
- * @requires javelin-magical-init
  * @provides javelin-util
  *
  * @javelin-installs JX.$A
@@ -12,6 +11,7 @@
  * @javelin-installs JX.keys
  * @javelin-installs JX.defer
  * @javelin-installs JX.log
+ * @javelin-installs JX.id
  *
  * @javelin
  */

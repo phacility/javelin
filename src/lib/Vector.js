@@ -1,5 +1,6 @@
 /**
- * @requires javelin-install javelin-event
+ * @requires javelin-install
+ *           javelin-event
  * @provides javelin-vector
  *
  * @javelin-installs JX.$V
