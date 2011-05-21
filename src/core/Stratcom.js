@@ -1,7 +1,7 @@
 /**
- *  @requires javelin-install javelin-event javelin-util javelin-magical-init
- *  @provides javelin-stratcom
- *  @javelin
+ * @requires javelin-install javelin-event javelin-util javelin-magical-init
+ * @provides javelin-stratcom
+ * @javelin
  */
 
 /**

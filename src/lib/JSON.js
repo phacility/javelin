@@ -1,9 +1,9 @@
 /**
- *  Simple JSON serializer.
+ * Simple JSON serializer.
  *
- *  @requires javelin-install javelin-util
- *  @provides javelin-json
- *  @javelin
+ * @requires javelin-install javelin-util
+ * @provides javelin-json
+ * @javelin
  */
 
 JX.install('JSON', {
