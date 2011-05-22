@@ -82,7 +82,7 @@ JX.install('Request', {
               'JX.Request.send(): ' +
               'attempting to send a file over GET. You must use POST.');
           }
-          if (this.getData()) {
+          if (this._data) {
             throw new Error(
               'JX.Request.send(): ' +
               'attempting to send data and a file. You can not send both ' +
