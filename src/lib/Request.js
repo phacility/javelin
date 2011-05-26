@@ -18,7 +18,7 @@ JX.install('Request', {
     }
   },
 
-  events : ['send', 'done', 'error', 'finally'],
+  events : ['open', 'send', 'done', 'error', 'finally'],
 
   members : {
 
@@ -77,8 +77,6 @@ JX.install('Request', {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
-      this.invoke('send', this);
-
       if (this.getTimeout()) {
         this._timer = JX.defer(
           JX.bind(
@@ -89,6 +87,10 @@ JX.install('Request', {
       }
 
       xport.open(method, uri, true);
+
+      // Must happen after xport.open so that listeners can modify the transport
+      // Some transport properties can only be set after the transport is open
+      this.invoke('open', this);
 
       if (__DEV__) {
         if (this.getFile()) {
@@ -105,6 +107,8 @@ JX.install('Request', {
           }
         }
       }
+
+      this.invoke('send', this);
 
       if (method == 'POST') {
         if (this.getFile()) {
