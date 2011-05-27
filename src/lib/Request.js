@@ -18,33 +18,48 @@ JX.install('Request', {
     }
   },
 
-  events : ['send', 'done', 'error', 'finally'],
+  events : ['open', 'send', 'done', 'error', 'finally'],
 
   members : {
 
     _xhrkey : null,
     _transport : null,
+    _sent : false,
     _finished : false,
     _block : null,
     _data : null,
 
-    send : function() {
-      var xport = null;
-
-      try {
+    getTransport : function() {
+      var xport = this._transport;
+      if (!xport) {
         try {
-          xport = new XMLHttpRequest();
+          try {
+            xport = new XMLHttpRequest();
+          } catch (x) {
+            xport = new ActiveXObject("Msxml2.XMLHTTP");
+          }
         } catch (x) {
-          xport = new ActiveXObject("Msxml2.XMLHTTP");
+          xport = new ActiveXObject("Microsoft.XMLHTTP");
         }
-      } catch (x) {
-        xport = new ActiveXObject("Microsoft.XMLHTTP");
+        this._transport = xport;
+      }
+      return xport;
+    },
+
+    send : function() {
+      if (this._sent) {
+        if (__DEV__) {
+          throw new Error(
+            'JX.Request.send(): '+
+            'attempting to send a Request that has already been sent.');
+        }
+        return;
       }
 
-      this._transport = xport;
       this._xhrkey = JX.Request._xhr.length;
       JX.Request._xhr.push(this);
 
+      var xport = this.getTransport();
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
       var list_of_pairs = this._data || [];
@@ -62,8 +77,6 @@ JX.install('Request', {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
-      this.invoke('send', this);
-
       if (this.getTimeout()) {
         this._timer = JX.defer(
           JX.bind(
@@ -74,6 +87,10 @@ JX.install('Request', {
       }
 
       xport.open(method, uri, true);
+
+      // Must happen after xport.open so that listeners can modify the transport
+      // Some transport properties can only be set after the transport is open
+      this.invoke('open', this);
 
       if (__DEV__) {
         if (this.getFile()) {
@@ -91,6 +108,8 @@ JX.install('Request', {
         }
       }
 
+      this.invoke('send', this);
+
       if (method == 'POST') {
         if (this.getFile()) {
           xport.send(this.getFile());
@@ -103,6 +122,8 @@ JX.install('Request', {
       } else {
         xport.send(null);
       }
+
+      this._sent = true;
     },
 
     abort : function() {
@@ -110,7 +131,7 @@ JX.install('Request', {
     },
 
     _onreadystatechange : function() {
-      var xport = this._transport;
+      var xport = this.getTransport();
       try {
         if (this._finished) {
           return;
