@@ -32,7 +32,7 @@ switch ($tab) {
 <h2>Getting Started</h2>
 
 <p>Check out the <a href="http://www.phabricator.com/docs/javelin/">documentation</a> or
-<a href="http://github.com/epriestley/javelin">browse the source on GitHub</a>.</p>
+<a href="http://github.com/facebook/javelin">browse the source on GitHub</a>.</p>
 
 <h2>How Javelin improves performance</h2>
 <ul>
@@ -175,7 +175,7 @@ function render_body($body, $tab) {
       <a href="?" {$sel_home}>Home</a>
       <a href="?overview" {$sel_overview}>Overview</a>
       <a href="http://www.phabricator.com/docs/javelin/">Documentation</a>
-      <a href="http://github.com/epriestley/javelin">Download</a>
+      <a href="http://github.com/facebook/javelin">Download</a>
       <div style="clear: both;"></div>
     </div>
     <div id="core">
@@ -338,7 +338,7 @@ EOT;
 
       <h2>Status</h2>
         <p>Javelin is under development, but you can <a
-          href="http://github.com/epriestley/javelin/tree/master">preview it
+          href="http://github.com/facebook/javelin/tree/master">preview it
           on GitHub</a>. However, you probably shouldn't, since it's not very
           good and chances are you won't like it.</p>
 
