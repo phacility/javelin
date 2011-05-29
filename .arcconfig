@@ -4,6 +4,6 @@
   "lint_engine" : "PhutilLintEngine",
   "remote_hooks_installed" : true,
   "phutil_libraries" : {
-    "diviner" : "diviner/src"
+    "diviner" : "support/diviner"
   }
 }
