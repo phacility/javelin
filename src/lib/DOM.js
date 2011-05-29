@@ -493,7 +493,7 @@ JX.install('DOM', {
       var data = {};
       var pairs = JX.DOM.convertFormToListOfPairs(form);
       for (var ii = 0; ii < pairs.length; ii++) {
-        data[pairs[ii][0]] = data[pairs[ii][1]];
+        data[pairs[ii][0]] = pairs[ii][1];
       }
       return data;
     },
