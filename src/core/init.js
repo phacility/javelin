@@ -172,7 +172,8 @@
     ('onpagehide' in window) ? 'pagehide' : 'unload',
     'resize',
     'focus',
-    'blur'
+    'blur',
+    'hashchange'
   ];
 
 
