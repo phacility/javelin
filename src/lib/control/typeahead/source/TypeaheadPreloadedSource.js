@@ -36,7 +36,6 @@ JX.install('TypeaheadPreloadedSource', {
         this.lastValue = value;
         this.waitForResults();
       }
-      JX.Stratcom.context().kill();
     },
 
     didStart : function() {

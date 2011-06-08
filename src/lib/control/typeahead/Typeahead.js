@@ -129,6 +129,7 @@ JX.install('Typeahead', {
     _stop : false,
     _focus : -1,
     _display : null,
+    _datasource : null,
 
     /**
      * Activate your properly configured typeahead. It won't do anything until
@@ -139,22 +140,39 @@ JX.install('Typeahead', {
      */
     start : function() {
       this.invoke('start');
+      if (__DEV__) {
+        if (!this._datasource) {
+          throw new Error(
+            "JX.Typeahead.start(): " +
+            "No datasource configured. Create a datasource and call " +
+            "setDatasource().");
+        }
+      }
     },
 
 
     /**
      * Configure a datasource, which is where the Typeahead gets suggestions
      * from. See @{JX.TypeaheadDatasource} for more information. You must
-     * provide a datasource.
+     * provide exactly one datasource.
      *
      * @task datasource
      * @param JX.TypeaheadDatasource The datasource which the typeahead will
      *                               draw from.
      */
     setDatasource : function(datasource) {
+      if (__DEV__) {
+        if (this._datasource) {
+          throw new Error(
+            "JX.Typeahead.setDatasource(): " +
+            "Typeahead already has a datasource.");
+        }
+      }
+      datasource.listen('waiting', JX.bind(this, this.waitForResults));
+      datasource.listen('resultsready', JX.bind(this, this.showResults));
       datasource.bindToTypeahead(this);
+      this._datasource = datasource;
     },
-
 
     /**
      * Override the <input /> selected in the constructor with some other input.
@@ -187,9 +205,8 @@ JX.install('Typeahead', {
 
     /**
      * Show a given result set in the typeahead's dropdown suggestion menu.
-     * Normally, you only call this method if you are implementing a datasource.
-     * Otherwise, the datasource you have configured calls it for you in
-     * response to the user's actions.
+     * Normally, you don't call this method directly. Usually it gets called
+     * in response to events from the datasource you have configured.
      *
      * @task   control
      * @param  list List of ##<a />## tags to show as suggestions/results.
@@ -218,14 +235,7 @@ JX.install('Typeahead', {
       }
 
       this._value = this._control.value;
-      if (!this.invoke('change', this._value).getPrevented()) {
-        if (__DEV__) {
-          throw new Error(
-            "JX.Typeahead._update(): " +
-            "No listener responded to Typeahead 'change' event. Create a " +
-            "datasource and call setDatasource().");
-        }
-      }
+      this.invoke('change', this._value);
     },
     /**
      * Show a "waiting for results" UI in place of the typeahead's dropdown
@@ -237,6 +247,7 @@ JX.install('Typeahead', {
     waitForResults : function() {
       // TODO: Build some sort of fancy spinner or "..." type UI here to
       // visually indicate that we're waiting on the server.
+      // Wait on the datasource 'complete' event for hiding the spinner.
       this.hide();
     },
 

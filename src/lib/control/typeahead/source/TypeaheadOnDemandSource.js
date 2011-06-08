@@ -40,9 +40,6 @@ JX.install('TypeaheadOnDemandSource', {
     haveData : null,
 
     didChange : function(value) {
-      if (JX.Stratcom.pass()) {
-        return;
-      }
       this.lastChange = new Date().getTime();
       value = this.normalize(value);
 
@@ -54,8 +51,6 @@ JX.install('TypeaheadOnDemandSource', {
           JX.bind(this, this.sendRequest, this.lastChange, value),
           this.getQueryDelay());
       }
-
-      JX.Stratcom.context().kill();
     },
 
     sendRequest : function(when, value) {

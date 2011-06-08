@@ -14,6 +14,8 @@ JX.install('TypeaheadSource', {
     this.setNormalizer(JX.TypeaheadNormalizer.normalize);
   },
 
+  events : ['waiting', 'resultsready', 'complete'],
+
   properties : {
 
     /**
@@ -65,11 +67,9 @@ JX.install('TypeaheadSource', {
   members : {
     _raw : null,
     _lookup : null,
-    _typeahead : null,
     _normalizer : null,
 
     bindToTypeahead : function(typeahead) {
-      this._typeahead = typeahead;
       typeahead.listen('change', JX.bind(this, this.didChange));
       typeahead.listen('start', JX.bind(this, this.didStart));
     },
@@ -117,7 +117,7 @@ JX.install('TypeaheadSource', {
     },
 
     waitForResults : function() {
-      this._typeahead.waitForResults();
+      this.invoke('waiting');
       return this;
     },
 
@@ -181,7 +181,9 @@ JX.install('TypeaheadSource', {
         }
       }
 
-      this._typeahead.showResults(this.renderNodes(value, hits));
+      var nodes = this.renderNodes(value, hits);
+      this.invoke('resultsready', nodes);
+      this.invoke('complete');
     },
 
     renderNodes : function(value, hits) {
