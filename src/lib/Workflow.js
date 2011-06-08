@@ -93,7 +93,7 @@ JX.install('Workflow', {
         var data = JX.DOM.convertFormToListOfPairs(form);
         data.push([t.name, true]);
 
-        var active = JX.Workflow._stack[JX.Workflow._stack.length - 1];
+        var active = JX.Workflow._getActiveWorkflow();
         var e = active.invoke('submit', {form: form, data: data});
         if (!e.getStopped()) {
           active._destroy();
@@ -104,6 +104,10 @@ JX.install('Workflow', {
         }
       }
       event.prevent();
+    },
+    _getActiveWorkflow : function() {
+      var stack = JX.Workflow._stack;
+      return stack[stack.length - 1];
     }
   },
 
@@ -221,6 +225,57 @@ JX.install('Workflow', {
     dataSerializer : null,
     method : null,
     URI : null
+  },
+
+  initialize : function() {
+
+    function close_dialog_when_user_presses_escape(e) {
+      if (e.getSpecialKey() != 'esc') {
+        // Some key other than escape.
+        return;
+      }
+
+      if (JX.Workflow._disabled) {
+        // Workflows are disabled on this page.
+        return;
+      }
+
+      if (JX.Stratcom.pass()) {
+        // Something else swallowed the event.
+        return;
+      }
+
+      var active = JX.Workflow._getActiveWorkflow();
+      if (!active) {
+        // No active workflow.
+        return;
+      }
+
+      // Note: the cancel button is actually an <a /> tag.
+      var buttons = JX.DOM.scry(active._root, 'a', 'jx-workflow-button');
+      if (!buttons.length) {
+        // No buttons in the dialog.
+        return;
+      }
+
+      var cancel = null;
+      for (var ii = 0; ii < buttons.length; ii++) {
+        if (buttons[ii].name == '__cancel__') {
+          cancel = buttons[ii];
+          break;
+        }
+      }
+
+      if (!cancel) {
+        // No 'Cancel' button.
+        return;
+      }
+
+      JX.Workflow._pop();
+      e.prevent();
+    };
+
+    JX.Stratcom.listen('keydown', null, close_dialog_when_user_presses_escape);
   }
 
 });
