@@ -92,7 +92,8 @@ JX.install('URI', {
         var queryData = {};
         var data;
         while ((data = JX.URI._queryPattern.exec(query)) != null) {
-          queryData[decodeURIComponent(data[1])] = decodeURIComponent(data[2]);
+          queryData[decodeURIComponent(data[1].replace(/\+/g, ' '))] =
+            decodeURIComponent(data[2].replace(/\+/g, ' '));
         }
         this.setQueryParams(queryData);
       }
