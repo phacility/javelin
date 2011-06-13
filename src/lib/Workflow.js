@@ -29,11 +29,16 @@ JX.install('Workflow', {
   statics : {
     _stack   : [],
     newFromForm : function(form, data) {
+      var pairs = JX.DOM.convertFormToListOfPairs(form);
+      for (var k in data) {
+        pairs.push([k, data[k]]);
+      }
+
+      // Disable form elements during the request
       var inputs = [].concat(
         JX.DOM.scry(form, 'input'),
         JX.DOM.scry(form, 'button'),
         JX.DOM.scry(form, 'textarea'));
-
       for (var ii = 0; ii < inputs.length; ii++) {
         if (inputs[ii].disabled) {
           delete inputs[ii];
@@ -42,15 +47,11 @@ JX.install('Workflow', {
         }
       }
 
-      var pairs = JX.DOM.convertFormToListOfPairs(form);
-      for (var k in data) {
-        pairs.push([k, data[k]]);
-      }
-
       var workflow = new JX.Workflow(form.getAttribute('action'), {});
       workflow.setDataWithListOfPairs(pairs);
       workflow.setMethod(form.getAttribute('method'));
       workflow.listen('finally', function() {
+        // Re-enable form elements
         for (var ii = 0; ii < inputs.length; ii++) {
           inputs[ii] && (inputs[ii].disabled = false);
         }
