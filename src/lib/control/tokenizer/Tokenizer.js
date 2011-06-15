@@ -273,7 +273,7 @@ JX.install('Tokenizer', {
       var remove = JX.$N('a', {
         className: 'jx-tokenizer-x',
         sigil: 'remove'
-      }, JX.$H('&times;'));
+      }, '\u00d7'); // U+00D7 multiplication sign
 
       return JX.$N('a', {
         className: 'jx-tokenizer-token',
