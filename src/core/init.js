@@ -75,8 +75,8 @@
         if (!loaded && evt.type == 'domready') {
           document.body && (document.body.id = null);
           loaded = true;
-          for (var ii = 0; ii < onload.length; ii++) {
-            onload[ii]();
+          for (var jj = 0; jj < onload.length; jj++) {
+            onload[jj]();
           }
         }
 
