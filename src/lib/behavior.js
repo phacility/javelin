@@ -43,9 +43,8 @@ JX.initBehaviors = function(map) {
     if (!configs.length) {
       if (JX.behavior._initialized.hasOwnProperty(name)) {
         continue;
-      } else {
-        configs = [null];
       }
+      configs = [null];
     }
     for (var ii = 0; ii < configs.length; ii++) {
       JX.behavior._behaviors[name](configs[ii]);
@@ -54,8 +53,6 @@ JX.initBehaviors = function(map) {
   }
 };
 
-!function(JX) {
-  JX.behavior._behaviors = {};
-  JX.behavior._initialized = {};
-  JX.flushHoldingQueue('behavior', JX.behavior);
-}(JX);
+JX.behavior._behaviors = {};
+JX.behavior._initialized = {};
+JX.flushHoldingQueue('behavior', JX.behavior);
