@@ -5,6 +5,7 @@
  *
  * @javelin-installs JX.$A
  * @javelin-installs JX.$AX
+ * @javelin-installs JX.isArray
  * @javelin-installs JX.copy
  * @javelin-installs JX.bind
  * @javelin-installs JX.bag
@@ -47,7 +48,7 @@ JX.$A = function(mysterious_arraylike_object) {
  *   JX.$AX([3]); // Returns [3].
  *   JX.$AX(3);   // Returns [3].
  *
- * Note that this function uses an "instanceof Array" check so you may need to
+ * Note that this function uses a JX.isArray check so you may need to
  * convert array-like objects (such as ##arguments## and Array instances from
  * iframes) into real arrays with @{JX.$A()}.
  *
@@ -57,9 +58,21 @@ JX.$A = function(mysterious_arraylike_object) {
  *
  */
 JX.$AX = function(maybe_scalar) {
-  return (maybe_scalar instanceof Array) ? maybe_scalar : [maybe_scalar];
+  return JX.isArray(maybe_scalar) ? maybe_scalar : [maybe_scalar];
 };
 
+/**
+ * Checks whether a value is an array.
+ *
+ *   JX.isArray(['an', 'array']); // Returns true.
+ *   JX.isArray('Not an Array'); // Returns false.
+ *
+ * @param  wild     Any value
+ * @return Boolean  true if the argument is an array, false otherwise.
+ */
+JX.isArray = Array.isArray || function(maybe_array) {
+  return Object.prototype.toString.call(maybe_array) == '[object Array]';
+};
 
 /**
  * Copy properties from one object to another. Note: does not copy the

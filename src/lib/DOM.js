@@ -384,7 +384,7 @@ JX.install('DOM', {
       if (content instanceof JX.HTML) {
         content = content.getFragment();
       }
-      if (content instanceof Array) {
+      if (JX.isArray(content)) {
         for (var ii = 0; ii < content.length; ii++) {
           var child = (typeof content[ii] == 'string')
             ? document.createTextNode(content[ii])
