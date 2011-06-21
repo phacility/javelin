@@ -254,6 +254,8 @@ JX.id = function(any) {
   return any;
 };
 
+JX.log = JX.bag;
+
 if (__DEV__) {
   if (!window.console || !window.console.log) {
     if (window.opera && window.opera.postError) {
@@ -303,5 +305,5 @@ if (__DEV__) {
       in_alert = false;
     }
   })(window.alert);
-
 }
+
