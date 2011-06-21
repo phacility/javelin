@@ -7,16 +7,47 @@
   <script type="text/javascript" src="jasmine/jasmine.js"></script>
   <script type="text/javascript" src="jasmine/jasmine-html.js"></script>
 
+  <script type="text/javascript">
+  window.ensure__DEV__ = function(state, callback) {
+    var dev = window.__DEV__;
+    window.__DEV__ = state;
+    callback();
+    window.__DEV__ = dev;
+  };
+  </script>
+
   <!-- Source -->
-
-  <!-- Specs -->
-
+  <script type="text/javascript" src="../src/core/init.js"></script>
+  <script type="text/javascript" src="../src/core/util.js"></script>
+  <script type="text/javascript" src="../src/core/install.js"></script>
 </head>
 <body>
 
+<!-- Source -->
+<script type="text/javascript" src="../src/core/Event.js"></script>
+<script type="text/javascript" src="../src/core/Stratcom.js"></script>
+
 <script type="text/javascript">
-  jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
-  jasmine.getEnv().execute();
+  JX.Stratcom.mergeData(0, {});
+</script>
+
+<script type="text/javascript" src="../src/lib/behavior.js"></script>
+<script type="text/javascript" src="../src/lib/DOM.js"></script>
+<script type="text/javascript" src="../src/lib/URI.js"></script>
+
+<!-- Specs -->
+<script type="text/javascript" src="../src/core/__tests__/install.js"></script>
+<script type="text/javascript" src="../src/core/__tests__/event-stop-and-kill.js"></script>
+<script type="text/javascript" src="../src/core/__tests__/stratcom.js"></script>
+
+<script type="text/javascript" src="../src/lib/__tests__/behavior.js"></script>
+<script type="text/javascript" src="../src/lib/__tests__/URI.js"></script>
+
+<script type="text/javascript">
+  window.onload = function() {
+    jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
+    jasmine.getEnv().execute();
+  };
 </script>
 
 </body>
