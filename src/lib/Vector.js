@@ -322,13 +322,13 @@ JX.install('Vector', {
    */
   initialize : function() {
     var c = ((c = document) && (c = c.documentElement)) ||
-            ((c = document) && (c = c.body))
+            ((c = document) && (c = c.body));
     JX.Vector._viewport = c;
 
     if (__DEV__) {
       JX.Vector.prototype.toString = function() {
         return '<' + this.x + ', ' + this.y + '>';
-      }
+      };
     }
   }
 
