@@ -80,7 +80,7 @@ JX.install('Stratcom', {
      *
      * @param  string       Event type.
      * @param  list?        Optionally, a path to attach to the event. This is
-     *                      rarely meaingful for simple events.
+     *                      rarely meaningful for simple events.
      * @param  object?      Optionally, arbitrary data to send with the event.
      * @return @{JX.Event}  The event object which was dispatched to listeners.
      *                      The main use of this is to test whether any
