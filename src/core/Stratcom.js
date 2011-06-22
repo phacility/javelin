@@ -43,7 +43,6 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
-    _typeMap : {focusin: 'focus', focusout: 'blur'},
 
     /**
      * Node metadata is stored in a series of blocks to prevent collisions
@@ -289,8 +288,10 @@ JX.install('Stratcom', {
       }
 
       var etype = event.type;
-      if (etype in this._typeMap) {
-        etype = this._typeMap[etype];
+      if (etype == 'focusin') {
+        etype = 'focus';
+      } else if (etype == 'focusout') {
+        etype = 'blur';
       }
 
       var proxy = new JX.Event()
