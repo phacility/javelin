@@ -215,10 +215,7 @@ JX.install('Stratcom', {
                   'listen for window events using null, not "tag:window"');
               }
             }
-            if (!type_target[path[kk]]) {
-              type_target[path[kk]] = [];
-            }
-            type_target[path[kk]].push(id);
+            (type_target[path[kk]] || (type_target[path[kk]] = [])).push(id);
           }
         }
       }
