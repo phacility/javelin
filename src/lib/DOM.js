@@ -386,10 +386,7 @@ JX.install('DOM', {
       }
       if (content instanceof Array) {
         for (var ii = 0; ii < content.length; ii++) {
-          var child = (typeof content[ii] == 'string')
-            ? document.createTextNode(content[ii])
-            : content[ii];
-          mechanism(parent, child);
+          this._insertContent(parent, content[ii], mechanism);
         }
       } else if (content.nodeType) {
         mechanism(parent, content);
