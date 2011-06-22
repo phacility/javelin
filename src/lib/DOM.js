@@ -378,7 +378,7 @@ JX.install('DOM', {
      * @task content
      */
     _insertContent : function(parent, content, mechanism) {
-      if (content === null || typeof content == 'undefined') {
+      if (content == null) {
         return;
       }
       if (content instanceof JX.HTML) {
@@ -429,7 +429,7 @@ JX.install('DOM', {
         mechanism = this._mechanismAppend;
       }
       var parent = node.parentNode;
-      node.parentNode.removeChild(node);
+      parent.removeChild(node);
       this._insertContent(parent, replacement, mechanism);
 
       return node;

@@ -143,7 +143,7 @@ JX.install('Stratcom', {
     listen : function(types, paths, func) {
 
       if (__DEV__) {
-        if (arguments.length == 4) {
+        if (arguments.length != 3) {
           throw new Error(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');

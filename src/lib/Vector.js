@@ -184,7 +184,8 @@ JX.install('Vector', {
      */
     add : function(x, y) {
       if (x instanceof JX.Vector) {
-        return this.add(x.x, x.y);
+        y = x.y;
+        x = x.x;
       }
       return new JX.Vector(this.x + parseFloat(x), this.y + parseFloat(y));
     }
