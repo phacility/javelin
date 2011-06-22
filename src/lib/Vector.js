@@ -184,7 +184,8 @@ JX.install('Vector', {
      */
     add : function(x, y) {
       if (x instanceof JX.Vector) {
-        return this.add(x.x, x.y);
+        y = x.y;
+        x = x.x;
       }
       return new JX.Vector(this.x + parseFloat(x), this.y + parseFloat(y));
     }
@@ -321,13 +322,13 @@ JX.install('Vector', {
    */
   initialize : function() {
     var c = ((c = document) && (c = c.documentElement)) ||
-            ((c = document) && (c = c.body))
+            ((c = document) && (c = c.body));
     JX.Vector._viewport = c;
 
     if (__DEV__) {
       JX.Vector.prototype.toString = function() {
         return '<' + this.x + ', ' + this.y + '>';
-      }
+      };
     }
   }
 

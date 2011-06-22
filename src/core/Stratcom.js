@@ -43,7 +43,6 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
-    _typeMap : {focusin: 'focus', focusout: 'blur'},
 
     /**
      * Node metadata is stored in a series of blocks to prevent collisions
@@ -80,7 +79,7 @@ JX.install('Stratcom', {
      *
      * @param  string       Event type.
      * @param  list?        Optionally, a path to attach to the event. This is
-     *                      rarely meaingful for simple events.
+     *                      rarely meaningful for simple events.
      * @param  object?      Optionally, arbitrary data to send with the event.
      * @return @{JX.Event}  The event object which was dispatched to listeners.
      *                      The main use of this is to test whether any
@@ -144,7 +143,7 @@ JX.install('Stratcom', {
     listen : function(types, paths, func) {
 
       if (__DEV__) {
-        if (arguments.length == 4) {
+        if (arguments.length != 3) {
           throw new Error(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
@@ -289,8 +288,10 @@ JX.install('Stratcom', {
       }
 
       var etype = event.type;
-      if (etype in this._typeMap) {
-        etype = this._typeMap[etype];
+      if (etype == 'focusin') {
+        etype = 'focus';
+      } else if (etype == 'focusout') {
+        etype = 'blur';
       }
 
       var proxy = new JX.Event()

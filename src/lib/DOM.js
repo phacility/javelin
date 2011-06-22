@@ -378,7 +378,7 @@ JX.install('DOM', {
      * @task content
      */
     _insertContent : function(parent, content, mechanism) {
-      if (content === null || typeof content == 'undefined') {
+      if (content == null) {
         return;
       }
       if (content instanceof JX.HTML) {
@@ -386,10 +386,7 @@ JX.install('DOM', {
       }
       if (content instanceof Array) {
         for (var ii = 0; ii < content.length; ii++) {
-          var child = (typeof content[ii] == 'string')
-            ? document.createTextNode(content[ii])
-            : content[ii];
-          mechanism(parent, child);
+          this._insertContent(parent, content[ii], mechanism);
         }
       } else if (content.nodeType) {
         mechanism(parent, content);
@@ -429,7 +426,7 @@ JX.install('DOM', {
         mechanism = this._mechanismAppend;
       }
       var parent = node.parentNode;
-      node.parentNode.removeChild(node);
+      parent.removeChild(node);
       this._insertContent(parent, replacement, mechanism);
 
       return node;
