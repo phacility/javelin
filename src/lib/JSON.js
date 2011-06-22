@@ -23,8 +23,8 @@ JX.install('JSON', {
     },
     _val : function(val) {
       var out = [];
-      if (val === null) {
-        return 'null';
+      if (val === null || val === true || val === false || typeof val == 'number') {
+        return ''+val;
       } else if (val.push && val.pop) {
         for (var ii = 0; ii < val.length; ii++) {
           if (typeof val[ii] != 'undefined') {
@@ -32,14 +32,8 @@ JX.install('JSON', {
           }
         }
         return '['+out.join(',')+']';
-      } else if (val === true) {
-        return 'true';
-      } else if (val === false) {
-        return 'false';
       } else if (typeof val == 'string') {
         return JX.JSON._esc(val);
-      } else if (typeof val == 'number') {
-        return val;
       } else {
         for (var k in val) {
           out.push(JX.JSON._esc(k)+':'+JX.JSON._val(val[k]));
