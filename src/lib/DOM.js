@@ -384,7 +384,7 @@ JX.install('DOM', {
       if (content instanceof JX.HTML) {
         content = content.getFragment();
       }
-      if (content instanceof Array) {
+      if (JX.isArray(content)) {
         for (var ii = 0; ii < content.length; ii++) {
           this._insertContent(parent, content[ii], mechanism);
         }

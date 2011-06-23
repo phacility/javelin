@@ -82,10 +82,6 @@
  */
 JX.install = function(new_name, new_junk) {
 
-  if (typeof JX.install._nextObjectID == 'undefined') {
-    JX.install._nextObjectID = 0;
-  }
-
   // If we've already installed this, something is up.
   if (new_name in JX) {
     if (__DEV__) {
@@ -108,14 +104,12 @@ JX.install = function(new_name, new_junk) {
   // Since we may end up loading things out of order (e.g., Dog extends Animal
   // but we load Dog first) we need to keep a list of things that we've been
   // asked to install but haven't yet been able to install around.
-  if (!JX.install._queue) {
-    JX.install._queue = [];
-  }
-  JX.install._queue.push([new_name, new_junk]);
+  (JX.install._queue || (JX.install._queue = [])).push([new_name, new_junk]);
+  var name;
   do {
     var junk;
-    var name = null;
     var initialize;
+    name = null;
     for (var ii = 0; ii < JX.install._queue.length; ++ii) {
       junk = JX.install._queue[ii][1];
       if (junk.extend && !JX[junk.extend]) {
@@ -166,10 +160,8 @@ JX.install = function(new_name, new_junk) {
  * @return function Constructor of a class created
  */
 JX.createClass = function(junk) {
-  if (typeof JX.install._nextObjectID == 'undefined') {
-    JX.install._nextObjectID = 0;
-  }
   var name = junk.name || '';
+  var k;
 
   if (__DEV__) {
     var valid = {
@@ -181,7 +173,7 @@ JX.createClass = function(junk) {
       events : 1,
       name : 1
     };
-    for (var k in junk) {
+    for (k in junk) {
       if (!(k in valid)) {
         throw new Error(
           'JX.createClass("' + name + '", {"' + k + '": ...}): ' +
@@ -224,7 +216,7 @@ JX.createClass = function(junk) {
   Class.__readable__ = name;
 
   // Copy in all the static methods and properties.
-  for (var k in junk.statics) {
+  for (k in junk.statics) {
     // Can't use JX.copy() here yet since it may not have loaded.
     Class[k] = junk.statics[k];
   }
@@ -239,24 +231,25 @@ JX.createClass = function(junk) {
   }
 
   proto.__class__ = Class;
+  var setter = function(prop) {
+    return function(v) {
+      this[prop] = v;
+      return this;
+    };
+  };
+  var getter = function(prop) {
+    return function(v) {
+      return this[prop];
+    };
+  };
 
   // Build getters and setters from the `prop' map.
-  for (var k in (junk.properties || {})) {
-    var base = k.charAt(0).toUpperCase()+k.substr(1);
+  for (k in (junk.properties || {})) {
+    var base = k.charAt(0).toUpperCase() + k.substr(1);
     var prop = '__auto__' + k;
     proto[prop] = junk.properties[k];
-    proto['set' + base] = (function(prop) {
-      return function(v) {
-        this[prop] = v;
-        return this;
-      };
-    })(prop);
-
-    proto['get' + base] = (function(prop) {
-      return function() {
-        return this[prop];
-      };
-    })(prop);
+    proto['set' + base] = setter(prop);
+    proto['get' + base] = getter(prop);
   }
 
   if (__DEV__) {
@@ -309,7 +302,7 @@ JX.createClass = function(junk) {
 
   // This execution order intentionally allows you to override methods
   // generated from the "properties" initializer.
-  for (var k in junk.members) {
+  for (k in junk.members) {
     proto[k] = junk.members[k];
   }
 
@@ -437,4 +430,5 @@ JX.createClass = function(junk) {
   return Class;
 };
 
+JX.install._nextObjectID = 0;
 JX.flushHoldingQueue('install', JX.install);
