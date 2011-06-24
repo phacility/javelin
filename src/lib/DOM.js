@@ -587,6 +587,15 @@ JX.install('DOM', {
     },
 
     alterClass : function(node, className, add) {
+      if (__DEV__) {
+        if (add !== false && add !== true) {
+          throw new Error(
+            'JX.DOM.alterClass(...): ' +
+            'expects the third parameter to be Boolean: ' +
+            add + ' was provided');
+        }
+      }
+
       var has = ((' '+node.className+' ').indexOf(' '+className+' ') > -1);
       if (add && !has) {
         node.className += ' '+className;

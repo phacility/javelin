@@ -8,38 +8,62 @@
 
 JX.install('JSON', {
   statics : {
-    serialize : function(obj) {
+    parse : function(data) {
+      if (typeof data != 'string'){
+        return null;
+      }
+
+      if (JSON && JSON.parse) {
+        var obj;
+        try {
+          obj = JSON.parse(data);
+        } catch (e) {}
+        return obj || null;
+      }
+
+      return eval('(' + data + ')');
+    },
+    stringify : function(obj) {
       if (__DEV__) {
         try {
-          return JX.JSON._val(obj);
+          return JX.JSON._stringify(obj);
         } catch (x) {
           JX.log(
             'JX.JSON.serialize(...): '+
             'caught exception while serializing object. ('+x+')');
         }
       } else {
-        return JX.JSON._val(obj);
+        return JX.JSON._stringify(obj);
       }
     },
-    _val : function(val) {
+
+    _stringify : function(val) {
+      if (JSON && JSON.stringify) { return JSON.stringify(val); }
+
       var out = [];
-      if (val === null || val === true || val === false || typeof val == 'number') {
-        return ''+val;
-      } else if (val.push && val.pop) {
+      if (
+        val === null || val === true || val === false || typeof val == 'number'
+      ) {
+        return '' + val;
+      }
+
+      if (val.push && val.pop) {
         for (var ii = 0; ii < val.length; ii++) {
           if (typeof val[ii] != 'undefined') {
-            out.push(JX.JSON._val(val[ii]));
+            out.push(JX.JSON._stringify(val[ii]));
           }
         }
-        return '['+out.join(',')+']';
-      } else if (typeof val == 'string') {
-        return JX.JSON._esc(val);
-      } else {
-        for (var k in val) {
-          out.push(JX.JSON._esc(k)+':'+JX.JSON._val(val[k]));
-        }
-        return '{'+out.join(',')+'}';
+        return '[' + out.join(',') + ']';
       }
+
+      if (typeof val == 'string') {
+        return JX.JSON._esc(val);
+      }
+
+      for (var k in val) {
+        out.push(JX.JSON._esc(k) + ':' + JX.JSON._stringify(val[k]));
+      }
+      return '{' + out.join(',') + '}';
     },
 
     // Lifted more or less directly from Crockford's JSON2.

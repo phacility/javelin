@@ -3,6 +3,7 @@
  *           javelin-stratcom
  *           javelin-util
  *           javelin-behavior
+ *           javelin-json
  * @provides javelin-request
  * @javelin
  */
@@ -160,7 +161,7 @@ JX.install('Request', {
         }
 
         var text = xport.responseText.substring('for (;;);'.length);
-        var response = eval('('+text+')');
+        var response = JX.JSON.parse(text);
       } catch (exception) {
 
         if (__DEV__) {

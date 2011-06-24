@@ -269,7 +269,7 @@ JX.install('Typeahead', {
         n = Math.max(0, n);
       }
       if (this._focus >= 0 && this._focus < this._display.length) {
-        JX.DOM.alterClass(this._display[this._focus], 'focused', 0);
+        JX.DOM.alterClass(this._display[this._focus], 'focused', false);
       }
       this._focus = n;
       this._drawFocus();
