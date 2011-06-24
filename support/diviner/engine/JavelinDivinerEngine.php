@@ -71,7 +71,7 @@ class JavelinDivinerEngine extends DivinerEngine {
       list($block, $line) = $data;
       $map[$line] = $block;
     }
-    
+
     $atoms = $file_atom->getAllChildren();
 
     $atoms = mpull($atoms, null, 'getLine');
@@ -94,7 +94,7 @@ class JavelinDivinerEngine extends DivinerEngine {
         $atom->setRawDocblock($map[$block_id]);
         unset($map[$block_id]);
       }
-      
+
       if (($atom instanceof DivinerMethodAtom) ||
           ($atom instanceof DivinerFunctionAtom)) {
 
@@ -112,7 +112,7 @@ class JavelinDivinerEngine extends DivinerEngine {
           if (!empty($split[1])) {
             $docs = $split[1];
           }
-      
+
           $dict = array(
             'doctype' => $type,
             'docs'    => $docs,
@@ -120,7 +120,7 @@ class JavelinDivinerEngine extends DivinerEngine {
 
           $atom->setReturnTypeAttributes($dict);
         }
-        
+
         $docs = idx($metadata, 'param', '');
         if ($docs) {
           $docs = explode("\n", $docs);
@@ -143,8 +143,10 @@ class JavelinDivinerEngine extends DivinerEngine {
     }
 
     foreach ($atoms as $atom) {
+      $atom->setLanguage('js');
       $atom->setFile($file);
     }
+    $file_atom->setLanguage('js');
 
     return array($file_atom);
   }
@@ -183,6 +185,15 @@ class JavelinDivinerEngine extends DivinerEngine {
             $symbol = $this->getStaticMemberExpressionExpansion($first);
             if (!strncmp($symbol, 'JX.', 3)) {
               $func = $this->getNodeChild($child, 1);
+              if ($this->isNode($func, 'Operator')) {
+                // Assume this must be '||' because the AST we get out of
+                // 'jsast' isn't rich enough for us to tell. But we're
+                // definitely not getting anywhere otherwise.
+
+                // By associativity rules, this selects the rightmost
+                // expression in an '||' chain ("x || y || function ..").
+                $func = $this->getNodeChild($func, 1);
+              }
               if ($this->isNode($func, 'FunctionExpression')) {
                 $method = $this->parseMethod($func, true);
                 $method->setName($symbol);

@@ -17,6 +17,7 @@
  * @javelin
  */
 
+
 /**
  * Convert an array-like object (usually ##arguments##) into a real Array. An
  * "array-like object" is something with a ##length## property and numerical
@@ -27,6 +28,8 @@
  *
  * @param  obj     Array, or array-like object.
  * @return Array   Actual array.
+ *
+ * @group util
  */
 JX.$A = function(mysterious_arraylike_object) {
   // NOTE: This avoids the Array.slice() trick because some bizarre COM object
@@ -48,37 +51,43 @@ JX.$A = function(mysterious_arraylike_object) {
  *   JX.$AX([3]); // Returns [3].
  *   JX.$AX(3);   // Returns [3].
  *
- * Note that this function uses a JX.isArray check so you may need to
- * convert array-like objects (such as ##arguments## and Array instances from
- * iframes) into real arrays with @{JX.$A()}.
+ * Note that this function uses a @{function:JX.isArray} check whether or not
+ * the argument is an array, so you may need to convert array-like objects (such
+ * as ##arguments##) into real arrays with @{function:JX.$A}.
+ *
+ * This function is mostly useful to create methods which accept either a
+ * value or a list of values.
  *
  * @param  wild    Scalar or Array.
  * @return Array   If the argument was a scalar, an Array with the argument as
  *                 its only element. Otherwise, the original Array.
  *
+ * @group util
  */
 JX.$AX = function(maybe_scalar) {
   return JX.isArray(maybe_scalar) ? maybe_scalar : [maybe_scalar];
 };
 
+
 /**
  * Checks whether a value is an array.
  *
  *   JX.isArray(['an', 'array']); // Returns true.
- *   JX.isArray('Not an Array'); // Returns false.
+ *   JX.isArray('Not an Array');  // Returns false.
  *
- * @param  wild     Any value
- * @return Boolean  true if the argument is an array, false otherwise.
+ * @param  wild     Any value.
+ * @return bool     true if the argument is an array, false otherwise.
+ *
+ * @group util
  */
 JX.isArray = Array.isArray || function(maybe_array) {
   return Object.prototype.toString.call(maybe_array) == '[object Array]';
 };
 
+
 /**
- * Copy properties from one object to another. Note: does not copy the
- * ##toString## property or anything else which isn't enumerable or is somehow
- * magic or just doesn't work. But it's usually what you want. If properties
- * already exist, they are overwritten.
+ * Copy properties from one object to another. If properties already exist, they
+ * are overwritten.
  *
  *   var cat  = {
  *     ears: 'clean',
@@ -100,9 +109,15 @@ JX.isArray = Array.isArray || function(maybe_array) {
  *   //    tail: 'clean'
  *   //  }
  *
+ * NOTE: This function does not copy the ##toString## property or anything else
+ * which isn't enumerable or is somehow magic or just doesn't work. But it's
+ * usually what you want.
+ *
  * @param  obj Destination object, which properties should be copied to.
  * @param  obj Source object, which properties should be copied from.
- * @return obj Destination object.
+ * @return obj Modified destination object.
+ *
+ * @group util
  */
 JX.copy = function(copy_dst, copy_src) {
   for (var k in copy_src) {
@@ -134,7 +149,7 @@ JX.copy = function(copy_dst, copy_src) {
  *   JX.Stratcom.listen('click', 'bark', dog.barkNow); // Does not work!
  *
  * This doesn't work because ##this## is ##window## when the function is
- * later invoked; @{JX.Stratcom.listen()} does not know about the context
+ * later invoked; @{method:JX.Stratcom.listen} does not know about the context
  * object ##dog##. The solution is to pass a function with a bound context
  * object:
  *
@@ -152,8 +167,8 @@ JX.copy = function(copy_dst, copy_src) {
  *
  * = Partial Function Application =
  *
- * @{JX.bind()} also performs partial function application, which allows you
- * to bind one or more arguments to a function. For instance, if we have a
+ * @{function:JX.bind} also performs partial function application, which allows
+ * you to bind one or more arguments to a function. For instance, if we have a
  * simple function which adds two numbers:
  *
  *   function add(a, b) { return a + b; }
@@ -196,6 +211,8 @@ JX.copy = function(copy_dst, copy_src) {
  * @param  ...       Zero or more arguments to bind.
  * @return function  New function which invokes the original function with
  *                   bound context and arguments when called.
+ *
+ * @group util
  */
 JX.bind = function(context, func, more) {
 
@@ -220,6 +237,8 @@ JX.bind = function(context, func, more) {
  * actually have an effect.
  *
  * @return void
+ *
+ * @group util
  */
 JX.bag = function() {
   // \o\ \o/ /o/ woo dance party
@@ -233,6 +252,8 @@ JX.bag = function() {
  *
  * @param  obj    Object to retrieve keys from.
  * @return list   List of keys.
+ *
+ * @group util
  */
 JX.keys = function(obj) {
   var r = [];
@@ -257,15 +278,28 @@ JX.keys = function(obj) {
  *                 event loop, as with ##setTimeout(func, 0)##.
  * @return obj     An object with a ##stop()## method, which cancels function
  *                 execution.
+ *
+ * @group util
  */
 JX.defer = function(func, timeout) {
   var t = setTimeout(func, timeout || 0);
   return {stop : function() { clearTimeout(t); }}
 };
 
+
+/**
+ * Identity function; returns the argument unmodified. This is primarily useful
+ * as a placeholder for some callback which may transform its argument.
+ *
+ * @param   wild  Any value.
+ * @return  wild  The passed argument.
+ *
+ * @group util
+ */
 JX.id = function(any) {
   return any;
 };
+
 
 JX.log = JX.bag;
 
@@ -284,6 +318,8 @@ if (__DEV__) {
    *
    * @param  string Message to print to the browser debugging console.
    * @return void
+   *
+   * @group util
    */
   JX.log = function(message) {
     window.console.log(message);

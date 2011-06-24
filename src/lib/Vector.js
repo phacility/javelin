@@ -8,17 +8,25 @@
  * @javelin
  */
 
+
 /**
- * Handy convenience function that returns a JX.Vector instance so you can
- * concisely write something like:
+ * Convenience function that returns a @{class:JX.Vector} instance. This allows
+ * you to concisely write things like:
  *
- *  JX.$V(x, y).add(10, 10);
- * or
- *  JX.$V(node).add(50, 50).setDim(node);
+ *  JX.$V(x, y).add(10, 10);                // Explicit coordinates.
+ *  JX.$V(node).add(50, 50).setDim(node);   // Position of a node.
+ *
+ * @param number|Node         If a node, returns the node's position vector.
+ *                            If numeric, the x-coordinate for the new vector.
+ * @param number?             The y-coordinate for the new vector.
+ * @return @{class:JX.Vector} New vector.
+ *
+ * @group dom
  */
 JX.$V = function(x, y) {
   return new JX.Vector(x, y);
 };
+
 
 /**
  * Query and update positions and dimensions of nodes (and other things) within
@@ -28,7 +36,7 @@ JX.$V = function(x, y) {
  * Vectors are used to manage the sizes and positions of elements, events,
  * the document, and the viewport (the visible section of the document, i.e.
  * how much of the page the user can actually see in their browser window).
- * Unlike most Javelin classes, @{JX.Vector} exposes two bare properties,
+ * Unlike most Javelin classes, @{class:JX.Vector} exposes two bare properties,
  * 'x' and 'y'. You can read and manipulate these directly:
  *
  *   // Give the user information about elements when they click on them.
@@ -61,11 +69,14 @@ JX.$V = function(x, y) {
  *   var visible_area = parseInt(100 * (v.x * v.y) / (d.x * d.y), 10);
  *   alert('You can currently see ' + visible_area + ' % of the document.');
  *
- * @author epriestley
+ * The function @{function:JX.$V} provides convenience construction of common
+ * vectors.
  *
  * @task query  Querying Positions and Dimensions
  * @task update Changing Positions and Dimensions
  * @task manip  Manipulating Vectors
+ *
+ * @group dom
  */
 JX.install('Vector', {
 
@@ -75,32 +86,34 @@ JX.install('Vector', {
    *
    *   var p = new JX.Vector(35, 42);
    *
-   * Otherwise, you can pass a @{JX.Event} or a Node to implicitly construct a
-   * vector:
+   * Otherwise, you can pass a @{class:JX.Event} or a Node to implicitly
+   * construct a vector:
    *
    *   var q = new JX.Vector(some_event);
    *   var r = new JX.Vector(some_node);
    *
-   * These are just like calling JX.Vector.getPos() on the @{JX.Event} or Node.
+   * These are just like calling JX.Vector.getPos() on the @{class:JX.Event} or
+   * Node.
    *
-   * For convenience, @{JX.$V()} constructs a new vector so you don't need to
-   * use the 'new' keyword. That is, these are equivalent:
+   * For convenience, @{function:JX.$V} constructs a new vector so you don't
+   * need to use the 'new' keyword. That is, these are equivalent:
    *
    *   var s = new JX.Vector(x, y);
    *   var t = JX.$V(x, y);
    *
-   * Methods like getScroll(), getViewport() and getDocument() also create
-   * new vectors.
+   * Methods like @{method:getScroll}, @{method:getViewport} and
+   * @{method:getDocument} also create new vectors.
    *
    * Once you have a vector, you can manipulate it with add():
    *
    *   var u = JX.$V(35, 42);
    *   var v = u.add(5, -12); // v = <40, 30>
    *
-   * @param wild      'x' component of the vector, or a @{JX.Event}, or a Node.
+   * @param wild      'x' component of the vector, or a @{class:JX.Event}, or a
+   *                  Node.
    * @param Number?   If providing an 'x' component, the 'y' component of the
    *                  vector.
-   * @return @{JX.Vector} Specified vector.
+   * @return @{class:JX.Vector} Specified vector.
    * @task query
    */
   construct : function(x, y) {
@@ -179,7 +192,7 @@ JX.install('Vector', {
      * @param wild      Value to add to the vector's x component, or another
      *                  vector.
      * @param Number?   Value to add to the vector's y component.
-     * @return @{JX.Vector} New vector, with summed components.
+     * @return @{class:JX.Vector} New vector, with summed components.
      * @task manip
      */
     add : function(x, y) {
@@ -197,17 +210,18 @@ JX.install('Vector', {
     /**
      * Determine where in a document an element is (or where an event, like
      * a click, occurred) by building a new vector containing the position of a
-     * Node or @{JX.Event}. The 'x' component of the vector will correspond to
-     * the pixel offset of the argument relative to the left edge of the
-     * document, and the 'y' component will correspond to the pixel offset of
-     * the argument relative to the top edge of the document. Note that all
-     * vectors are generated in document coordinates, so the scroll position
-     * does not affect them.
+     * Node or @{class:JX.Event}. The 'x' component of the vector will
+     * correspond to the pixel offset of the argument relative to the left edge
+     * of the document, and the 'y' component will correspond to the pixel
+     * offset of the argument relative to the top edge of the document. Note
+     * that all vectors are generated in document coordinates, so the scroll
+     * position does not affect them.
      *
-     * See also getDim(), used to determine an element's dimensions.
+     * See also @{method:getDim}, used to determine an element's dimensions.
      *
-     * @param  Node|@{JX.Event}  Node or event to determine the position of.
-     * @return @{JX.Vector}      New vector with the argument's position.
+     * @param  Node|@{class:JX.Event}  Node or event to determine the position
+     *                                 of.
+     * @return @{class:JX.Vector}      New vector with the argument's position.
      * @task query
      */
     getPos : function(node) {
@@ -237,7 +251,7 @@ JX.install('Vector', {
      * to the element's width in pixels, and the 'y' component will correspond
      * to its height in pixels.
      *
-     * See also getPos(), used to determine an element's position.
+     * See also @{method:getPos}, used to determine an element's position.
      *
      * @param  Node      Node to determine the display size of.
      * @return @{JX.$V}  New vector with the node's dimensions.
@@ -253,7 +267,8 @@ JX.install('Vector', {
      * from the left edge of the document, and the 'y' component corresponds to
      * how many pixels the user has scrolled from the top edge of the document.
      *
-     * See also getViewport(), used to determine the size of the viewport.
+     * See also @{method:getViewport}, used to determine the size of the
+     * viewport.
      *
      * @return @{JX.$V}  New vector with the document scroll position.
      * @task query
@@ -277,10 +292,11 @@ JX.install('Vector', {
      * of the viewport in pixels and the 'y' component corresponds to the height
      * of the viewport in pixels.
      *
-     * See also getScroll(), used to determine the position of the viewport, and
-     * getDocument(), used to determine the size of the entire document.
+     * See also @{method:getScroll}, used to determine the position of the
+     * viewport, and @{method:getDocument}, used to determine the size of the
+     * entire document.
      *
-     * @return @{JX.$V}  New vector with the viewport dimensions.
+     * @return @{class:JX.Vector}  New vector with the viewport dimensions.
      * @task query
      */
     getViewport : function() {
@@ -300,7 +316,7 @@ JX.install('Vector', {
      * width in pixels and the 'y' component corresponds to the document height
      * in pixels.
      *
-     * @return @{JX.$V} New vector with the document dimensions.
+     * @return @{class:JX.Vector} New vector with the document dimensions.
      * @task query
      */
     getDocument : function() {
@@ -313,10 +329,13 @@ JX.install('Vector', {
    * On initialization, the browser-dependent viewport root is determined and
    * stored.
    *
-   * In ##__DEV__##, @{JX.$V} installs a toString() method so vectors print in a
-   * debuggable way:
+   * In ##__DEV__##, @{class:JX.Vector} installs a toString() method so
+   * vectors print in a debuggable way:
    *
    *   <23, 92>
+   *
+   * This string representation of vectors is not available in a production
+   * context.
    *
    * @return void
    */

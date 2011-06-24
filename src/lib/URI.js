@@ -10,30 +10,36 @@
  */
 
 /**
- * Handy convenience function that returns a JX.URI instance so you can
- * concisely write something like:
+ * Handy convenience function that returns a @{class:JX.URI} instance. This
+ * allows you to write things like:
  *
- *   JX.$U(http://zombo.com/).getDomain();
+ *   JX.$U('http://zombo.com/').getDomain();
+ *
+ * @param string            Unparsed URI.
+ * @return  @{class:JX.URI} JX.URI instance.
+ *
+ * @group uri
  */
 JX.$U = function(uri) {
   return new JX.URI(uri);
 };
 
 /**
- * Convert a string URI into a maleable object
+ * Convert a string URI into a maleable object.
  *
- *   var uri = new JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
+ *   var uri = new JX.URI('http://www.example.com/asdf.php?a=b&c=d#anchor123');
  *   uri.getProtocol();    // http
- *   uri.getDomain();      // www.facebook.com
+ *   uri.getDomain();      // www.example.com
  *   uri.getPath();        // /asdf.php
  *   uri.getQueryParams(); // {a: 'b', c: 'd'}
  *   uri.getFragment();    // anchor123
  *
- * And back into a string
+ * ...and back into a string:
  *
  *   uri.setFragment('clowntown');
- *   uri.toString() // http://www.facebook.com/asdf.php?a=b&c=d#clowntown
+ *   uri.toString() // http://www.example.com/asdf.php?a=b&c=d#clowntown
  *
+ * @group uri
  */
 JX.install('URI', {
   statics : {

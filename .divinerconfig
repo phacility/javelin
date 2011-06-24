@@ -7,8 +7,10 @@
   "groups" : {
     "facebook" : "Information for Facebook Employees",
     "util" : "Utilities",
+    "install" : "Class Construction",
     "event" : "Event Model",
     "dom" : "DOM and Markup",
+    "uri" : "URIs",
     "control" : "Controls and UI"
   },
   "engines" : [

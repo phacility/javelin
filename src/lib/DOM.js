@@ -31,6 +31,8 @@
  *
  * @param  string  "id" attribute to select from the document.
  * @return Node    Node with the specified "id" attribute.
+ *
+ * @group dom
  */
 JX.$ = function(id) {
 
@@ -84,6 +86,8 @@ if (__DEV__) {
  *
  * @task build String into HTML
  * @task nodes HTML into Nodes
+ *
+ * @group dom
  */
 JX.install('HTML', {
 
@@ -161,6 +165,8 @@ JX.install('HTML', {
  *               know it is from a trusted source and any data in it has been
  *               properly escaped.
  * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
+ *
+ * @group dom
  */
 JX.$H = function(str) {
   return new JX.HTML(str);
@@ -240,6 +246,8 @@ JX.$H = function(str) {
  *                                which may be dangerous).
  * @return Node                   New node with whatever attributes and
  *                                content were specified.
+ *
+ * @group dom
  */
 JX.$N = function(tag, attr, content) {
   if (typeof content == 'undefined' &&
@@ -301,6 +309,8 @@ JX.$N = function(tag, attr, content) {
  * @task convenience Convenience Methods
  * @task query Finding Nodes in the DOM
  * @task view Changing View State
+ *
+ * @group dom
  */
 JX.install('DOM', {
   statics : {

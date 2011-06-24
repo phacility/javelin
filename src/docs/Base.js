@@ -4,16 +4,17 @@
  */
 
 /**
- * This is not a real class, but @{JX.install()} provides several methods which
- * exist on all Javelin classes.
+ * This is not a real class, but @{function:JX.install} provides several methods
+ * which exist on all Javelin classes. This class documents those methods.
  *
  * @task events Builtin Events
  */
 JX.install('Base', {
   members : {
+
     /**
      * Invoke a class event, notifying all listeners. You must declare the
-     * events your class invokes when you install it; see @{JX.install()}
+     * events your class invokes when you install it; see @{function:JX.install}
      * for documentation. Any arguments you provide will be passed to listener
      * callbacks.
      *
@@ -27,12 +28,13 @@ JX.install('Base', {
     invoke : function(type, more) {
       // <docstub only, see JX.install()> //
     },
+
     /**
      * Listen for events emitted by this object instance. You can also use
      * the static flavor of this method to listen to events emitted by any
      * instance of this object.
      *
-     * See also @{JX.Stratcom.listen()}.
+     * See also @{method:JX.Stratcom.listen}.
      *
      * @param  string   Type of event to listen for.
      * @param  function Function to call when this event occurs.
@@ -44,11 +46,13 @@ JX.install('Base', {
     listen : function(type, callback) {
       // <docstub only, see JX.install()> //
     }
+
   },
   statics : {
+
     /**
      * Static listen interface for listening to events produced by any instance
-     * of this class. See @{JX.Base.listen()} for documentation.
+     * of this class. See @{method:listen} for documentation.
      *
      * @param  string   Type of event to listen for.
      * @param  function Function to call when this event occurs.
@@ -60,6 +64,7 @@ JX.install('Base', {
     listen : function(type, callback) {
       // <docstub only, see JX.install()> //
     }
+
   }
 });
 
