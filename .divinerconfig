@@ -5,6 +5,7 @@
     "javelin-diviner" : "support/diviner"
   },
   "groups" : {
+    "concepts" : "Javelin Concepts",
     "facebook" : "Information for Facebook Employees",
     "util" : "Utilities",
     "install" : "Class Construction",
