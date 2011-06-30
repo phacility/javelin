@@ -215,7 +215,6 @@ JX.copy = function(copy_dst, copy_src) {
  * @group util
  */
 JX.bind = function(context, func, more) {
-
   if (__DEV__) {
     if (typeof func != 'function') {
       throw new Error(
@@ -225,6 +224,10 @@ JX.bind = function(context, func, more) {
   }
 
   var bound = JX.$A(arguments).slice(2);
+  if (func.bind) {
+    return func.bind.apply(func, [context].concat(bound));
+  }
+
   return function() {
     return func.apply(context || window, bound.concat(JX.$A(arguments)));
   }

@@ -47,3 +47,39 @@ describe('JX.isArray', function() {
   });
 
 });
+
+describe('JX.bind', function() {
+
+  it('should bind a function to a context', function() {
+    var object = {a: 5, b: 3};
+    JX.bind(object, function() {
+      object.b = 1;
+    })();
+    expect(object).toEqual({a: 5, b: 1});
+  });
+
+  it('should bind a function without context', function() {
+    var called;
+    JX.bind(null, function() {
+      called = true;
+    })();
+    expect(called).toBe(true);
+  });
+
+  it('should bind with arguments', function() {
+    var list = [];
+    JX.bind(null, function() {
+      list.push.apply(list, JX.$A(arguments));
+    }, 'a', 2, 'c', 4)();
+    expect(list).toEqual(['a', 2, 'c', 4]);
+  });
+
+  it('should allow to pass additional arguments', function() {
+    var list = [];
+    JX.bind(null, function() {
+      list.push.apply(list, JX.$A(arguments));
+    }, 'a', 2)('c', 4);
+    expect(list).toEqual(['a', 2, 'c', 4]);
+  });
+
+});
