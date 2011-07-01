@@ -12,6 +12,7 @@ function render_body($body) {
   <body>
     <h1><strong>Javelin</strong> (JS)</h1>
     <div id="menu">
+      <a href="specs/">Run Javelin Tests</a>
       <a href="http://www.phabricator.com/docs/javelin/">Documentation</a>
       <a href="https://github.com/facebook/javelin/">GitHub</a>
       <div style="clear: both;"></div>
