@@ -57,9 +57,6 @@ JX.install('Request', {
         return;
       }
 
-      this._xhrkey = JX.Request._xhr.length;
-      JX.Request._xhr.push(this);
-
       var xport = this.getTransport();
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
@@ -213,7 +210,6 @@ JX.install('Request', {
 
     _cleanup : function() {
       this._finished = true;
-      delete JX.Request._xhr[this._xhrkey];
       this._timer && this._timer.stop();
       this._transport.abort();
     },
@@ -234,17 +230,6 @@ JX.install('Request', {
   },
 
   statics : {
-    _xhr : [],
-    shutdown : function() {
-      for (var ii = 0; ii < JX.Request._xhr.length; ii++) {
-        try {
-          JX.Request._xhr[ii] && JX.Request._xhr[ii].abort();
-        } catch (x) {
-          // Ignore.
-        }
-      }
-      JX.Request._xhr = [];
-    },
     ERROR_TIMEOUT : -9000,
     defaultDataSerializer : function(list_of_pairs) {
       var uri = [];
@@ -279,11 +264,6 @@ JX.install('Request', {
      * @param int Timeout, in milliseconds (e.g. 3000 = 3 seconds).
      */
     timeout : null
-  },
-
-  initialize : function() {
-    JX.Stratcom.listen('unload', null, JX.Request.shutdown);
   }
 
 });
-
