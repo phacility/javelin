@@ -87,12 +87,12 @@ JX.install('Stratcom', {
      * @task invoke
      */
     invoke : function(type, path, data) {
-      var proxy = new JX.Event()
-        .setType(type)
-        .setData(data || {})
-        .setPath(path || []);
-
-      return this._dispatchProxy(proxy);
+      return this._dispatchProxy(
+        new JX.Event()
+          .setType(type)
+          .setData(data || {})
+          .setPath(path || [])
+      );
     },
 
 
@@ -298,6 +298,7 @@ JX.install('Stratcom', {
         .setNodes(nodes)
         .setPath(path.reverse());
 
+      // Don't touch this for debugging purposes
       //JX.log('~> '+proxy.toString());
 
       return this._dispatchProxy(proxy);
@@ -325,16 +326,11 @@ JX.install('Stratcom', {
       var matches;
 
       for (var root = -1; root < len; ++root) {
-        if (root == -1) {
-          matches = scope[this._auto];
-        } else {
-          matches = scope[path[root]];
-        }
-        if (!matches) {
-          continue;
-        }
-        for (var ii = 0; ii < matches.length; ++ii) {
-          hits[matches[ii]] = (hits[matches[ii]] || 0) + 1;
+        matches = scope[(root == -1) ? this._auto : path[root]];
+        if (matches) {
+          for (var ii = 0; ii < matches.length; ++ii) {
+            hits[matches[ii]] = (hits[matches[ii]] || 0) + 1;
+          }
         }
       }
 
@@ -383,15 +379,18 @@ JX.install('Stratcom', {
      */
     pass : function() {
       var context = this._execContext[this._execContext.length - 1];
-      while (context.cursor < context.handlers.length) {
-        var cursor = context.cursor;
-        ++context.cursor;
-        (context.handlers[cursor] || JX.bag)(context.event);
-        if (context.event.getStopped()) {
+      var event = context.event;
+      var handlers = context.handlers;
+      while (context.cursor < handlers.length) {
+        var cursor = context.cursor++;
+        if (handlers[cursor]){
+          handlers[cursor](event);
+        }
+        if (event.getStopped()) {
           break;
         }
       }
-      return context.event.getStopped() || context.event.getPrevented();
+      return event.getStopped() || event.getPrevented();
     },
 
 
@@ -404,10 +403,7 @@ JX.install('Stratcom', {
      */
     context : function() {
       var len = this._execContext.length;
-      if (!len) {
-        return null;
-      }
-      return this._execContext[len - 1].event;
+      return len ? this._execContext[len - 1].event : null;
     },
 
 
