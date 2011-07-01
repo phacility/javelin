@@ -39,13 +39,6 @@ describe('JX.isArray', function() {
     var array2 = new MaybeArray(1);
     array2[0] = 5;
 
-    if (window.location.protocol != 'file:') {
-      // For demonstration purposes. NOTE: in Safari and Firefox, these tests
-      // "fail" if run from a file:// URI.
-      expect(array instanceof Array).toBe(false);
-      expect(array2 instanceof Array).toBe(false);
-    }
-
     expect(JX.isArray(array)).toBe(true);
     expect(JX.isArray(array2)).toBe(true);
   });
