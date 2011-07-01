@@ -231,16 +231,17 @@ JX.install('Vector', {
         var c = JX.Vector._viewport;
         return new JX.Vector(
           node.pageX || (node.clientX + c.scrollLeft),
-          node.pageY || (node.clientY + c.scrollTop));
+          node.pageY || (node.clientY + c.scrollTop)
+        );
       }
 
-      var x = node.offsetLeft;
-      var y = node.offsetTop;
-      while (node.offsetParent && (node.offsetParent != document.body)) {
-        node = node.offsetParent;
+      var x = 0;
+      var y = 0;
+      do {
         x += node.offsetLeft;
         y += node.offsetTop;
-      }
+        node = node.offsetParent;
+      } while (node.offsetParent && (node.offsetParent != document.body))
 
       return new JX.Vector(x, y);
     },
@@ -279,10 +280,9 @@ JX.install('Vector', {
       // information is stored.
       var b = document.body;
       var e = document.documentElement;
-      var w = window;
       return new JX.Vector(
-        w.pageXOffset || b.scrollLeft || e.scrollLeft,
-        w.pageYOffset || b.scrollTop || e.scrollTop
+        window.pageXOffset || b.scrollLeft || e.scrollLeft,
+        window.pageYOffset || b.scrollTop || e.scrollTop
       );
     },
 
@@ -301,11 +301,9 @@ JX.install('Vector', {
      */
     getViewport : function() {
       var c = JX.Vector._viewport;
-      var w = window;
-
       return new JX.Vector(
-        w.innerWidth || c.clientWidth || 0,
-        w.innerHeight || c.clientHeight || 0
+        window.innerWidth || c.clientWidth || 0,
+        window.innerHeight || c.clientHeight || 0
       );
     },
 
@@ -340,9 +338,7 @@ JX.install('Vector', {
    * @return void
    */
   initialize : function() {
-    var c = ((c = document) && (c = c.documentElement)) ||
-            ((c = document) && (c = c.body));
-    JX.Vector._viewport = c;
+    JX.Vector._viewport = document.documentElement || document.body;
 
     if (__DEV__) {
       JX.Vector.prototype.toString = function() {
