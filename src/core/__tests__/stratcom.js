@@ -36,6 +36,21 @@ describe('Stratcom Tests', function() {
     });
   });
 
+  it('should be able to add sigils', function() {
+    var node = document.createElement('div');
+    JX.Stratcom.addSigil(node, 'my-sigil');
+    expect(JX.Stratcom.hasSigil(node, 'my-sigil')).toBe(true);
+    expect(JX.Stratcom.hasSigil(node, 'i-dont-haz')).toBe(false);
+    JX.Stratcom.addSigil(node, 'javelin-rocks');
+    expect(JX.Stratcom.hasSigil(node, 'my-sigil')).toBe(true);
+    expect(JX.Stratcom.hasSigil(node, 'javelin-rocks')).toBe(true);
+
+    // Should not arbitrarily take away other sigils
+    JX.Stratcom.addSigil(node, 'javelin-rocks');
+    expect(JX.Stratcom.hasSigil(node, 'my-sigil')).toBe(true);
+    expect(JX.Stratcom.hasSigil(node, 'javelin-rocks')).toBe(true);
+  });
+
   it('should test dataPersistence', function() {
     var n, d;
 

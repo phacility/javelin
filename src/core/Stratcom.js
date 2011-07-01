@@ -470,12 +470,12 @@ JX.install('Stratcom', {
         }
       }
 
-      var sigils = node.getAttribute('data-sigil');
-      if (sigils && !JX.Stratcom.hasSigil(node, sigil)) {
-        sigil = sigils + ' ' + sigil;
+      var sigils = node.getAttribute('data-sigil') || '';
+      if (!JX.Stratcom.hasSigil(node, sigil)) {
+        sigils += ' ' + sigil;
       }
 
-      node.setAttribute('data-sigil', sigil);
+      node.setAttribute('data-sigil', sigils);
     },
 
 
