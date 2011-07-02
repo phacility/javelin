@@ -1,5 +1,5 @@
-PROJECT OVERVIEW: http://www.javelinjs.com/
-REFERENCE DOCUMENTATION: http://javelin.fbdocs.com/
+Javelin is a performance-oriented Javascript library originally developed at
+Facebook. Learn more at <http://www.javelinjs.com/>.
 
 GETTING STARTED
 
@@ -31,13 +31,3 @@ FILES
   README      Who knows? Could be anything.
   src/        Raw sources for Javelin.
   support/    Support scripts and libraries.
-
-
-DOCUMENTATION
-
-You can find reference documentation at <http://javelin.fbdocs.com/>.
-
-
-AUTHOR
-
-Javelin was written by Evan Priestley at Facebook.
