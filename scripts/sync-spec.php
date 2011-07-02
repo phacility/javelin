@@ -63,4 +63,31 @@ class JavelinSyncSpec {
     );
   }
 
+  public static function rebuildPackages($root) {
+    $packages = JavelinSyncSpec::getPackageMap();
+    $data = array();
+
+    foreach ($packages as $package => $items) {
+      $content = array();
+      foreach ($items as $item) {
+        if (empty($data[$item])) {
+          $data[$item] = Filesystem::readFile($root.'/src/'.$item);
+        }
+        $content[] = $data[$item];
+      }
+      $content = implode("\n\n", $content);
+
+      echo "Writing {$package}.dev.js...\n";
+      Filesystem::writeFile($root.'/pkg/'.$package.'.dev.js', $content);
+
+      echo "Writing {$package}.min.js...\n";
+      $exec = new ExecFuture($root.'/support/jsxmin/jsxmin __DEV__:0');
+      $exec->write($content);
+      list($stdout) = $exec->resolvex();
+
+      Filesystem::writeFile($root.'/pkg/'.$package.'.min.js', $stdout);
+    }
+
+  }
+
 }
