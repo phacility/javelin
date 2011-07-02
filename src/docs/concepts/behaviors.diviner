@@ -165,7 +165,7 @@ Javelin behaviors provide a more structured solution to some of these problems:
     namespace.
   - Separation between the document's layout and behavior is a consequence of
     the structure of behaviors.
-  - The entire interface the server can invoke against can be readily inferred.
+  - The entire interface the server may invoke against can be readily inferred.
 
 Note that Javelin does provide @{function:JX.onload}, which behaves like
 ##onloadRegister()##. However, it use is discouraged.
