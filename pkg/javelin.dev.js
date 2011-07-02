@@ -1,20 +1,22 @@
 /**
  * Javelin utility functions.
  *
- * @requires javelin-magical-init
  * @provides javelin-util
  *
  * @javelin-installs JX.$A
  * @javelin-installs JX.$AX
+ * @javelin-installs JX.isArray
  * @javelin-installs JX.copy
  * @javelin-installs JX.bind
  * @javelin-installs JX.bag
  * @javelin-installs JX.keys
  * @javelin-installs JX.defer
  * @javelin-installs JX.log
+ * @javelin-installs JX.id
  *
  * @javelin
  */
+
 
 /**
  * Convert an array-like object (usually ##arguments##) into a real Array. An
@@ -26,6 +28,8 @@
  *
  * @param  obj     Array, or array-like object.
  * @return Array   Actual array.
+ *
+ * @group util
  */
 JX.$A = function(mysterious_arraylike_object) {
   // NOTE: This avoids the Array.slice() trick because some bizarre COM object
@@ -47,25 +51,43 @@ JX.$A = function(mysterious_arraylike_object) {
  *   JX.$AX([3]); // Returns [3].
  *   JX.$AX(3);   // Returns [3].
  *
- * Note that this function uses an "instanceof Array" check so you may need to
- * convert array-like objects (such as ##arguments## and Array instances from
- * iframes) into real arrays with @{JX.$A()}.
+ * Note that this function uses a @{function:JX.isArray} check whether or not
+ * the argument is an array, so you may need to convert array-like objects (such
+ * as ##arguments##) into real arrays with @{function:JX.$A}.
+ *
+ * This function is mostly useful to create methods which accept either a
+ * value or a list of values.
  *
  * @param  wild    Scalar or Array.
  * @return Array   If the argument was a scalar, an Array with the argument as
  *                 its only element. Otherwise, the original Array.
  *
+ * @group util
  */
 JX.$AX = function(maybe_scalar) {
-  return (maybe_scalar instanceof Array) ? maybe_scalar : [maybe_scalar];
+  return JX.isArray(maybe_scalar) ? maybe_scalar : [maybe_scalar];
 };
 
 
 /**
- * Copy properties from one object to another. Note: does not copy the
- * ##toString## property or anything else which isn't enumerable or is somehow
- * magic or just doesn't work. But it's usually what you want. If properties
- * already exist, they are overwritten.
+ * Checks whether a value is an array.
+ *
+ *   JX.isArray(['an', 'array']); // Returns true.
+ *   JX.isArray('Not an Array');  // Returns false.
+ *
+ * @param  wild     Any value.
+ * @return bool     true if the argument is an array, false otherwise.
+ *
+ * @group util
+ */
+JX.isArray = Array.isArray || function(maybe_array) {
+  return Object.prototype.toString.call(maybe_array) == '[object Array]';
+};
+
+
+/**
+ * Copy properties from one object to another. If properties already exist, they
+ * are overwritten.
  *
  *   var cat  = {
  *     ears: 'clean',
@@ -87,9 +109,15 @@ JX.$AX = function(maybe_scalar) {
  *   //    tail: 'clean'
  *   //  }
  *
+ * NOTE: This function does not copy the ##toString## property or anything else
+ * which isn't enumerable or is somehow magic or just doesn't work. But it's
+ * usually what you want.
+ *
  * @param  obj Destination object, which properties should be copied to.
  * @param  obj Source object, which properties should be copied from.
- * @return obj Destination object.
+ * @return obj Modified destination object.
+ *
+ * @group util
  */
 JX.copy = function(copy_dst, copy_src) {
   for (var k in copy_src) {
@@ -121,7 +149,7 @@ JX.copy = function(copy_dst, copy_src) {
  *   JX.Stratcom.listen('click', 'bark', dog.barkNow); // Does not work!
  *
  * This doesn't work because ##this## is ##window## when the function is
- * later invoked; @{JX.Stratcom.listen()} does not know about the context
+ * later invoked; @{method:JX.Stratcom.listen} does not know about the context
  * object ##dog##. The solution is to pass a function with a bound context
  * object:
  *
@@ -139,8 +167,8 @@ JX.copy = function(copy_dst, copy_src) {
  *
  * = Partial Function Application =
  *
- * @{JX.bind()} also performs partial function application, which allows you
- * to bind one or more arguments to a function. For instance, if we have a
+ * @{function:JX.bind} also performs partial function application, which allows
+ * you to bind one or more arguments to a function. For instance, if we have a
  * simple function which adds two numbers:
  *
  *   function add(a, b) { return a + b; }
@@ -183,9 +211,10 @@ JX.copy = function(copy_dst, copy_src) {
  * @param  ...       Zero or more arguments to bind.
  * @return function  New function which invokes the original function with
  *                   bound context and arguments when called.
+ *
+ * @group util
  */
 JX.bind = function(context, func, more) {
-
   if (__DEV__) {
     if (typeof func != 'function') {
       throw new Error(
@@ -195,6 +224,10 @@ JX.bind = function(context, func, more) {
   }
 
   var bound = JX.$A(arguments).slice(2);
+  if (func.bind) {
+    return func.bind.apply(func, [context].concat(bound));
+  }
+
   return function() {
     return func.apply(context || window, bound.concat(JX.$A(arguments)));
   }
@@ -207,6 +240,8 @@ JX.bind = function(context, func, more) {
  * actually have an effect.
  *
  * @return void
+ *
+ * @group util
  */
 JX.bag = function() {
   // \o\ \o/ /o/ woo dance party
@@ -220,6 +255,8 @@ JX.bag = function() {
  *
  * @param  obj    Object to retrieve keys from.
  * @return list   List of keys.
+ *
+ * @group util
  */
 JX.keys = function(obj) {
   var r = [];
@@ -244,15 +281,30 @@ JX.keys = function(obj) {
  *                 event loop, as with ##setTimeout(func, 0)##.
  * @return obj     An object with a ##stop()## method, which cancels function
  *                 execution.
+ *
+ * @group util
  */
 JX.defer = function(func, timeout) {
   var t = setTimeout(func, timeout || 0);
   return {stop : function() { clearTimeout(t); }}
 };
 
+
+/**
+ * Identity function; returns the argument unmodified. This is primarily useful
+ * as a placeholder for some callback which may transform its argument.
+ *
+ * @param   wild  Any value.
+ * @return  wild  The passed argument.
+ *
+ * @group util
+ */
 JX.id = function(any) {
   return any;
 };
+
+
+JX.log = JX.bag;
 
 if (__DEV__) {
   if (!window.console || !window.console.log) {
@@ -269,6 +321,8 @@ if (__DEV__) {
    *
    * @param  string Message to print to the browser debugging console.
    * @return void
+   *
+   * @group util
    */
   JX.log = function(message) {
     window.console.log(message);
@@ -303,14 +357,18 @@ if (__DEV__) {
       in_alert = false;
     }
   })(window.alert);
-
 }
+
 
 
 /**
  * @requires javelin-util
+ *           javelin-magical-init
  * @provides javelin-install
+ *
  * @javelin-installs JX.install
+ * @javelin-installs JX.createClass
+ *
  * @javelin
  */
 
@@ -383,13 +441,9 @@ if (__DEV__) {
  * @param  map     Map of properties, see method documentation.
  * @return void
  *
- * @author epriestley
+ * @group install
  */
 JX.install = function(new_name, new_junk) {
-
-  if (typeof JX.install._nextObjectID == 'undefined') {
-    JX.install._nextObjectID = 0;
-  }
 
   // If we've already installed this, something is up.
   if (new_name in JX) {
@@ -413,14 +467,12 @@ JX.install = function(new_name, new_junk) {
   // Since we may end up loading things out of order (e.g., Dog extends Animal
   // but we load Dog first) we need to keep a list of things that we've been
   // asked to install but haven't yet been able to install around.
-  if (!JX.install._queue) {
-    JX.install._queue = [];
-  }
-  JX.install._queue.push([new_name, new_junk]);
+  (JX.install._queue || (JX.install._queue = [])).push([new_name, new_junk]);
+  var name;
   do {
     var junk;
-    var name = null;
     var initialize;
+    name = null;
     for (var ii = 0; ii < JX.install._queue.length; ++ii) {
       junk = JX.install._queue[ii][1];
       if (junk.extend && !JX[junk.extend]) {
@@ -444,7 +496,7 @@ JX.install = function(new_name, new_junk) {
       JX[name] = JX.createClass(junk);
 
       if (initialize) {
-        if (JX.Stratcom && JX.Stratcom.ready) {
+        if (JX['Stratcom'] && JX['Stratcom'].ready) {
           initialize.apply(null);
         } else {
           // This is a holding queue, defined in init.js.
@@ -469,12 +521,12 @@ JX.install = function(new_name, new_junk) {
  *
  * @param  junk     Map of properties, see method documentation.
  * @return function Constructor of a class created
+ *
+ * @group install
  */
 JX.createClass = function(junk) {
-  if (typeof JX.install._nextObjectID == 'undefined') {
-    JX.install._nextObjectID = 0;
-  }
   var name = junk.name || '';
+  var k;
 
   if (__DEV__) {
     var valid = {
@@ -486,7 +538,7 @@ JX.createClass = function(junk) {
       events : 1,
       name : 1
     };
-    for (var k in junk) {
+    for (k in junk) {
       if (!(k in valid)) {
         throw new Error(
           'JX.createClass("' + name + '", {"' + k + '": ...}): ' +
@@ -529,7 +581,7 @@ JX.createClass = function(junk) {
   Class.__readable__ = name;
 
   // Copy in all the static methods and properties.
-  for (var k in junk.statics) {
+  for (k in junk.statics) {
     // Can't use JX.copy() here yet since it may not have loaded.
     Class[k] = junk.statics[k];
   }
@@ -544,24 +596,25 @@ JX.createClass = function(junk) {
   }
 
   proto.__class__ = Class;
+  var setter = function(prop) {
+    return function(v) {
+      this[prop] = v;
+      return this;
+    };
+  };
+  var getter = function(prop) {
+    return function(v) {
+      return this[prop];
+    };
+  };
 
   // Build getters and setters from the `prop' map.
-  for (var k in (junk.properties || {})) {
-    var base = k.charAt(0).toUpperCase()+k.substr(1);
+  for (k in (junk.properties || {})) {
+    var base = k.charAt(0).toUpperCase() + k.substr(1);
     var prop = '__auto__' + k;
     proto[prop] = junk.properties[k];
-    proto['set' + base] = (function(prop) {
-      return function(v) {
-        this[prop] = v;
-        return this;
-      };
-    })(prop);
-
-    proto['get' + base] = (function(prop) {
-      return function() {
-        return this[prop];
-      };
-    })(prop);
+    proto['set' + base] = setter(prop);
+    proto['get' + base] = getter(prop);
   }
 
   if (__DEV__) {
@@ -614,7 +667,7 @@ JX.createClass = function(junk) {
 
   // This execution order intentionally allows you to override methods
   // generated from the "properties" initializer.
-  for (var k in junk.members) {
+  for (k in junk.members) {
     proto[k] = junk.members[k];
   }
 
@@ -742,6 +795,7 @@ JX.createClass = function(junk) {
   return Class;
 };
 
+JX.install._nextObjectID = 0;
 JX.flushHoldingQueue('install', JX.install);
 
 
@@ -1031,9 +1085,9 @@ JX.install('Event', {
 
 
 /**
- *  @requires javelin-install javelin-event javelin-util javelin-magical-init
- *  @provides javelin-stratcom
- *  @javelin
+ * @requires javelin-install javelin-event javelin-util javelin-magical-init
+ * @provides javelin-stratcom
+ * @javelin
  */
 
 /**
@@ -1075,7 +1129,6 @@ JX.install('Stratcom', {
     _auto : '*',
     _data : {},
     _execContext : [],
-    _typeMap : {focusin: 'focus', focusout: 'blur'},
 
     /**
      * Node metadata is stored in a series of blocks to prevent collisions
@@ -1112,7 +1165,7 @@ JX.install('Stratcom', {
      *
      * @param  string       Event type.
      * @param  list?        Optionally, a path to attach to the event. This is
-     *                      rarely meaingful for simple events.
+     *                      rarely meaningful for simple events.
      * @param  object?      Optionally, arbitrary data to send with the event.
      * @return @{JX.Event}  The event object which was dispatched to listeners.
      *                      The main use of this is to test whether any
@@ -1120,12 +1173,12 @@ JX.install('Stratcom', {
      * @task invoke
      */
     invoke : function(type, path, data) {
-      var proxy = new JX.Event()
-        .setType(type)
-        .setData(data || {})
-        .setPath(path || []);
-
-      return this._dispatchProxy(proxy);
+      return this._dispatchProxy(
+        new JX.Event()
+          .setType(type)
+          .setData(data || {})
+          .setPath(path || [])
+      );
     },
 
 
@@ -1176,7 +1229,7 @@ JX.install('Stratcom', {
     listen : function(types, paths, func) {
 
       if (__DEV__) {
-        if (arguments.length == 4) {
+        if (arguments.length != 3) {
           throw new Error(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
@@ -1200,9 +1253,9 @@ JX.install('Stratcom', {
       if (!paths) {
         paths = this._auto;
       }
-      if (!(paths instanceof Array)) {
+      if (!JX.isArray(paths)) {
         paths = [[paths]];
-      } else if (!(paths[0] instanceof Array)) {
+      } else if (!JX.isArray(paths[0])) {
         paths = [paths];
       }
 
@@ -1247,10 +1300,7 @@ JX.install('Stratcom', {
                   'listen for window events using null, not "tag:window"');
               }
             }
-            if (!type_target[path[kk]]) {
-              type_target[path[kk]] = [];
-            }
-            type_target[path[kk]].push(id);
+            (type_target[path[kk]] || (type_target[path[kk]] = [])).push(id);
           }
         }
       }
@@ -1321,8 +1371,10 @@ JX.install('Stratcom', {
       }
 
       var etype = event.type;
-      if (etype in this._typeMap) {
-        etype = this._typeMap[etype];
+      if (etype == 'focusin') {
+        etype = 'focus';
+      } else if (etype == 'focusout') {
+        etype = 'blur';
       }
 
       var proxy = new JX.Event()
@@ -1332,6 +1384,7 @@ JX.install('Stratcom', {
         .setNodes(nodes)
         .setPath(path.reverse());
 
+      // Don't touch this for debugging purposes
       //JX.log('~> '+proxy.toString());
 
       return this._dispatchProxy(proxy);
@@ -1359,16 +1412,11 @@ JX.install('Stratcom', {
       var matches;
 
       for (var root = -1; root < len; ++root) {
-        if (root == -1) {
-          matches = scope[this._auto];
-        } else {
-          matches = scope[path[root]];
-        }
-        if (!matches) {
-          continue;
-        }
-        for (var ii = 0; ii < matches.length; ++ii) {
-          hits[matches[ii]] = (hits[matches[ii]] || 0) + 1;
+        matches = scope[(root == -1) ? this._auto : path[root]];
+        if (matches) {
+          for (var ii = 0; ii < matches.length; ++ii) {
+            hits[matches[ii]] = (hits[matches[ii]] || 0) + 1;
+          }
         }
       }
 
@@ -1417,15 +1465,18 @@ JX.install('Stratcom', {
      */
     pass : function() {
       var context = this._execContext[this._execContext.length - 1];
-      while (context.cursor < context.handlers.length) {
-        var cursor = context.cursor;
-        ++context.cursor;
-        (context.handlers[cursor] || JX.bag)(context.event);
-        if (context.event.getStopped()) {
+      var event = context.event;
+      var handlers = context.handlers;
+      while (context.cursor < handlers.length) {
+        var cursor = context.cursor++;
+        if (handlers[cursor]){
+          handlers[cursor](event);
+        }
+        if (event.getStopped()) {
           break;
         }
       }
-      return context.event.getStopped() || context.event.getPrevented();
+      return event.getStopped() || event.getPrevented();
     },
 
 
@@ -1438,10 +1489,7 @@ JX.install('Stratcom', {
      */
     context : function() {
       var len = this._execContext.length;
-      if (!len) {
-        return null;
-      }
-      return this._execContext[len - 1].event;
+      return len ? this._execContext[len - 1].event : null;
     },
 
 
@@ -1508,12 +1556,12 @@ JX.install('Stratcom', {
         }
       }
 
-      var sigils = node.getAttribute('data-sigil');
-      if (sigils && !JX.Stratcom.hasSigil(node, sigil)) {
-        sigil = sigils + ' ' + sigil;
+      var sigils = node.getAttribute('data-sigil') || '';
+      if (!JX.Stratcom.hasSigil(node, sigil)) {
+        sigils += ' ' + sigil;
       }
 
-      node.setAttribute('data-sigil', sigil);
+      node.setAttribute('data-sigil', sigils);
     },
 
 
@@ -1597,6 +1645,7 @@ JX.install('Stratcom', {
 
 /**
  * @provides javelin-behavior
+ * @requires javelin-magical-init
  *
  * @javelin-installs JX.behavior
  * @javelin-installs JX.initBehaviors
@@ -1604,6 +1653,22 @@ JX.install('Stratcom', {
  * @javelin
  */
 
+/**
+ * Define a Javelin behavior, which holds glue code in a structured way. See
+ * @{article:Concepts: Behaviors} for a detailed description of Javelin
+ * behaviors.
+ *
+ * To define a behavior, provide a name and a function:
+ *
+ *   JX.behavior('win-a-hog', function(config, statics) {
+ *     alert("YOU WON A HOG NAMED " + config.hogName + "!");
+ *   });
+ *
+ * @param string    Behavior name.
+ * @param function  Behavior callback/definition.
+ * @return void
+ * @group behavior
+ */
 JX.behavior = function(name, control_function) {
   if (__DEV__) {
     if (JX.behavior._behaviors.hasOwnProperty(name)) {
@@ -1623,15 +1688,30 @@ JX.behavior = function(name, control_function) {
     }
   }
   JX.behavior._behaviors[name] = control_function;
+  JX.behavior._statics[name] = {};
 };
 
 
+/**
+ * Execute previously defined Javelin behaviors, running the glue code they
+ * contain to glue stuff together. See @{article:Concepts: Behaviors} for more
+ * information on Javelin behaviors.
+ *
+ * Normally, you do not call this function yourself; instead, your server-side
+ * library builds it for you.
+ *
+ * @param dict  Map of behaviors to invoke: keys are behavior names, and values
+ *              are lists of configuration dictionaries. The behavior will be
+ *              invoked once for each configuration dictionary.
+ * @return void
+ * @group behavior
+ */
 JX.initBehaviors = function(map) {
   for (var name in map) {
     if (__DEV__) {
       if (!(name in JX.behavior._behaviors)) {
         throw new Error(
-          'JX.initBehavior("'+name+'", ...): '+
+          'JX.initBehavior({"'+name+'" : ...}): ' +
           'behavior is not registered.');
       }
     }
@@ -1639,22 +1719,20 @@ JX.initBehaviors = function(map) {
     if (!configs.length) {
       if (JX.behavior._initialized.hasOwnProperty(name)) {
         continue;
-      } else {
-        configs = [null];
       }
+      configs = [null];
     }
     for (var ii = 0; ii < configs.length; ii++) {
-      JX.behavior._behaviors[name](configs[ii]);
+      JX.behavior._behaviors[name](configs[ii], JX.behavior._statics[name]);
     }
     JX.behavior._initialized[name] = true;
   }
 };
 
-!function(JX) {
-  JX.behavior._behaviors = {};
-  JX.behavior._initialized = {};
-  JX.flushHoldingQueue('behavior', JX.behavior);
-}(JX);
+JX.behavior._behaviors = {};
+JX.behavior._statics = {};
+JX.behavior._initialized = {};
+JX.flushHoldingQueue('behavior', JX.behavior);
 
 
 /**
@@ -1662,6 +1740,7 @@ JX.initBehaviors = function(map) {
  *           javelin-stratcom
  *           javelin-util
  *           javelin-behavior
+ *           javelin-json
  * @provides javelin-request
  * @javelin
  */
@@ -1677,33 +1756,48 @@ JX.install('Request', {
     }
   },
 
-  events : ['send', 'done', 'error', 'finally'],
+  events : ['open', 'send', 'done', 'error', 'finally'],
 
   members : {
 
     _xhrkey : null,
     _transport : null,
+    _sent : false,
     _finished : false,
     _block : null,
     _data : null,
 
-    send : function() {
-      var xport = null;
-
-      try {
+    getTransport : function() {
+      var xport = this._transport;
+      if (!xport) {
         try {
-          xport = new XMLHttpRequest();
+          try {
+            xport = new XMLHttpRequest();
+          } catch (x) {
+            xport = new ActiveXObject("Msxml2.XMLHTTP");
+          }
         } catch (x) {
-          xport = new ActiveXObject("Msxml2.XMLHTTP");
+          xport = new ActiveXObject("Microsoft.XMLHTTP");
         }
-      } catch (x) {
-        xport = new ActiveXObject("Microsoft.XMLHTTP");
+        this._transport = xport;
+      }
+      return xport;
+    },
+
+    send : function() {
+      if (this._sent) {
+        if (__DEV__) {
+          throw new Error(
+            'JX.Request.send(): '+
+            'attempting to send a Request that has already been sent.');
+        }
+        return;
       }
 
-      this._transport = xport;
       this._xhrkey = JX.Request._xhr.length;
       JX.Request._xhr.push(this);
 
+      var xport = this.getTransport();
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
 
       var list_of_pairs = this._data || [];
@@ -1721,8 +1815,6 @@ JX.install('Request', {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
-      this.invoke('send', this);
-
       if (this.getTimeout()) {
         this._timer = JX.defer(
           JX.bind(
@@ -1734,6 +1826,10 @@ JX.install('Request', {
 
       xport.open(method, uri, true);
 
+      // Must happen after xport.open so that listeners can modify the transport
+      // Some transport properties can only be set after the transport is open
+      this.invoke('open', this);
+
       if (__DEV__) {
         if (this.getFile()) {
           if (method != 'POST') {
@@ -1741,7 +1837,7 @@ JX.install('Request', {
               'JX.Request.send(): ' +
               'attempting to send a file over GET. You must use POST.');
           }
-          if (this.getData()) {
+          if (this._data) {
             throw new Error(
               'JX.Request.send(): ' +
               'attempting to send data and a file. You can not send both ' +
@@ -1749,6 +1845,8 @@ JX.install('Request', {
           }
         }
       }
+
+      this.invoke('send', this);
 
       if (method == 'POST') {
         if (this.getFile()) {
@@ -1762,6 +1860,8 @@ JX.install('Request', {
       } else {
         xport.send(null);
       }
+
+      this._sent = true;
     },
 
     abort : function() {
@@ -1769,7 +1869,7 @@ JX.install('Request', {
     },
 
     _onreadystatechange : function() {
-      var xport = this._transport;
+      var xport = this.getTransport();
       try {
         if (this._finished) {
           return;
@@ -1798,7 +1898,7 @@ JX.install('Request', {
         }
 
         var text = xport.responseText.substring('for (;;);'.length);
-        var response = eval('('+text+')');
+        var response = JX.JSON.parse(text);
       } catch (exception) {
 
         if (__DEV__) {
@@ -1927,7 +2027,8 @@ JX.install('Request', {
 
 
 /**
- * @requires javelin-install javelin-event
+ * @requires javelin-install
+ *           javelin-event
  * @provides javelin-vector
  *
  * @javelin-installs JX.$V
@@ -1935,17 +2036,25 @@ JX.install('Request', {
  * @javelin
  */
 
+
 /**
- * Handy convenience function that returns a JX.Vector instance so you can
- * concisely write something like:
+ * Convenience function that returns a @{class:JX.Vector} instance. This allows
+ * you to concisely write things like:
  *
- *  JX.$V(x, y).add(10, 10);
- * or
- *  JX.$V(node).add(50, 50).setDim(node);
+ *  JX.$V(x, y).add(10, 10);                // Explicit coordinates.
+ *  JX.$V(node).add(50, 50).setDim(node);   // Position of a node.
+ *
+ * @param number|Node         If a node, returns the node's position vector.
+ *                            If numeric, the x-coordinate for the new vector.
+ * @param number?             The y-coordinate for the new vector.
+ * @return @{class:JX.Vector} New vector.
+ *
+ * @group dom
  */
 JX.$V = function(x, y) {
   return new JX.Vector(x, y);
 };
+
 
 /**
  * Query and update positions and dimensions of nodes (and other things) within
@@ -1955,7 +2064,7 @@ JX.$V = function(x, y) {
  * Vectors are used to manage the sizes and positions of elements, events,
  * the document, and the viewport (the visible section of the document, i.e.
  * how much of the page the user can actually see in their browser window).
- * Unlike most Javelin classes, @{JX.Vector} exposes two bare properties,
+ * Unlike most Javelin classes, @{class:JX.Vector} exposes two bare properties,
  * 'x' and 'y'. You can read and manipulate these directly:
  *
  *   // Give the user information about elements when they click on them.
@@ -1988,11 +2097,14 @@ JX.$V = function(x, y) {
  *   var visible_area = parseInt(100 * (v.x * v.y) / (d.x * d.y), 10);
  *   alert('You can currently see ' + visible_area + ' % of the document.');
  *
- * @author epriestley
+ * The function @{function:JX.$V} provides convenience construction of common
+ * vectors.
  *
  * @task query  Querying Positions and Dimensions
  * @task update Changing Positions and Dimensions
  * @task manip  Manipulating Vectors
+ *
+ * @group dom
  */
 JX.install('Vector', {
 
@@ -2002,32 +2114,34 @@ JX.install('Vector', {
    *
    *   var p = new JX.Vector(35, 42);
    *
-   * Otherwise, you can pass a @{JX.Event} or a Node to implicitly construct a
-   * vector:
+   * Otherwise, you can pass a @{class:JX.Event} or a Node to implicitly
+   * construct a vector:
    *
    *   var q = new JX.Vector(some_event);
    *   var r = new JX.Vector(some_node);
    *
-   * These are just like calling JX.Vector.getPos() on the @{JX.Event} or Node.
+   * These are just like calling JX.Vector.getPos() on the @{class:JX.Event} or
+   * Node.
    *
-   * For convenience, @{JX.$V()} constructs a new vector so you don't need to
-   * use the 'new' keyword. That is, these are equivalent:
+   * For convenience, @{function:JX.$V} constructs a new vector so you don't
+   * need to use the 'new' keyword. That is, these are equivalent:
    *
    *   var s = new JX.Vector(x, y);
    *   var t = JX.$V(x, y);
    *
-   * Methods like getScroll(), getViewport() and getDocument() also create
-   * new vectors.
+   * Methods like @{method:getScroll}, @{method:getViewport} and
+   * @{method:getDocument} also create new vectors.
    *
    * Once you have a vector, you can manipulate it with add():
    *
    *   var u = JX.$V(35, 42);
    *   var v = u.add(5, -12); // v = <40, 30>
    *
-   * @param wild      'x' component of the vector, or a @{JX.Event}, or a Node.
+   * @param wild      'x' component of the vector, or a @{class:JX.Event}, or a
+   *                  Node.
    * @param Number?   If providing an 'x' component, the 'y' component of the
    *                  vector.
-   * @return @{JX.Vector} Specified vector.
+   * @return @{class:JX.Vector} Specified vector.
    * @task query
    */
   construct : function(x, y) {
@@ -2106,12 +2220,13 @@ JX.install('Vector', {
      * @param wild      Value to add to the vector's x component, or another
      *                  vector.
      * @param Number?   Value to add to the vector's y component.
-     * @return @{JX.Vector} New vector, with summed components.
+     * @return @{class:JX.Vector} New vector, with summed components.
      * @task manip
      */
     add : function(x, y) {
       if (x instanceof JX.Vector) {
-        return this.add(x.x, x.y);
+        y = x.y;
+        x = x.x;
       }
       return new JX.Vector(this.x + parseFloat(x), this.y + parseFloat(y));
     }
@@ -2123,17 +2238,18 @@ JX.install('Vector', {
     /**
      * Determine where in a document an element is (or where an event, like
      * a click, occurred) by building a new vector containing the position of a
-     * Node or @{JX.Event}. The 'x' component of the vector will correspond to
-     * the pixel offset of the argument relative to the left edge of the
-     * document, and the 'y' component will correspond to the pixel offset of
-     * the argument relative to the top edge of the document. Note that all
-     * vectors are generated in document coordinates, so the scroll position
-     * does not affect them.
+     * Node or @{class:JX.Event}. The 'x' component of the vector will
+     * correspond to the pixel offset of the argument relative to the left edge
+     * of the document, and the 'y' component will correspond to the pixel
+     * offset of the argument relative to the top edge of the document. Note
+     * that all vectors are generated in document coordinates, so the scroll
+     * position does not affect them.
      *
-     * See also getDim(), used to determine an element's dimensions.
+     * See also @{method:getDim}, used to determine an element's dimensions.
      *
-     * @param  Node|@{JX.Event}  Node or event to determine the position of.
-     * @return @{JX.Vector}      New vector with the argument's position.
+     * @param  Node|@{class:JX.Event}  Node or event to determine the position
+     *                                 of.
+     * @return @{class:JX.Vector}      New vector with the argument's position.
      * @task query
      */
     getPos : function(node) {
@@ -2163,7 +2279,7 @@ JX.install('Vector', {
      * to the element's width in pixels, and the 'y' component will correspond
      * to its height in pixels.
      *
-     * See also getPos(), used to determine an element's position.
+     * See also @{method:getPos}, used to determine an element's position.
      *
      * @param  Node      Node to determine the display size of.
      * @return @{JX.$V}  New vector with the node's dimensions.
@@ -2179,7 +2295,8 @@ JX.install('Vector', {
      * from the left edge of the document, and the 'y' component corresponds to
      * how many pixels the user has scrolled from the top edge of the document.
      *
-     * See also getViewport(), used to determine the size of the viewport.
+     * See also @{method:getViewport}, used to determine the size of the
+     * viewport.
      *
      * @return @{JX.$V}  New vector with the document scroll position.
      * @task query
@@ -2203,10 +2320,11 @@ JX.install('Vector', {
      * of the viewport in pixels and the 'y' component corresponds to the height
      * of the viewport in pixels.
      *
-     * See also getScroll(), used to determine the position of the viewport, and
-     * getDocument(), used to determine the size of the entire document.
+     * See also @{method:getScroll}, used to determine the position of the
+     * viewport, and @{method:getDocument}, used to determine the size of the
+     * entire document.
      *
-     * @return @{JX.$V}  New vector with the viewport dimensions.
+     * @return @{class:JX.Vector}  New vector with the viewport dimensions.
      * @task query
      */
     getViewport : function() {
@@ -2226,7 +2344,7 @@ JX.install('Vector', {
      * width in pixels and the 'y' component corresponds to the document height
      * in pixels.
      *
-     * @return @{JX.$V} New vector with the document dimensions.
+     * @return @{class:JX.Vector} New vector with the document dimensions.
      * @task query
      */
     getDocument : function() {
@@ -2239,22 +2357,25 @@ JX.install('Vector', {
    * On initialization, the browser-dependent viewport root is determined and
    * stored.
    *
-   * In ##__DEV__##, @{JX.$V} installs a toString() method so vectors print in a
-   * debuggable way:
+   * In ##__DEV__##, @{class:JX.Vector} installs a toString() method so
+   * vectors print in a debuggable way:
    *
    *   <23, 92>
+   *
+   * This string representation of vectors is not available in a production
+   * context.
    *
    * @return void
    */
   initialize : function() {
     var c = ((c = document) && (c = c.documentElement)) ||
-            ((c = document) && (c = c.body))
+            ((c = document) && (c = c.body));
     JX.Vector._viewport = c;
 
     if (__DEV__) {
       JX.Vector.prototype.toString = function() {
         return '<' + this.x + ', ' + this.y + '>';
-      }
+      };
     }
   }
 
@@ -2262,7 +2383,11 @@ JX.install('Vector', {
 
 
 /**
- * @requires javelin-install javelin-util javelin-vector javelin-stratcom
+ * @requires javelin-magical-init
+ *           javelin-install
+ *           javelin-util
+ *           javelin-vector
+ *           javelin-stratcom
  * @provides javelin-dom
  *
  * @javelin-installs JX.$
@@ -2290,6 +2415,8 @@ JX.install('Vector', {
  *
  * @param  string  "id" attribute to select from the document.
  * @return Node    Node with the specified "id" attribute.
+ *
+ * @group dom
  */
 JX.$ = function(id) {
 
@@ -2343,6 +2470,8 @@ if (__DEV__) {
  *
  * @task build String into HTML
  * @task nodes HTML into Nodes
+ *
+ * @group dom
  */
 JX.install('HTML', {
 
@@ -2420,6 +2549,8 @@ JX.install('HTML', {
  *               know it is from a trusted source and any data in it has been
  *               properly escaped.
  * @return JX.HTML HTML object, suitable for use with @{JX.$N}.
+ *
+ * @group dom
  */
 JX.$H = function(str) {
   return new JX.HTML(str);
@@ -2499,6 +2630,8 @@ JX.$H = function(str) {
  *                                which may be dangerous).
  * @return Node                   New node with whatever attributes and
  *                                content were specified.
+ *
+ * @group dom
  */
 JX.$N = function(tag, attr, content) {
   if (typeof content == 'undefined' &&
@@ -2560,6 +2693,8 @@ JX.$N = function(tag, attr, content) {
  * @task convenience Convenience Methods
  * @task query Finding Nodes in the DOM
  * @task view Changing View State
+ *
+ * @group dom
  */
 JX.install('DOM', {
   statics : {
@@ -2637,18 +2772,15 @@ JX.install('DOM', {
      * @task content
      */
     _insertContent : function(parent, content, mechanism) {
-      if (content === null || typeof content == 'undefined') {
+      if (content == null) {
         return;
       }
       if (content instanceof JX.HTML) {
         content = content.getFragment();
       }
-      if (content instanceof Array) {
+      if (JX.isArray(content)) {
         for (var ii = 0; ii < content.length; ii++) {
-          var child = (typeof content[ii] == 'string')
-            ? document.createTextNode(content[ii])
-            : content[ii];
-          mechanism(parent, child);
+          this._insertContent(parent, content[ii], mechanism);
         }
       } else if (content.nodeType) {
         mechanism(parent, content);
@@ -2688,7 +2820,7 @@ JX.install('DOM', {
         mechanism = this._mechanismAppend;
       }
       var parent = node.parentNode;
-      node.parentNode.removeChild(node);
+      parent.removeChild(node);
       this._insertContent(parent, replacement, mechanism);
 
       return node;
@@ -2752,7 +2884,7 @@ JX.install('DOM', {
       var data = {};
       var pairs = JX.DOM.convertFormToListOfPairs(form);
       for (var ii = 0; ii < pairs.length; ii++) {
-        data[pairs[ii][0]] = data[pairs[ii][1]];
+        data[pairs[ii][0]] = pairs[ii][1];
       }
       return data;
     },
@@ -2849,6 +2981,15 @@ JX.install('DOM', {
     },
 
     alterClass : function(node, className, add) {
+      if (__DEV__) {
+        if (add !== false && add !== true) {
+          throw new Error(
+            'JX.DOM.alterClass(...): ' +
+            'expects the third parameter to be Boolean: ' +
+            add + ' was provided');
+        }
+      }
+
       var has = ((' '+node.className+' ').indexOf(' '+className+' ') > -1);
       if (add && !has) {
         node.className += ' '+className;
@@ -3040,53 +3181,71 @@ JX.install('DOM', {
 
 
 /**
- *  Simple JSON serializer.
+ * Simple JSON serializer.
  *
- *  @requires javelin-install javelin-util
- *  @provides javelin-json
- *  @javelin
+ * @requires javelin-install javelin-util
+ * @provides javelin-json
+ * @javelin
  */
 
 JX.install('JSON', {
   statics : {
-    serialize : function(obj) {
+    parse : function(data) {
+      if (typeof data != 'string'){
+        return null;
+      }
+
+      if (JSON && JSON.parse) {
+        var obj;
+        try {
+          obj = JSON.parse(data);
+        } catch (e) {}
+        return obj || null;
+      }
+
+      return eval('(' + data + ')');
+    },
+    stringify : function(obj) {
       if (__DEV__) {
         try {
-          return JX.JSON._val(obj);
+          return JX.JSON._stringify(obj);
         } catch (x) {
           JX.log(
             'JX.JSON.serialize(...): '+
             'caught exception while serializing object. ('+x+')');
         }
       } else {
-        return JX.JSON._val(obj);
+        return JX.JSON._stringify(obj);
       }
     },
-    _val : function(val) {
+
+    _stringify : function(val) {
+      if (JSON && JSON.stringify) { return JSON.stringify(val); }
+
       var out = [];
-      if (val === null) {
-        return 'null';
-      } else if (val.push && val.pop) {
+      if (
+        val === null || val === true || val === false || typeof val == 'number'
+      ) {
+        return '' + val;
+      }
+
+      if (val.push && val.pop) {
         for (var ii = 0; ii < val.length; ii++) {
           if (typeof val[ii] != 'undefined') {
-            out.push(JX.JSON._val(val[ii]));
+            out.push(JX.JSON._stringify(val[ii]));
           }
         }
-        return '['+out.join(',')+']';
-      } else if (val === true) {
-        return 'true';
-      } else if (val === false) {
-        return 'false';
-      } else if (typeof val == 'string') {
-        return JX.JSON._esc(val);
-      } else if (typeof val == 'number') {
-        return val;
-      } else {
-        for (var k in val) {
-          out.push(JX.JSON._esc(k)+':'+JX.JSON._val(val[k]));
-        }
-        return '{'+out.join(',')+'}';
+        return '[' + out.join(',') + ']';
       }
+
+      if (typeof val == 'string') {
+        return JX.JSON._esc(val);
+      }
+
+      for (var k in val) {
+        out.push(JX.JSON._esc(k) + ':' + JX.JSON._stringify(val[k]));
+      }
+      return '{' + out.join(',') + '}';
     },
 
     // Lifted more or less directly from Crockford's JSON2.
@@ -3124,34 +3283,44 @@ JX.install('JSON', {
  * @provides javelin-uri
  * @requires javelin-install
  *           javelin-util
+ *           javelin-stratcom
+ *
+ * @javelin-installs JX.$U
+ *
  * @javelin
  */
 
 /**
- * Handy convenience function that returns a JX.URI instance so you can
- * concisely write something like:
+ * Handy convenience function that returns a @{class:JX.URI} instance. This
+ * allows you to write things like:
  *
- *   JX.$U(http://zombo.com/).getDomain();
+ *   JX.$U('http://zombo.com/').getDomain();
+ *
+ * @param string            Unparsed URI.
+ * @return  @{class:JX.URI} JX.URI instance.
+ *
+ * @group uri
  */
 JX.$U = function(uri) {
   return new JX.URI(uri);
 };
 
 /**
- * Convert a string URI into a maleable object
+ * Convert a string URI into a maleable object.
  *
- *   var uri = new JX.URI(http://www.facebook.com/asdf.php?a=b&c=d#anchor123);
+ *   var uri = new JX.URI('http://www.example.com/asdf.php?a=b&c=d#anchor123');
  *   uri.getProtocol();    // http
- *   uri.getDomain();      // www.facebook.com
+ *   uri.getDomain();      // www.example.com
  *   uri.getPath();        // /asdf.php
  *   uri.getQueryParams(); // {a: 'b', c: 'd'}
  *   uri.getFragment();    // anchor123
  *
- * And back into a string
+ * ...and back into a string:
  *
  *   uri.setFragment('clowntown');
- *   uri.toString() // http://www.facebook.com/asdf.php?a=b&c=d#clowntown
+ *   uri.toString() // http://www.example.com/asdf.php?a=b&c=d#clowntown
  *
+ * @group uri
  */
 JX.install('URI', {
   statics : {
@@ -3210,7 +3379,8 @@ JX.install('URI', {
         var queryData = {};
         var data;
         while ((data = JX.URI._queryPattern.exec(query)) != null) {
-          queryData[decodeURIComponent(data[1])] = decodeURIComponent(data[2]);
+          queryData[decodeURIComponent(data[1].replace(/\+/g, ' '))] =
+            decodeURIComponent(data[2].replace(/\+/g, ' '));
         }
         this.setQueryParams(queryData);
       }

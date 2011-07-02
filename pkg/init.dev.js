@@ -5,8 +5,10 @@
  *
  * @javelin-installs JX.__rawEventQueue
  * @javelin-installs JX.__simulate
+ * @javelin-installs JX.__allowedEvents
  * @javelin-installs JX.enableDispatch
  * @javelin-installs JX.onload
+ * @javelin-installs JX.flushHoldingQueue
  *
  * @javelin
  */
@@ -73,8 +75,8 @@
         if (!loaded && evt.type == 'domready') {
           document.body && (document.body.id = null);
           loaded = true;
-          for (var ii = 0; ii < onload.length; ii++) {
-            onload[ii]();
+          for (var jj = 0; jj < onload.length; jj++) {
+            onload[jj]();
           }
         }
 
@@ -170,7 +172,8 @@
     ('onpagehide' in window) ? 'pagehide' : 'unload',
     'resize',
     'focus',
-    'blur'
+    'blur',
+    'hashchange'
   ];
 
 

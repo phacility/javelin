@@ -62,11 +62,16 @@ JX.install('Workflow', {
   statics : {
     _stack   : [],
     newFromForm : function(form, data) {
+      var pairs = JX.DOM.convertFormToListOfPairs(form);
+      for (var k in data) {
+        pairs.push([k, data[k]]);
+      }
+
+      // Disable form elements during the request
       var inputs = [].concat(
         JX.DOM.scry(form, 'input'),
         JX.DOM.scry(form, 'button'),
         JX.DOM.scry(form, 'textarea'));
-
       for (var ii = 0; ii < inputs.length; ii++) {
         if (inputs[ii].disabled) {
           delete inputs[ii];
@@ -75,15 +80,11 @@ JX.install('Workflow', {
         }
       }
 
-      var pairs = JX.DOM.convertFormToListOfPairs(form);
-      for (var k in data) {
-        pairs.push([k, data[k]]);
-      }
-
       var workflow = new JX.Workflow(form.getAttribute('action'), {});
       workflow.setDataWithListOfPairs(pairs);
       workflow.setMethod(form.getAttribute('method'));
       workflow.listen('finally', function() {
+        // Re-enable form elements
         for (var ii = 0; ii < inputs.length; ii++) {
           inputs[ii] && (inputs[ii].disabled = false);
         }
@@ -126,7 +127,7 @@ JX.install('Workflow', {
         var data = JX.DOM.convertFormToListOfPairs(form);
         data.push([t.name, true]);
 
-        var active = JX.Workflow._stack[JX.Workflow._stack.length - 1];
+        var active = JX.Workflow._getActiveWorkflow();
         var e = active.invoke('submit', {form: form, data: data});
         if (!e.getStopped()) {
           active._destroy();
@@ -137,6 +138,10 @@ JX.install('Workflow', {
         }
       }
       event.prevent();
+    },
+    _getActiveWorkflow : function() {
+      var stack = JX.Workflow._stack;
+      return stack[stack.length - 1];
     }
   },
 
@@ -254,6 +259,57 @@ JX.install('Workflow', {
     dataSerializer : null,
     method : null,
     URI : null
+  },
+
+  initialize : function() {
+
+    function close_dialog_when_user_presses_escape(e) {
+      if (e.getSpecialKey() != 'esc') {
+        // Some key other than escape.
+        return;
+      }
+
+      if (JX.Workflow._disabled) {
+        // Workflows are disabled on this page.
+        return;
+      }
+
+      if (JX.Stratcom.pass()) {
+        // Something else swallowed the event.
+        return;
+      }
+
+      var active = JX.Workflow._getActiveWorkflow();
+      if (!active) {
+        // No active workflow.
+        return;
+      }
+
+      // Note: the cancel button is actually an <a /> tag.
+      var buttons = JX.DOM.scry(active._root, 'a', 'jx-workflow-button');
+      if (!buttons.length) {
+        // No buttons in the dialog.
+        return;
+      }
+
+      var cancel = null;
+      for (var ii = 0; ii < buttons.length; ii++) {
+        if (buttons[ii].name == '__cancel__') {
+          cancel = buttons[ii];
+          break;
+        }
+      }
+
+      if (!cancel) {
+        // No 'Cancel' button.
+        return;
+      }
+
+      JX.Workflow._pop();
+      e.prevent();
+    };
+
+    JX.Stratcom.listen('keydown', null, close_dialog_when_user_presses_escape);
   }
 
 });

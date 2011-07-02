@@ -129,6 +129,7 @@ JX.install('Typeahead', {
     _stop : false,
     _focus : -1,
     _display : null,
+    _datasource : null,
 
     /**
      * Activate your properly configured typeahead. It won't do anything until
@@ -139,22 +140,39 @@ JX.install('Typeahead', {
      */
     start : function() {
       this.invoke('start');
+      if (__DEV__) {
+        if (!this._datasource) {
+          throw new Error(
+            "JX.Typeahead.start(): " +
+            "No datasource configured. Create a datasource and call " +
+            "setDatasource().");
+        }
+      }
     },
 
 
     /**
      * Configure a datasource, which is where the Typeahead gets suggestions
      * from. See @{JX.TypeaheadDatasource} for more information. You must
-     * provide a datasource.
+     * provide exactly one datasource.
      *
      * @task datasource
      * @param JX.TypeaheadDatasource The datasource which the typeahead will
      *                               draw from.
      */
     setDatasource : function(datasource) {
+      if (__DEV__) {
+        if (this._datasource) {
+          throw new Error(
+            "JX.Typeahead.setDatasource(): " +
+            "Typeahead already has a datasource.");
+        }
+      }
+      datasource.listen('waiting', JX.bind(this, this.waitForResults));
+      datasource.listen('resultsready', JX.bind(this, this.showResults));
       datasource.bindToTypeahead(this);
+      this._datasource = datasource;
     },
-
 
     /**
      * Override the <input /> selected in the constructor with some other input.
@@ -187,9 +205,8 @@ JX.install('Typeahead', {
 
     /**
      * Show a given result set in the typeahead's dropdown suggestion menu.
-     * Normally, you only call this method if you are implementing a datasource.
-     * Otherwise, the datasource you have configured calls it for you in
-     * response to the user's actions.
+     * Normally, you don't call this method directly. Usually it gets called
+     * in response to events from the datasource you have configured.
      *
      * @task   control
      * @param  list List of ##<a />## tags to show as suggestions/results.
@@ -218,14 +235,7 @@ JX.install('Typeahead', {
       }
 
       this._value = this._control.value;
-      if (!this.invoke('change', this._value).getPrevented()) {
-        if (__DEV__) {
-          throw new Error(
-            "JX.Typeahead._update(): " +
-            "No listener responded to Typeahead 'change' event. Create a " +
-            "datasource and call setDatasource().");
-        }
-      }
+      this.invoke('change', this._value);
     },
     /**
      * Show a "waiting for results" UI in place of the typeahead's dropdown
@@ -237,6 +247,7 @@ JX.install('Typeahead', {
     waitForResults : function() {
       // TODO: Build some sort of fancy spinner or "..." type UI here to
       // visually indicate that we're waiting on the server.
+      // Wait on the datasource 'complete' event for hiding the spinner.
       this.hide();
     },
 
@@ -258,7 +269,7 @@ JX.install('Typeahead', {
         n = Math.max(0, n);
       }
       if (this._focus >= 0 && this._focus < this._display.length) {
-        JX.DOM.alterClass(this._display[this._focus], 'focused', 0);
+        JX.DOM.alterClass(this._display[this._focus], 'focused', false);
       }
       this._focus = n;
       this._drawFocus();
@@ -447,6 +458,8 @@ JX.install('TypeaheadSource', {
     this.setNormalizer(JX.TypeaheadNormalizer.normalize);
   },
 
+  events : ['waiting', 'resultsready', 'complete'],
+
   properties : {
 
     /**
@@ -498,11 +511,9 @@ JX.install('TypeaheadSource', {
   members : {
     _raw : null,
     _lookup : null,
-    _typeahead : null,
     _normalizer : null,
 
     bindToTypeahead : function(typeahead) {
-      this._typeahead = typeahead;
       typeahead.listen('change', JX.bind(this, this.didChange));
       typeahead.listen('start', JX.bind(this, this.didStart));
     },
@@ -550,7 +561,7 @@ JX.install('TypeaheadSource', {
     },
 
     waitForResults : function() {
-      this._typeahead.waitForResults();
+      this.invoke('waiting');
       return this;
     },
 
@@ -614,7 +625,9 @@ JX.install('TypeaheadSource', {
         }
       }
 
-      this._typeahead.showResults(this.renderNodes(value, hits));
+      var nodes = this.renderNodes(value, hits);
+      this.invoke('resultsready', nodes);
+      this.invoke('complete');
     },
 
     renderNodes : function(value, hits) {
@@ -701,7 +714,6 @@ JX.install('TypeaheadPreloadedSource', {
         this.lastValue = value;
         this.waitForResults();
       }
-      JX.Stratcom.context().kill();
     },
 
     didStart : function() {
@@ -768,9 +780,6 @@ JX.install('TypeaheadOnDemandSource', {
     haveData : null,
 
     didChange : function(value) {
-      if (JX.Stratcom.pass()) {
-        return;
-      }
       this.lastChange = new Date().getTime();
       value = this.normalize(value);
 
@@ -782,8 +791,6 @@ JX.install('TypeaheadOnDemandSource', {
           JX.bind(this, this.sendRequest, this.lastChange, value),
           this.getQueryDelay());
       }
-
-      JX.Stratcom.context().kill();
     },
 
     sendRequest : function(when, value) {
@@ -817,9 +824,10 @@ JX.install('TypeaheadOnDemandSource', {
 
 
 /**
- * @requires javelin-typeahead javelin-dom javelin-util
- *           javelin-stratcom javelin-vector javelin-install
- *           javelin-typeahead-preloaded-source
+ * @requires javelin-dom
+ *           javelin-util
+ *           javelin-stratcom
+ *           javelin-install
  * @provides javelin-tokenizer
  * @javelin
  */
@@ -1090,7 +1098,7 @@ JX.install('Tokenizer', {
       var remove = JX.$N('a', {
         className: 'jx-tokenizer-x',
         sigil: 'remove'
-      }, JX.$H('&times;'));
+      }, '\u00d7'); // U+00D7 multiplication sign
 
       return JX.$N('a', {
         className: 'jx-tokenizer-token',
