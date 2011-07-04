@@ -1080,6 +1080,7 @@ JX.install('Tokenizer', {
       return JX.$N('input', {
         className: 'jx-tokenizer-input',
         type: 'text',
+        autocomplete: 'off',
         value: value
       });
     },
