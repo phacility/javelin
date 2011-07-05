@@ -23,22 +23,10 @@ JX.install('JSON', {
 
       return eval('(' + data + ')');
     },
-    stringify : function(obj) {
-      if (__DEV__) {
-        try {
-          return JX.JSON._stringify(obj);
-        } catch (x) {
-          JX.log(
-            'JX.JSON.stringify(...): '+
-            'caught exception while serializing object. ('+x+')');
-        }
-      } else {
-        return JX.JSON._stringify(obj);
+    stringify : function(val) {
+      if (JSON && JSON.stringify) {
+        return JSON.stringify(val);
       }
-    },
-
-    _stringify : function(val) {
-      if (JSON && JSON.stringify) { return JSON.stringify(val); }
 
       var out = [];
       if (
@@ -50,7 +38,7 @@ JX.install('JSON', {
       if (val.push && val.pop) {
         for (var ii = 0; ii < val.length; ii++) {
           if (typeof val[ii] != 'undefined') {
-            out.push(JX.JSON._stringify(val[ii]));
+            out.push(JX.JSON.stringify(val[ii]));
           }
         }
         return '[' + out.join(',') + ']';
@@ -61,7 +49,7 @@ JX.install('JSON', {
       }
 
       for (var k in val) {
-        out.push(JX.JSON._esc(k) + ':' + JX.JSON._stringify(val[k]));
+        out.push(JX.JSON._esc(k) + ':' + JX.JSON.stringify(val[k]));
       }
       return '{' + out.join(',') + '}';
     },
