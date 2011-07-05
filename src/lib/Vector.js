@@ -241,7 +241,7 @@ JX.install('Vector', {
         x += node.offsetLeft;
         y += node.offsetTop;
         node = node.offsetParent;
-      } while (node.offsetParent && (node.offsetParent != document.body))
+      } while (node && node != document.body);
 
       return new JX.Vector(x, y);
     },
