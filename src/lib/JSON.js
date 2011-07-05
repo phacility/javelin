@@ -29,7 +29,7 @@ JX.install('JSON', {
           return JX.JSON._stringify(obj);
         } catch (x) {
           JX.log(
-            'JX.JSON.serialize(...): '+
+            'JX.JSON.stringify(...): '+
             'caught exception while serializing object. ('+x+')');
         }
       } else {
