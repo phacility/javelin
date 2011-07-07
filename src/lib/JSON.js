@@ -36,10 +36,16 @@ JX.install('JSON', {
       }
 
       if (val.push && val.pop) {
+        var v;
         for (var ii = 0; ii < val.length; ii++) {
-          if (typeof val[ii] != 'undefined') {
-            out.push(JX.JSON.stringify(val[ii]));
-          }
+
+          // For consistency with JSON.stringify(), encode undefined array
+          // indices as null.
+          v = (typeof val[ii] == 'undefined')
+            ? null
+            : val[ii];
+
+          out.push(JX.JSON.stringify(v));
         }
         return '[' + out.join(',') + ']';
       }

@@ -26,4 +26,11 @@ describe('JSON', function() {
     expect(JX.JSON.parse(JX.JSON.stringify(object))).toEqual(object);
   });
 
+  it('should encode undefined array indices as null', function() {
+    var a = [];
+    a.length = 2;
+    var o = { x : a };
+    expect(JX.JSON.stringify(o)).toEqual('{"x":[null,null]}');
+  });
+
 });
