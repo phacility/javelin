@@ -590,10 +590,10 @@ JX.install('DOM', {
     },
 
     uniqID : function(node) {
-      if (!node.id) {
-        node.id = 'autoid_'+(++JX.DOM._autoid);
+      if (!node.getAttribute('id')) {
+        node.setAttribute('id', 'autoid_'+(++JX.DOM._autoid));
       }
-      return node.id;
+      return node.getAttribute('id');
     },
 
     alterClass : function(node, className, add) {
