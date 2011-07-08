@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Javelin Resource Loader Test</title>
+  <link rel="stylesheet" type="text/css" href="jasmine/jasmine.css">
+  <script type="text/javascript" src="../src/core/init.js"></script>
+  <script type="text/javascript" src="../src/core/util.js"></script>
+  <script type="text/javascript" src="../src/core/install.js"></script>
+</head>
+<body>
+
+<!-- Source -->
+<script type="text/javascript" src="../src/lib/URI.js"></script>
+<script type="text/javascript" src="../src/core/Event.js"></script>
+<script type="text/javascript" src="../src/core/Stratcom.js"></script>
+<script type="text/javascript" src="../src/lib/Resource.js"></script>
+<script type="text/javascript">
+
+JX.Stratcom.mergeData(0, {});
+
+var prefix = 'http://www.javelinjs.com/src/';
+JX.Resource.load(prefix + 'lib/DOM.js', function() {
+  JX.DOM.setContent(document.body, JX.$N('h1'));
+});
+JX.Resource.load([prefix + 'lib/behavior.js', prefix + 'lib/Vector.js'], function() {
+  JX.$V(1, 2).y; // should not break
+  JX.behavior('i-am-awesome', function() {
+    JX.Stratcom.listen('click', 'tag:h1', function(event){
+      confirm('Did you clowncopterize today?');
+    });
+  });
+  JX.initBehaviors({'i-am-awesome': []});
+});
+setTimeout(function() {
+  JX.Resource.load('http://www.javelinjs.com/style.css', function() {
+    // doSomething
+  });
+}, 10);
+
+setTimeout(function() {
+  JX.Resource.load([
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Core/Core.js',
+
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Types/Array.js',
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Types/Object.js',
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Types/Function.js',
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Types/String.js',
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Types/Number.js',
+
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Browser/Browser.js',
+
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Slick/Slick.Parser.js',
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Slick/Slick.Finder.js',
+
+    'http://mootools.net/releases/mootools-core-1.3.2/Source/Element/Element.js',
+
+    'http://www.javelinjs.com/style.css'
+  ], function() {
+
+    new Element('strong', {text: 'Javelin Resource Loader'})
+      .inject(document.getElement('h1'));
+
+    // the previous version doesn't come with Class :(
+    JX.Resource.load([
+       // these two should not be loaded a gain
+      'http://mootools.net/releases/mootools-core-1.3.2/Source/Core/Core.js',
+      'http://mootools.net/releases/mootools-core-1.3.2/Source/Types/Object.js',
+
+      'http://mootools.net/releases/mootools-core-1.3.2/Source/Class/Class.js',
+      'http://mootools.net/releases/mootools-core-1.3.2/Source/Element/Element.Style.js',
+    ], function() {
+      var Italian = new Class({
+
+        initialize: function(name) {
+          this.name = name;
+        },
+
+        say: function() {
+          return "It's a me, " + this.name + "!";
+        }
+
+      });
+
+      var italian = new Italian('Mario');
+
+      setTimeout(function() {
+        JX.Resource.load(prefix + 'lib/JSON.js', function() {
+          JX.JSON.stringify({an: 'object'}); // should not break
+          new Element('div#menu').adopt(
+            new Element('a', {text: '(this means it works)'}),
+            new Element('a', {text: italian.say()}),
+            new Element('div', {styles: {clear: 'both'}})
+          ).inject(document.body);
+        });
+      }, 500);
+    });
+  });
+}, 1000);
+
+</script>
+
+</body>
+</html>
