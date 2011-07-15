@@ -442,21 +442,6 @@ JX.install('DOM', {
       return node;
     },
 
-
-    /**
-     * Retrieve the nearest parent node matching the desired sigil.
-     * @param  Node The child element to search from
-     * @return  The matching parent or null if no parent could be found
-     * @author jgabbard
-     */
-    nearest : function(node, sigil) {
-      while (node && node.getAttribute && !JX.Stratcom.hasSigil(node, sigil)) {
-        node = node.parentNode;
-      }
-      return node;
-    },
-
-
     /**
      * Converts a form into a list of <name, value> pairs.
      *
