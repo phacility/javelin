@@ -25,14 +25,13 @@
  * and, optionally, one or more paths. A listener will only receive events
  * which occurred on paths it is listening to. See listen() for more details.
  *
- * @author epriestley
- *
  * @task invoke   Invoking Events
  * @task listen   Listening to Events
  * @task handle   Responding to Events
  * @task sigil    Managing Sigils
  * @task meta     Managing Metadata
  * @task internal Internals
+ * @group event
  */
 JX.install('Stratcom', {
   statics : {
@@ -137,7 +136,6 @@ JX.install('Stratcom', {
      * @return object    A reference to the installed listener. You can later
      *                   remove the listener by calling this object's remove()
      *                   method.
-     * @author epriestley
      * @task listen
      */
     listen : function(types, paths, func) {

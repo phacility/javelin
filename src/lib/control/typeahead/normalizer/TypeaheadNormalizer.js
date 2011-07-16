@@ -4,6 +4,10 @@
  * @javelin
  */
 
+
+/**
+ * @group control
+ */
 JX.install('TypeaheadNormalizer', {
   statics : {
     normalize : function(str) {

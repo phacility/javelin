@@ -82,7 +82,10 @@ if (__DEV__) {
  * the edge cases are crazy and you should always be reasonably able to emit
  * a cohesive tag instead of an unappendable fragment.
  *
- * You may use @{JX.$H} as a shortcut for creating new JX.HTML instances.
+ * You may use @{JX.$H} as a shortcut for creating new JX.HTML instances:
+ *
+ *   JX.$N('div', {}, some_html_blob); // Treat as string (safe)
+ *   JX.$N('div', {}, JX.$H(some_html_blob)); // Treat as HTML (unsafe!)
  *
  * @task build String into HTML
  * @task nodes HTML into Nodes
@@ -122,10 +125,10 @@ JX.install('HTML', {
           'will not do the right thing with this.');
       }
 
-      //  TODO(epriestley): May need to deny <option> more broadly, see
-      //  http://support.microsoft.com/kb/829907 and the whole mess in the
-      //  heavy stack. But I seem to have gotten away without cloning into the
-      //  documentFragment below, so this may be a nonissue.
+      // TODO(epriestley): May need to deny <option> more broadly, see
+      // http://support.microsoft.com/kb/829907 and the whole mess in the
+      // heavy stack. But I seem to have gotten away without cloning into the
+      // documentFragment below, so this may be a nonissue.
     }
 
     this._content = str;
@@ -145,9 +148,9 @@ JX.install('HTML', {
       wrapper.innerHTML = this._content;
       var fragment = document.createDocumentFragment();
       while (wrapper.firstChild) {
-        //  TODO(epriestley): Do we need to do a bunch of cloning junk here?
-        //  See heavy stack. I'm disconnecting the nodes instead; this seems
-        //  to work but maybe my test case just isn't extensive enough.
+        // TODO(epriestley): Do we need to do a bunch of cloning junk here?
+        // See heavy stack. I'm disconnecting the nodes instead; this seems
+        // to work but maybe my test case just isn't extensive enough.
         fragment.appendChild(wrapper.removeChild(wrapper.firstChild));
       }
       return fragment;
@@ -305,6 +308,7 @@ JX.$N = function(tag, attr, content) {
  * @task stratcom Attaching Event Listeners
  * @task content Changing DOM Content
  * @task nodes Updating Nodes
+ * @task serialize Serializing Forms
  * @task test Testing DOM Properties
  * @task convenience Convenience Methods
  * @task query Finding Nodes in the DOM
@@ -317,7 +321,19 @@ JX.install('DOM', {
     _autoid : 0,
     _metrics : {},
 
+
+/* -(  Changing DOM Content  )----------------------------------------------- */
+
+
     /**
+     * Set the content of some node. This uses the same content semantics as
+     * other Javelin content methods, see @{function:JX.$N} for a detailed
+     * explanation. Previous content will be replaced: you can also
+     * @{method:prependContent} or @{method:appendContent}.
+     *
+     * @param Node  Node to set content of.
+     * @param mixed Content to set.
+     * @return void
      * @task content
      */
     setContent : function(node, content) {
@@ -337,6 +353,13 @@ JX.install('DOM', {
 
 
     /**
+     * Prepend content to some node. This method uses the same content semantics
+     * as other Javelin methods, see @{function:JX.$N} for an explanation. You
+     * can also @{method:setContent} or @{method:appendContent}.
+     *
+     * @param Node  Node to prepend content to.
+     * @param mixed Content to prepend.
+     * @return void
      * @task content
      */
     prependContent : function(node, content) {
@@ -353,6 +376,13 @@ JX.install('DOM', {
 
 
     /**
+     * Append content to some node. This method uses the same content semantics
+     * as other Javelin methods, see @{function:JX.$N} for an explanation. You
+     * can also @{method:setContent} or @{method:prependContent}.
+     *
+     * @param Node Node to append the content of.
+     * @param mixed Content to append.
+     * @return void
      * @task content
      */
     appendContent : function(node, content) {
@@ -369,6 +399,11 @@ JX.install('DOM', {
 
 
     /**
+     * Internal, add content to a node by prepending.
+     *
+     * @param Node  Node to prepend content to.
+     * @param Node  Node to prepend.
+     * @return void
      * @task content
      */
     _mechanismPrepend : function(node, content) {
@@ -377,6 +412,10 @@ JX.install('DOM', {
 
 
     /**
+     * Internal, add content to a node by appending.
+     *
+     * @param Node  Node to append content to.
+     * @param Node  Node to append.
      * @task content
      */
     _mechanismAppend : function(node, content) {
@@ -385,6 +424,12 @@ JX.install('DOM', {
 
 
     /**
+     * Internal, add content to a node using some specified mechanism.
+     *
+     * @param Node      Node to add content to.
+     * @param mixed     Content to add.
+     * @param function  Callback for actually adding the nodes.
+     * @return void
      * @task content
      */
     _insertContent : function(parent, content, mechanism) {
@@ -406,7 +451,15 @@ JX.install('DOM', {
     },
 
 
+/* -(  Updating Nodes  )----------------------------------------------------- */
+
+
     /**
+     * Remove a node from its parent, so it is no longer a child of any other
+     * node.
+     *
+     * @param Node Node to remove.
+     * @return Node The node.
      * @task nodes
      */
     remove : function(node) {
@@ -416,6 +469,14 @@ JX.install('DOM', {
 
 
     /**
+     * Replace a node with some other piece of content. This method obeys
+     * Javelin content semantics, see @{function:JX.$N} for an explanation.
+     * You can also @{method:setContent}, @{method:prependContent}, or
+     * @{method:appendContent}.
+     *
+     * @param Node Node to replace.
+     * @param mixed Content to replace it with.
+     * @return Node the original node.
      * @task nodes
      */
     replace : function(node, replacement) {
@@ -442,6 +503,10 @@ JX.install('DOM', {
       return node;
     },
 
+
+/* -(  Serializing Froms  )-------------------------------------------------- */
+
+
     /**
      * Converts a form into a list of <name, value> pairs.
      *
@@ -451,6 +516,7 @@ JX.install('DOM', {
      *
      * @param   Node  The form element to convert into a list of pairs.
      * @return  List  A list of <name, value> pairs.
+     * @task serialize
      */
     convertFormToListOfPairs : function(form) {
       var elements = form.getElementsByTagName('*');
@@ -480,6 +546,7 @@ JX.install('DOM', {
      *
      * @param   Node  The form element to convert into a dictionary.
      * @return  Dict  A dictionary of form values.
+     * @task serialize
      */
     convertFormToDictionary : function(form) {
       var data = {};
@@ -491,12 +558,15 @@ JX.install('DOM', {
     },
 
 
+/* -(  Testing DOM Properties  )--------------------------------------------- */
+
+
     /**
      * Test if an object is a valid Node.
      *
-     * @task test
      * @param wild Something which might be a Node.
      * @return bool True if the parameter is a DOM node.
+     * @task test
      */
     isNode : function(node) {
       return !!(node && node.nodeName && (node !== window));
@@ -510,11 +580,11 @@ JX.install('DOM', {
      *
      *   JX.DOM.isType(node, ['input', 'select', 'textarea']);
      *
-     * @task    test
      * @param   wild        Something which might be a Node.
      * @param   string|list One or more tags which you want to test for.
      * @return  bool        True if the object is a node, and it's a node of one
      *                      of the provided types.
+     * @task    test
      */
     isType : function(node, of_type) {
       node = ('' + (node.nodeName || '')).toUpperCase();
@@ -526,6 +596,7 @@ JX.install('DOM', {
       }
       return false;
     },
+
 
     /**
      * Listen for events occuring beneath a specific node in the DOM. This is

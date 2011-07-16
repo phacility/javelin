@@ -7,6 +7,9 @@
  * @javelin
  */
 
+/**
+ * @group control
+ */
 JX.install('TypeaheadSource', {
   construct : function() {
     this._raw = {};

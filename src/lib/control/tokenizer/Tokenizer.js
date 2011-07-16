@@ -27,6 +27,8 @@
  *
  * If you do this correctly, the input should suggest items and enter them as
  * tokens as the user types.
+ *
+ * @group control
  */
 JX.install('Tokenizer', {
   construct : function(containerNode) {

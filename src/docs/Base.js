@@ -8,6 +8,7 @@
  * which exist on all Javelin classes. This class documents those methods.
  *
  * @task events Builtin Events
+ * @group install
  */
 JX.install('Base', {
   members : {

@@ -6,6 +6,9 @@
  * @javelin
  */
 
+/**
+ * @group control
+ */
 JX.install('TypeaheadCompositeSource', {
 
   extend : 'TypeaheadSource',

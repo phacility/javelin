@@ -10,6 +10,7 @@
     "util" : "Utilities",
     "install" : "Class Construction",
     "event" : "Event Model",
+    "workflow" : "Ajax and Workflows",
     "behavior" : "Behaviors",
     "dom" : "DOM and Markup",
     "uri" : "URIs",

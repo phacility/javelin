@@ -7,6 +7,8 @@
 /**
  * Show a transparent "mask" over the page; used by Workflow to draw visual
  * attention to modal dialogs.
+ *
+ * @group control
  */
 JX.install('Mask', {
   statics : {

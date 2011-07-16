@@ -8,6 +8,9 @@
  * @javelin
  */
 
+/**
+ * @group control
+ */
 JX.install('TypeaheadOnDemandSource', {
 
   extend : 'TypeaheadSource',
