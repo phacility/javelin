@@ -433,20 +433,16 @@ JX.install('DOM', {
      * @task content
      */
     _insertContent : function(parent, content, mechanism) {
-      if (content == null) {
-        return;
-      }
-      if (content instanceof JX.HTML) {
-        content = content.getFragment();
-      }
-      if (JX.isArray(content)) {
-        for (var ii = 0; ii < content.length; ii++) {
-          this._insertContent(parent, content[ii], mechanism);
+      content = JX.$AX(content);
+      for (var ii = 0; ii < content.length; ii++) {
+        var item = content[ii];
+        if (item instanceof JX.HTML) {
+          item = item.getFragment();
+        } else if (typeof item == 'string') {
+          item = document.createTextNode(item);
         }
-      } else if (content.nodeType) {
-        mechanism(parent, content);
-      } else {
-        mechanism(parent, document.createTextNode(content));
+
+        item && mechanism(parent, item);
       }
     },
 
