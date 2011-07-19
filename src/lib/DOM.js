@@ -371,7 +371,7 @@ JX.install('DOM', {
         }
       }
 
-      this._insertContent(node, content, this._mechanismPrepend);
+      this._insertContent(node, content, this._mechanismPrepend, true);
     },
 
 
@@ -429,20 +429,30 @@ JX.install('DOM', {
      * @param Node      Node to add content to.
      * @param mixed     Content to add.
      * @param function  Callback for actually adding the nodes.
+     * @param bool      True if array elements should be passed to the mechanism
+     *                  in reverse order, i.e. the mechanism prepends nodes.
      * @return void
      * @task content
      */
-    _insertContent : function(parent, content, mechanism) {
-      content = JX.$AX(content);
-      for (var ii = 0; ii < content.length; ii++) {
-        var item = content[ii];
-        if (item instanceof JX.HTML) {
-          item = item.getFragment();
-        } else if (typeof item == 'string') {
-          item = document.createTextNode(item);
+    _insertContent : function(parent, content, mechanism, reverse) {
+      if (JX.isArray(content)) {
+        if (reverse) {
+          for (var ii = content.length - 1; ii >= 0; ii--) {
+            JX.DOM._insertContent(parent, content[ii], mechanism, reverse);
+          }
+        } else {
+          for (var ii = 0; ii < content.length; ii++) {
+            JX.DOM._insertContent(parent, content[ii], mechanism);
+          }
+        }
+      } else {
+        if (content instanceof JX.HTML) {
+          content = content.getFragment();
+        } else if (typeof content == 'string') {
+          content = document.createTextNode(content);
         }
 
-        item && mechanism(parent, item);
+        content && mechanism(parent, content);
       }
     },
 

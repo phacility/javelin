@@ -86,6 +86,66 @@ describe('JX.DOM', function() {
       expect(node.childNodes[1].tagName).toEqual('A');
       expect(node.childNodes.length).toEqual(2);
     });
+
+    it('should accept nested arrays', function() {
+      var content = [['a', 'b'], 'c'];
+
+      JX.DOM.setContent(node, content);
+      expect(node.childNodes.length).toEqual(3);
+    });
+
+    it('should retain order when prepending', function() {
+      var content = [JX.$N('a'), JX.$N('b')];
+
+      JX.DOM.setContent(node, JX.$N('div'));
+      JX.DOM.prependContent(node, content);
+
+      expect(node.childNodes[0].tagName).toEqual('A');
+      expect(node.childNodes[1].tagName).toEqual('B');
+      expect(node.childNodes[2].tagName).toEqual('DIV');
+      expect(node.childNodes.length).toEqual(3);
+    });
+
+    it('should retain order when doing nested prepends', function() {
+      // Note nesting.
+      var content = [[JX.$N('a'), JX.$N('b')]];
+
+      JX.DOM.prependContent(node, content);
+
+      expect(node.childNodes[0].tagName).toEqual('A');
+      expect(node.childNodes[1].tagName).toEqual('B');
+      expect(node.childNodes.length).toEqual(2);
+    });
+
+    it('should ignore empty elements', function() {
+      var content = [null, undefined, [], JX.$N('p'), 0, JX.$N('div'), false,
+        [false, [0], [[]]], [[undefined], [,,,,,,,]]];
+
+      JX.DOM.setContent(node, content);
+      expect(node.childNodes[0].tagName).toEqual('P');
+      expect(node.childNodes[1].tagName).toEqual('DIV');
+      expect(node.childNodes.length).toEqual(2);
+    });
+
+    it('should fail when given an object with toString', function() {
+      // This test is just documenting the behavior of an edge case, we could
+      // later choose to support these objects.
+
+      var content = {toString : function() { return 'quack'; }};
+
+      var ex;
+      try {
+        // We expect JX.DOM.setContent() to throw an exception when processing
+        // this object, since it will try to append it directly into the DOM
+        // and the browser will reject it, as it isn't a node.
+        JX.DOM.setContent(node, content);
+      } catch (exception) {
+        ex = exception;
+      }
+
+      expect(!!ex).toBe(true);
+    });
+
   });
 
 });
