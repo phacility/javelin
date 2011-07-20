@@ -437,13 +437,10 @@ JX.install('DOM', {
     _insertContent : function(parent, content, mechanism, reverse) {
       if (JX.isArray(content)) {
         if (reverse) {
-          for (var ii = content.length - 1; ii >= 0; ii--) {
-            JX.DOM._insertContent(parent, content[ii], mechanism, reverse);
-          }
-        } else {
-          for (var ii = 0; ii < content.length; ii++) {
-            JX.DOM._insertContent(parent, content[ii], mechanism);
-          }
+          content = [].concat(content).reverse();
+        }
+        for (var ii = 0; ii < content.length; ii++) {
+          JX.DOM._insertContent(parent, content[ii], mechanism, reverse);
         }
       } else {
         if (content instanceof JX.HTML) {

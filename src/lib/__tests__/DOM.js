@@ -146,6 +146,14 @@ describe('JX.DOM', function() {
       expect(!!ex).toBe(true);
     });
 
+    it('should not cause array order side effects', function() {
+      var content = ['a', 'b'];
+      var original = [].concat(content);
+
+      JX.DOM.prependContent(node, content);
+
+      expect(content).toEqual(original);
+    });
   });
 
 });
