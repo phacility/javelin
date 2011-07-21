@@ -86,9 +86,7 @@ JX.install('JSON', {
 
           // For consistency with JSON.stringify(), encode undefined array
           // indices as null.
-          v = (typeof val[ii] == 'undefined')
-            ? null
-            : val[ii];
+          v = (typeof val[ii] == 'undefined') ? null : val[ii];
 
           out.push(JX.JSON.stringify(v));
         }
