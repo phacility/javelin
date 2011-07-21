@@ -33,8 +33,11 @@ describe('JX.isArray', function() {
     iframe.style.display = 'none';
 
     document.body.insertBefore(iframe, document.body.firstChild);
+    var doc = iframe.contentWindow.document;
+    doc.write(
+      '<script>parent.MaybeArray = Array;</script>'
+    );
 
-    var MaybeArray = window.frames[name].window.Array;
     var array = MaybeArray(1, 2, 3);
     var array2 = new MaybeArray(1);
     array2[0] = 5;
