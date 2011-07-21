@@ -83,12 +83,12 @@ JX.install('URI', {
       // parse the url
       var result = JX.URI._uriPattern.exec(uri);
 
-      this.setProtocol(result[1]);
-      this.setDomain(result[2]);
-      this.setPort(result[3]);
+      this.setProtocol(result[1] || undefined);
+      this.setDomain(result[2] || undefined);
+      this.setPort(result[3] || undefined);
       var path = result[4];
       var query = result[5];
-      this.setFragment(result[6]);
+      this.setFragment(result[6] || undefined);
 
       // parse the path
       this.setPath(path.charAt(0) == '/' ? path : '/' + path);
