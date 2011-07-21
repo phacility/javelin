@@ -131,5 +131,22 @@ describe('Javelin Install', function() {
     });
   });
 
+  it('should work with toString and its friends', function() {
+    JX.install('NiceAnimal', {
+      members: {
+        toString: function() {
+          return 'I am very nice.';
+        },
+
+        hasOwnProperty: function() {
+          return true;
+        }
+      }
+    });
+
+    expect(new JX.NiceAnimal().toString()).toEqual('I am very nice.');
+    expect(new JX.NiceAnimal().hasOwnProperty('dont-haz')).toEqual(true);
+  });
+
 });
 

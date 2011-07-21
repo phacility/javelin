@@ -148,7 +148,6 @@ JX.install = function(new_name, new_junk) {
   } while (name);
 };
 
-
 /**
  * Creates a class from a map of attributes. Requires ##extend## property to
  * be an actual Class object and not a "String". Supports ##name## property
@@ -164,6 +163,7 @@ JX.install = function(new_name, new_junk) {
 JX.createClass = function(junk) {
   var name = junk.name || '';
   var k;
+  var ii;
 
   if (__DEV__) {
     var valid = {
@@ -308,6 +308,17 @@ JX.createClass = function(junk) {
     proto[k] = junk.members[k];
   }
 
+  // IE does not enumerate some properties on objects
+  var enumerables = JX.install._enumerables;
+  if (junk.members && enumerables) {
+    ii = enumerables.length;
+    while (ii--){
+      var property = enumerables[ii];
+      if (junk.members[property]) {
+        proto[property] = junk.members[property];
+      }
+    }
+  }
 
   // Build this ridiculous event model thing. Basically, this defines
   // two instance methods, invoke() and listen(), and one static method,
@@ -340,7 +351,7 @@ JX.createClass = function(junk) {
       for (var key in old_events || {}) {
         valid_events[key] = true;
       }
-      for (var ii = 0; ii < new_events.length; ++ii) {
+      for (ii = 0; ii < new_events.length; ++ii) {
         valid_events[junk.events[ii]] = true;
       }
     }
@@ -434,3 +445,15 @@ JX.createClass = function(junk) {
 
 JX.install._nextObjectID = 0;
 JX.flushHoldingQueue('install', JX.install);
+
+(function() {
+  // IE does not enter this loop.
+  for (var i in {toString: 1}) {
+    return;
+  }
+
+  JX.install._enumerables = [
+    'toString', 'hasOwnProperty', 'valueOf', 'isPrototypeOf',
+    'propertyIsEnumerable', 'toLocaleString', 'constructor'
+  ];
+})();
