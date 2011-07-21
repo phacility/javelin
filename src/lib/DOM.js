@@ -443,10 +443,20 @@ JX.install('DOM', {
           JX.DOM._insertContent(parent, content[ii], mechanism, reverse);
         }
       } else {
+        var type = typeof content;
         if (content instanceof JX.HTML) {
           content = content.getFragment();
-        } else if (typeof content == 'string') {
+        } else if (type == 'string' || type == 'number') {
           content = document.createTextNode(content);
+        }
+
+        if (__DEV__) {
+          if (!content.nodeType) {
+            throw new Error(
+              'JX.DOM._insertContent(<node>, ...): '+
+              'second argument must be a string, a number, ' +
+              'a DOM node or a JX.HTML instance');
+          }
         }
 
         content && mechanism(parent, content);

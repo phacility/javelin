@@ -118,13 +118,13 @@ describe('JX.DOM', function() {
     });
 
     it('should ignore empty elements', function() {
-      var content = [null, undefined, [], JX.$N('p'), 0, JX.$N('div'), false,
+      var content = [null, undefined, [], JX.$N('p'), 2, JX.$N('div'), false,
         [false, [0], [[]]], [[undefined], [,,,,,,,]]];
 
       JX.DOM.setContent(node, content);
       expect(node.childNodes[0].tagName).toEqual('P');
-      expect(node.childNodes[1].tagName).toEqual('DIV');
-      expect(node.childNodes.length).toEqual(2);
+      expect(node.childNodes[2].tagName).toEqual('DIV');
+      expect(node.childNodes.length).toEqual(4);
     });
 
     it('should fail when given an object with toString', function() {
@@ -153,6 +153,13 @@ describe('JX.DOM', function() {
       JX.DOM.prependContent(node, content);
 
       expect(content).toEqual(original);
+    });
+
+    it('should allow numbers', function() {
+      var content = 3;
+
+      JX.DOM.setContent(node, content);
+      expect(node.innerText || node.textContent).toEqual('3');
     });
   });
 
