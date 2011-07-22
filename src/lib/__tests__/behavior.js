@@ -10,30 +10,36 @@ describe('Javelin Behaviors', function() {
     JX.behavior._statics = {};
   });
 
-  it('JX.behavior should work with tricky names', function() {
-    expect(function() {
-      JX.behavior('toString', function() {});
-    }).not.toThrow();
+  it('JX.behavior should not work with clowny names', function() {
+    ensure__DEV__(true, function() {
+      expect(function() {
+        JX.behavior('toString', function() {});
+      }).toThrow();
+    });
   });
 
-  it('JX.initBehavior should work with tricky names', function() {
+  it('JX.initBehavior should pass a config object', function() {
     var called = false;
-    var config;
+    var config = 'no-value';
 
-    JX.behavior('toString', function(cfg) {
+    JX.behavior('my-behavior', function(cfg) {
       called = true;
       config = cfg;
     });
 
     JX.initBehaviors({});
     expect(called).toBe(false);
-    expect(typeof config).toEqual('undefined');
+    expect(config).toEqual('no-value');
 
-    JX.initBehaviors({ 'toString': [] });
+    called = false;
+    config = null;
+    JX.initBehaviors({ 'my-behavior': [] });
     expect(called).toBe(true);
     expect(config).toBeNull();
 
-    JX.initBehaviors({ 'toString': ['foo'] });
+    called = false;
+    config = null;
+    JX.initBehaviors({ 'my-behavior': ['foo'] });
     expect(called).toBe(true);
     expect(config).toEqual('foo');
   });

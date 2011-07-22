@@ -28,18 +28,30 @@ JX.behavior = function(name, control_function) {
   if (__DEV__) {
     if (JX.behavior._behaviors.hasOwnProperty(name)) {
       throw new Error(
-        'JX.behavior("'+name+'", ...): '+
+        'JX.behavior("' + name + '", ...): '+
         'behavior is already registered.');
     }
     if (!control_function) {
       throw new Error(
-        'JX.behavior("'+name+'", <nothing>): '+
+        'JX.behavior("' + name + '", <nothing>): '+
         'initialization function is required.');
     }
     if (typeof control_function != 'function') {
       throw new Error(
-        'JX.behavior("'+name+'", <garbage>): '+
+        'JX.behavior("' + name + '", <garbage>): ' +
         'initialization function is not a function.');
+    }
+    // IE does not enumerate over these properties
+    var enumerables = [
+      'toString', 'hasOwnProperty', 'valueOf', 'isPrototypeOf',
+      'propertyIsEnumerable', 'toLocaleString', 'constructor'
+    ];
+    if (~enumerables.indexOf(name)) {
+      throw new Error(
+        'JX.behavior("' + name + '", <garbage>): ' +
+        'do not use any of these properties as behaviors: ' +
+        enumerables.join(', ')
+      );
     }
   }
   JX.behavior._behaviors[name] = control_function;
@@ -66,7 +78,7 @@ JX.initBehaviors = function(map) {
     if (__DEV__) {
       if (!(name in JX.behavior._behaviors)) {
         throw new Error(
-          'JX.initBehavior({"'+name+'" : ...}): ' +
+          'JX.initBehavior({"' + name + '" : ...}): ' +
           'behavior is not registered.');
       }
     }
