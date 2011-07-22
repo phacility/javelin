@@ -46,7 +46,7 @@ JX.install('JSON', {
         return null;
       }
 
-      if (JSON && JSON.parse) {
+      if (window.JSON && JSON.parse) {
         var obj;
         try {
           obj = JSON.parse(data);
@@ -69,7 +69,7 @@ JX.install('JSON', {
      * @task json
      */
     stringify : function(val) {
-      if (JSON && JSON.stringify) {
+      if (window.JSON && JSON.stringify) {
         return JSON.stringify(val);
       }
 
