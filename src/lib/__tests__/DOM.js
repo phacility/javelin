@@ -161,6 +161,13 @@ describe('JX.DOM', function() {
       JX.DOM.setContent(node, content);
       expect(node.innerText || node.textContent).toEqual('3');
     });
+
+    it('should work by re-setting a value', function() {
+      JX.DOM.setContent(node, 'text');
+      JX.DOM.setContent(node, 'another text');
+
+      expect(node.innerText || node.textContent).toEqual('another text');
+    });
   });
 
 });

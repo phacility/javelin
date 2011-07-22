@@ -451,7 +451,7 @@ JX.install('DOM', {
         }
 
         if (__DEV__) {
-          if (!content.nodeType) {
+          if (content && !content.nodeType) {
             throw new Error(
               'JX.DOM._insertContent(<node>, ...): '+
               'second argument must be a string, a number, ' +
