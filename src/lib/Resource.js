@@ -36,7 +36,7 @@ JX.install('Resource', {
         resources[resource] = true;
 
         if (JX.Resource._loaded[resource]) {
-          JX.defer(JX.bind(JX.Resource, JX.Resource._complete, resource), 0);
+          setTimeout(JX.bind(JX.Resource, JX.Resource._complete, resource), 0);
         } else if (!JX.Resource._loading[resource]) {
           JX.Resource._loading[resource] = true;
           if (path.indexOf('.css') == path.length - 4) {

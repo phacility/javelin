@@ -10,7 +10,6 @@
  * @javelin-installs JX.bind
  * @javelin-installs JX.bag
  * @javelin-installs JX.keys
- * @javelin-installs JX.defer
  * @javelin-installs JX.log
  * @javelin-installs JX.id
  *
@@ -264,29 +263,6 @@ JX.keys = function(obj) {
     r.push(k);
   }
   return r;
-};
-
-
-/**
- * Defer a function for later execution, similar to ##setTimeout()##. Returns
- * an object with a ##stop()## method, which cancels the deferred call.
- *
- *   var ref = JX.defer(yell, 3000); // Yell in 3 seconds.
- *   // ...
- *   ref.stop(); // Cancel the yell.
- *
- * @param function Function to invoke after the timeout.
- * @param int?     Timeout, in milliseconds. If this value is omitted, the
- *                 function will be invoked once control returns to the browser
- *                 event loop, as with ##setTimeout(func, 0)##.
- * @return obj     An object with a ##stop()## method, which cancels function
- *                 execution.
- *
- * @group util
- */
-JX.defer = function(func, timeout) {
-  var t = setTimeout(func, timeout || 0);
-  return {stop : function() { clearTimeout(t); }}
 };
 
 

@@ -383,13 +383,13 @@ JX.install('Typeahead', {
 
       // We need to defer because the keystroke won't be present in the input's
       // value field yet.
-      JX.defer(JX.bind(this, function() {
+      setTimeout(JX.bind(this, function() {
         if (this._value == this._control.value) {
           // The typeahead value hasn't changed.
           return;
         }
         this.refresh();
-      }));
+      }), 0);
     },
 
     /**

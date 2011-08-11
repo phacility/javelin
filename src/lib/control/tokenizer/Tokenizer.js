@@ -109,22 +109,19 @@ JX.install('Tokenizer', {
       typeahead.setInputNode(this._focus);
       typeahead.start();
 
-      JX.defer(
-        JX.bind(
-          this,
-          function() {
-            var container = this._orig.parentNode;
-            JX.DOM.setContent(container, root);
-            var map = this._initialValue || {};
-            for (var k in map) {
-              this.addToken(k, map[k]);
-            }
-            JX.DOM.appendContent(
-              root,
-              JX.$N('div', {style: {clear: 'both'}})
-            );
-            this._redraw();
-          }));
+      setTimeout(JX.bind(this, function() {
+        var container = this._orig.parentNode;
+        JX.DOM.setContent(container, root);
+        var map = this._initialValue || {};
+        for (var k in map) {
+          this.addToken(k, map[k]);
+        }
+        JX.DOM.appendContent(
+          root,
+          JX.$N('div', {style: {clear: 'both'}})
+        );
+        this._redraw();
+      }), 0);
     },
 
     setInitialValue : function(map) {
@@ -303,9 +300,9 @@ JX.install('Tokenizer', {
             if (!completed) {
               this._focus.value = '';
             }
-            JX.defer(JX.bind(this, function() {
+            setTimeout(JX.bind(this, function() {
               this.getNextInput().focus();
-            }));
+            }), 0);
           }
           break;
         case 'delete':
@@ -326,7 +323,7 @@ JX.install('Tokenizer', {
               JX.keys(this._tokenMap).length == this.getLimit()) {
             e.prevent();
           }
-          JX.defer(JX.bind(this, this._redraw));
+          setTimeout(JX.bind(this, this._redraw), 0);
           break;
       }
     },
@@ -345,7 +342,7 @@ JX.install('Tokenizer', {
     focus : function() {
       var focus = this._focus;
       JX.DOM.show(focus);
-      JX.defer(function() { JX.DOM.focus(focus); });
+      setTimeout(function() { JX.DOM.focus(focus); }, 0);
     }
   }
 });

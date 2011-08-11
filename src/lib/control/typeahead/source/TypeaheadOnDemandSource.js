@@ -50,9 +50,10 @@ JX.install('TypeaheadOnDemandSource', {
         this.matchResults(value);
       } else {
         this.waitForResults();
-        JX.defer(
+        setTimeout(
           JX.bind(this, this.sendRequest, this.lastChange, value),
-          this.getQueryDelay());
+          this.getQueryDelay()
+        );
       }
     },
 

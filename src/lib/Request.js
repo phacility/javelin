@@ -78,7 +78,7 @@ JX.install('Request', {
       }
 
       if (this.getTimeout()) {
-        this._timer = JX.defer(
+        this._timer = setTimeout(
           JX.bind(
             this,
             this._fail,
@@ -184,9 +184,9 @@ JX.install('Request', {
         }
       } catch (exception) {
         //  In Firefox+Firebug, at least, something eats these. :/
-        JX.defer(function() {
+        setTimeout(function() {
           throw exception;
-        });
+        }, 0);
       }
     },
 
@@ -212,7 +212,8 @@ JX.install('Request', {
 
     _cleanup : function() {
       this._finished = true;
-      this._timer && this._timer.stop();
+      clearTimeout(this._timer);
+      this._timer = null;
       this._transport.abort();
     },
 
