@@ -75,5 +75,22 @@ describe('Javelin Behaviors', function() {
     expect(asserted).toBe(2);
   });
 
+  it('should throw for undefined behaviors', function() {
+    var called;
+    JX.behavior('can-haz', function() {
+      called = true;
+    });
+
+    expect(function() {
+      JX.initBehaviors({
+        'no-can-haz': [],
+        'can-haz': [],
+        'i-fail': []
+      });
+    }).toThrow();
+
+    expect(called).toBe(true);
+  });
+
 });
 

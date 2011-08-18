@@ -74,13 +74,11 @@ JX.behavior = function(name, control_function) {
  * @group behavior
  */
 JX.initBehaviors = function(map) {
+  var missing_behaviors = [];
   for (var name in map) {
-    if (__DEV__) {
-      if (!(name in JX.behavior._behaviors)) {
-        throw new Error(
-          'JX.initBehavior({"' + name + '" : ...}): ' +
-          'behavior is not registered.');
-      }
+    if (!(name in JX.behavior._behaviors)) {
+      missing_behaviors.push(name);
+      continue;
     }
     var configs = map[name];
     if (!configs.length) {
@@ -93,6 +91,12 @@ JX.initBehaviors = function(map) {
       JX.behavior._behaviors[name](configs[ii], JX.behavior._statics[name]);
     }
     JX.behavior._initialized[name] = true;
+  }
+  if (missing_behaviors.length) {
+    throw new Error(
+      'JX.initBehavior(map): behavior(s) not registered: ' +
+      missing_behaviors.join(', ')
+    );
   }
 };
 
