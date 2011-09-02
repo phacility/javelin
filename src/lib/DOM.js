@@ -239,7 +239,7 @@ JX.$H = function(str) {
  * @{JX.HTML} for discussion.
  *
  * You can create new nodes with a Javelin sigil (and, optionally, metadata) by
- * providing "sigil" and "metadata" keys in the attribute dictionary.
+ * providing "sigil" and "meta" keys in the attribute dictionary.
  *
  * @param string                  Tag name, like 'a' or 'div'.
  * @param dict|string|@{JX.HTML}? Property dictionary, or content if you don't
