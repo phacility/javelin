@@ -30,6 +30,8 @@ EOXML;
 
 echo render_body(<<<EOBODY
 
+<div id="hacked-by-chinese"></div>
+
 <div id="snipe">
 
   <p>Javelin is a <strong>large, bloated</strong> library with an

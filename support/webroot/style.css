@@ -77,3 +77,13 @@ pre {
   border-left:   3px solid #ccc;
   color:         #363;
 }
+
+
+#hacked-by-chinese {
+  position: absolute;
+  width: 139px;
+  height: 134px;
+  background: url(hacked.png) no-repeat transparent;
+  top: 0;
+  right: 0;
+}
