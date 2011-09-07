@@ -1,8 +1,6 @@
 /**
  * @provides javelin-reactor
  * @requires javelin-install
- *           javelin-dynval
- *           javelin-reactornode
  *           javelin-util
  * @javelin
  */
@@ -84,8 +82,8 @@ JX.install('Reactor', {
         streams.push(dynvals[ix].getChanges());
       }
 
-      var result = new JX.ReactorNode(streams, valueNow);
-      return new JX.DynVal(result, valueNow());
+      var result = new JX['ReactorNode'](streams, valueNow);
+      return new JX['DynVal'](result, valueNow());
     }
   }
 });
