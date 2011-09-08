@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Javelin History Test</title>
+  <link type="text/css" rel="stylesheet" href="http://www.javelinjs.com/style.css">
+  <script type="text/javascript" src="../src/core/init.js"></script>
+  <script type="text/javascript" src="../src/core/util.js"></script>
+  <script type="text/javascript" src="../src/core/install.js"></script>
+</head>
+<body>
+
+<h1>Page <span id="page">Initializing...</span></h1>
+
+<div id="menu">
+  <a href="?page=1" data-sigil="async-page">Page 1</a>
+  <a href="?page=2" data-sigil="async-page">Page 2</a>
+  <a href="?page=3" data-sigil="async-page">Page 3</a>
+  <div style="clear: both;"></div>
+</div>
+
+<div id="core">
+  <h2 id="rand">Generating Random Number...</h2>
+  <p>
+    The randomly generated number will help you keep track of if/when a page
+    refresh ocurs.
+  </p>
+</div>
+
+<!-- Source -->
+<script type="text/javascript" src="../src/lib/DOM.js"></script>
+<script type="text/javascript" src="../src/lib/URI.js"></script>
+<script type="text/javascript" src="../src/core/Event.js"></script>
+<script type="text/javascript" src="../src/core/Stratcom.js"></script>
+<script type="text/javascript" src="../src/lib/History.js"></script>
+<script type="text/javascript">
+
+JX.Stratcom.mergeData(0, {});
+
+JX.onload(function() {
+  JX.DOM.setContent(JX.$('rand'), Math.random());
+
+  function renderPage(href) {
+    JX.DOM.setContent(JX.$('page'), JX.$U(href).getQueryParams().page || 1);
+  }
+  renderPage(location.href);
+
+  JX.Stratcom.listen('click', 'async-page', function(e) {
+    var href = e.getNode('async-page').href;
+    JX.History.push(href);
+    e.prevent();
+  });
+
+  JX.Stratcom.listen('history:change', null, function(e) {
+    renderPage(e.getData().path);
+  });
+});
+
+</script>
+
+</body>
+</html>

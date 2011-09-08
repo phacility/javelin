@@ -173,6 +173,7 @@
     'resize',
     'focus',
     'blur',
+    'popstate',
     'hashchange'
   ];
 
