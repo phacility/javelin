@@ -116,6 +116,30 @@ uses the Javelin delegation core. You can also provide a sigil set, which works
 just like @{method:JX.Stratcom.listen} general events. This is useful if your
 node is a container, like a ##<div />##, with a lot of stuff in it.
 
+
+= DOM Event Flow =
+
+Events dispatched within the DOM propagate using a bubbling method, as detailed
+by http://www.w3.org/TR/DOM-Level-3-Events/#event-flow
+Listeners assigned using @{method:JX.Stratcom.listen} or @{method:JX.DOM.listen}
+are called in order of the deepest node in the DOM of the nodes which match the
+sigil set listened to.
+
+In this example the second listener, subscribed to 'inner', will be called
+before the listener subscribed to 'outer'
+
+  lang=html
+  <div data-sigil="outer">
+    <div data-sigil="inner">
+      Click Me
+    </div>
+  </div>
+
+  lang=js
+  JX.Stratcom.listen('click', ['outer'], function(e) { ... });
+  JX.Stratcom.listen('click', ['inner'], function(e) { ... });
+
+
 = Listening to Class Events =
 
 Beyond DOM events, you can also listen to class events. Every class installed

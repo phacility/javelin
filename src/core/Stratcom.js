@@ -240,10 +240,12 @@ JX.install('Stratcom', {
     dispatch : function(event) {
       var path = [];
       var nodes = {};
-      var push = function(key, node) {
+      var distances = {};
+      var push = function(key, node, distance) {
         // we explicitly only store the first occurrence of each key
         if (!nodes.hasOwnProperty(key)) {
           nodes[key] = node;
+          distances[key] = distance;
           path.push(key);
         }
       };
@@ -262,23 +264,25 @@ JX.install('Stratcom', {
         target = null;
       }
 
+      var distance = 1;
       var cursor = target;
       while (cursor && cursor.getAttribute) {
-        push('tag:' + cursor.nodeName.toLowerCase(), cursor);
+        push('tag:' + cursor.nodeName.toLowerCase(), cursor, distance);
 
         var id = cursor.id;
         if (id) {
-          push('id:' + id, cursor);
+          push('id:' + id, cursor, distance);
         }
 
         var sigils = cursor.getAttribute('data-sigil');
         if (sigils) {
           sigils = sigils.split(' ');
           for (var ii = 0; ii < sigils.length; ii++) {
-            push(sigils[ii], cursor);
+            push(sigils[ii], cursor, distance);
           }
         }
 
+        ++distance;
         cursor = cursor.parentNode;
       }
 
@@ -294,6 +298,7 @@ JX.install('Stratcom', {
         .setType(etype)
         .setTarget(target)
         .setNodes(nodes)
+        .setNodeDistances(distances)
         .setPath(path.reverse());
 
       // Don't touch this for debugging purposes
@@ -319,32 +324,58 @@ JX.install('Stratcom', {
       }
 
       var path = proxy.getPath();
+      var distances = proxy.getNodeDistances();
       var len = path.length;
       var hits = {};
+      var hit_distances = {};
       var matches;
+
+      // A large number (larger than any distance we will ever encounter), but
+      // we need to do math on it in the sort function so we can't use
+      // Number.POSITIVE_INFINITY.
+      var far_away = 1000000;
 
       for (var root = -1; root < len; ++root) {
         matches = scope[(root == -1) ? this._auto : path[root]];
         if (matches) {
+          var distance = distances[path[root]] || far_away;
           for (var ii = 0; ii < matches.length; ++ii) {
-            hits[matches[ii]] = (hits[matches[ii]] || 0) + 1;
+            var match = matches[ii];
+            hits[match] = (hits[match] || 0) + 1;
+            hit_distances[match] = Math.min(
+              hit_distances[match] || distance,
+              distance
+            );
           }
         }
       }
 
-      var exec = [];
+      var listeners = [];
 
       for (var k in hits) {
         if (hits[k] == this._need[k]) {
           var handler = this._handlers[k];
           if (handler) {
-            exec.push(handler);
+            listeners.push({
+              distance: hit_distances[k],
+              handler: handler
+            });
           }
         }
       }
 
+      // Sort listeners by matched sigil closest to the target node
+      // Listeners with the same closest sigil are called in an undefined order
+      listeners.sort(function(a, b) {
+        if (__DEV__) {
+          // Make sure people play by the rules. >:)
+          return (a.distance - b.distance) || (Math.random() - 0.5);
+        }
+        return a.distance - b.distance;
+      });
+
       this._execContext.push({
-        handlers: exec,
+        listeners: listeners,
         event: proxy,
         cursor: 0
       });
@@ -355,6 +386,7 @@ JX.install('Stratcom', {
 
       return proxy;
     },
+
 
     /**
      * Pass on an event, allowing other handlers to process it. The use case
@@ -378,11 +410,11 @@ JX.install('Stratcom', {
     pass : function() {
       var context = this._execContext[this._execContext.length - 1];
       var event = context.event;
-      var handlers = context.handlers;
-      while (context.cursor < handlers.length) {
+      var listeners = context.listeners;
+      while (context.cursor < listeners.length) {
         var cursor = context.cursor++;
-        if (handlers[cursor]){
-          handlers[cursor](event);
+        if (listeners[cursor]) {
+          listeners[cursor].handler(event);
         }
         if (event.getStopped()) {
           break;

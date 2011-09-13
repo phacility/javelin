@@ -267,7 +267,12 @@ JX.install('Event', {
     /**
      * @task info
      */
-    nodes : {}
+    nodes : {},
+
+    /**
+     * @task info
+     */
+    nodeDistances : {}
   },
 
   /**
