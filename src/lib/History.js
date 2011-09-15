@@ -135,7 +135,7 @@ JX.install('History', {
   },
 
   initialize : function() {
-    if ('onpopstate' in window) {
+    if (JX.History.hasPushState()) {
       JX.History._initialPath = JX.History._getBasePath(location.href);
       JX.Stratcom.listen('popstate', null, JX.History._handleChange);
     } else if ('onhashchange' in window) {
