@@ -52,7 +52,7 @@ JX.install('Request', {
     send : function() {
       if (this._sent) {
         if (__DEV__) {
-          throw new Error(
+          JX.$E(
             'JX.Request.send(): '+
             'attempting to send a Request that has already been sent.');
         }
@@ -95,12 +95,12 @@ JX.install('Request', {
       if (__DEV__) {
         if (this.getFile()) {
           if (method != 'POST') {
-            throw new Error(
+            JX.$E(
               'JX.Request.send(): ' +
               'attempting to send a file over GET. You must use POST.');
           }
           if (this._data) {
-            throw new Error(
+            JX.$E(
               'JX.Request.send(): ' +
               'attempting to send data and a file. You can not send both ' +
               'at once.');
@@ -148,12 +148,12 @@ JX.install('Request', {
 
         if (__DEV__) {
           if (!xport.responseText.length) {
-            throw new Error(
+            JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an empty response.');
           }
           if (xport.responseText.indexOf('for (;;);') != 0) {
-            throw new Error(
+            JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an invalid response.');
           }

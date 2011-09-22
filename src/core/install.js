@@ -85,7 +85,7 @@ JX.install = function(new_name, new_junk) {
   // If we've already installed this, something is up.
   if (new_name in JX) {
     if (__DEV__) {
-      throw new Error(
+      JX.$E(
         'JX.install("' + new_name + '", ...): ' +
         'trying to reinstall something that has already been installed.');
     }
@@ -94,7 +94,7 @@ JX.install = function(new_name, new_junk) {
 
   if (__DEV__) {
     if ('name' in new_junk) {
-      throw new Error(
+      JX.$E(
         'JX.install("' + new_name + '", {"name": ...}): ' +
         'trying to install with "name" property.' +
         'Either remove it or call JX.createClass directly.');
@@ -177,13 +177,13 @@ JX.createClass = function(junk) {
     };
     for (k in junk) {
       if (!(k in valid)) {
-        throw new Error(
+        JX.$E(
           'JX.createClass("' + name + '", {"' + k + '": ...}): ' +
           'trying to create unknown property `' + k + '`.');
       }
     }
     if (junk.constructor !== {}.constructor) {
-      throw new Error(
+      JX.$E(
         'JX.createClass("' + name + '", {"constructor": ...}): ' +
         'property `constructor` should be called `construct`.');
     }
@@ -205,7 +205,7 @@ JX.createClass = function(junk) {
       var inner = result;
       result = function() {
         if (this == window || this == JX) {
-          throw new Error(
+          JX.$E(
             '<' + Class.__readable__ + '>: ' +
             'Tried to construct an instance without the "new" operator.');
         }
@@ -275,7 +275,7 @@ JX.createClass = function(junk) {
 
     for (var member_name in junk.members) {
       if (junk.extend && member_name[0] == '_') {
-        throw new Error(
+        JX.$E(
           'JX.createClass("' + name + '", ...): ' +
           'installed member "' + member_name + '" must not be named with ' +
           'a leading underscore because it is in a subclass. Variables ' +
@@ -287,7 +287,7 @@ JX.createClass = function(junk) {
       }
       var member_value = junk.members[member_name];
       if (typeof member_value == 'object' && member_value !== null) {
-        throw new Error(
+        JX.$E(
           'JX.createClass("' + name + '", ...): ' +
           'installed member "' + member_name + '" is not a scalar or ' +
           'function. Prototypal inheritance in Javascript aliases object ' +
@@ -366,7 +366,7 @@ JX.createClass = function(junk) {
     proto.invoke = function(type) {
       if (__DEV__) {
         if (!(type in this.__class__.__events__)) {
-          throw new Error(
+          JX.$E(
             this.__class__.__readable__ + '.invoke("' + type + '", ...): ' +
             'invalid event type. Valid event types are: ' +
             JX.keys(this.__class__.__events__).join(', ') + '.');
@@ -384,7 +384,7 @@ JX.createClass = function(junk) {
     proto.listen = function(type, callback) {
       if (__DEV__) {
         if (!(type in this.__class__.__events__)) {
-          throw new Error(
+          JX.$E(
             this.__class__.__readable__ + '.listen("' + type + '", ...): ' +
             'invalid event type. Valid event types are: ' +
             JX.keys(this.__class__.__events__).join(', ') + '.');
@@ -401,7 +401,7 @@ JX.createClass = function(junk) {
     Class.listen = function(type, callback) {
       if (__DEV__) {
         if (!(type in this.__events__)) {
-          throw new Error(
+          JX.$E(
             this.__readable__ + '.listen("' + type + '", ...): ' +
             'invalid event type. Valid event types are: ' +
             JX.keys(this.__events__).join(', ') + '.');
@@ -419,22 +419,22 @@ JX.createClass = function(junk) {
       'class does not define any events. Pass an "events" property to ' +
       'JX.createClass() to define events.';
     Class.listen = Class.listen || function() {
-      throw new Error(
+      JX.$E(
         this.__readable__ + '.listen(...): ' +
         error_message);
     };
     Class.invoke = Class.invoke || function() {
-      throw new Error(
+      JX.$E(
         this.__readable__ + '.invoke(...): ' +
         error_message);
     };
     proto.listen = proto.listen || function() {
-      throw new Error(
+      JX.$E(
         this.__class__.__readable__ + '.listen(...): ' +
         error_message);
     };
     proto.invoke = proto.invoke || function() {
-      throw new Error(
+      JX.$E(
         this.__class__.__readable__ + '.invoke(...): ' +
         error_message);
     };

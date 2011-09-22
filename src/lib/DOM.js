@@ -39,7 +39,7 @@ JX.$ = function(id) {
 
   if (__DEV__) {
     if (!id) {
-      throw new Error('Empty ID passed to JX.$()!');
+      JX.$E('Empty ID passed to JX.$()!');
     }
   }
 
@@ -47,7 +47,7 @@ JX.$ = function(id) {
   if (!node || (node.id != id)) {
     if (__DEV__) {
       if (node && (node.id != id)) {
-        throw new Error(
+        JX.$E(
           'JX.$("'+id+'"): '+
           'document.getElementById() returned an element without the '+
           'correct ID. This usually means that the element you are trying '+
@@ -55,7 +55,7 @@ JX.$ = function(id) {
           '"name" attribute.');
       }
     }
-    throw new Error("JX.$('" + id + "') call matched no nodes.");
+    JX.$E("JX.$('" + id + "') call matched no nodes.");
   }
 
   return node;
@@ -93,7 +93,7 @@ JX.install('HTML', {
       var evil_stuff = new RegExp('^\\s*<(' + tags.join('|') + ')\\b', 'i');
       var match = null;
       if (match = str.match(evil_stuff)) {
-        throw new Error(
+        JX.$E(
           'new JX.HTML("<' + match[1] + '>..."): ' +
           'call initializes an HTML object with an invalid partial fragment ' +
           'and can not be converted into DOM nodes. The enclosing tag of an ' +
@@ -103,7 +103,7 @@ JX.install('HTML', {
 
       var really_evil = /<script\b/;
       if (str.match(really_evil)) {
-        throw new Error(
+        JX.$E(
           'new JX.HTML("...<script>..."): ' +
           'call initializes an HTML object with an embedded script tag! ' +
           'Are you crazy?! Do NOT do this!!!');
@@ -111,7 +111,7 @@ JX.install('HTML', {
 
       var wont_work = /<object\b/;
       if (str.match(wont_work)) {
-        throw new Error(
+        JX.$E(
           'new JX.HTML("...<object>..."): ' +
           'call initializes an HTML object with an embedded <object> tag. IE ' +
           'will not do the right thing with this.');
@@ -253,7 +253,7 @@ JX.$N = function(tag, attr, content) {
 
   if (__DEV__) {
     if (tag.toLowerCase() != tag) {
-      throw new Error(
+      JX.$E(
         '$N("'+tag+'", ...): '+
         'tag name must be in lower case; '+
         'use "'+tag.toLowerCase()+'", not "'+tag+'".');
@@ -279,7 +279,7 @@ JX.$N = function(tag, attr, content) {
 
   if (__DEV__) {
     if (('metadata' in attr) || ('data' in attr)) {
-      throw new Error(
+      JX.$E(
         '$N(' + tag + ', ...): ' +
         'use the key "meta" to specify metadata, not "data" or "metadata".');
     }
@@ -331,7 +331,7 @@ JX.install('DOM', {
     setContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.setContent(<yuck>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -357,7 +357,7 @@ JX.install('DOM', {
     prependContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.prependContent(<junk>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -380,7 +380,7 @@ JX.install('DOM', {
     appendContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.appendContent(<bleh>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -444,7 +444,7 @@ JX.install('DOM', {
 
         if (__DEV__) {
           if (content && !content.nodeType) {
-            throw new Error(
+            JX.$E(
               'JX.DOM._insertContent(<node>, ...): '+
               'second argument must be a string, a number, ' +
               'a DOM node or a JX.HTML instance');
@@ -487,7 +487,7 @@ JX.install('DOM', {
     replace : function(node, replacement) {
       if (__DEV__) {
         if (!node.parentNode) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.replace(<node>, ...): '+
             'node has no parent node, so it can not be replaced.');
         }
@@ -630,7 +630,7 @@ JX.install('DOM', {
           var t = types[ix];
 
           if (!(t in JX.__allowedEvents)) {
-            throw new Error(
+            JX.$E(
               'JX.DOM.listen(...): ' +
               'can only listen to events registered in init.js. "' +
                t + '" not found.');
@@ -660,7 +660,7 @@ JX.install('DOM', {
     alterClass : function(node, className, add) {
       if (__DEV__) {
         if (add !== false && add !== true) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.alterClass(...): ' +
             'expects the third parameter to be Boolean: ' +
             add + ' was provided');
@@ -698,7 +698,7 @@ JX.install('DOM', {
       if (__DEV__) {
         for (var ii = 0; ii < arguments.length; ++ii) {
           if (!arguments[ii]) {
-            throw new Error(
+            JX.$E(
               'JX.DOM.show(...): ' +
               'one or more arguments were null or empty.');
           }
@@ -723,7 +723,7 @@ JX.install('DOM', {
       if (__DEV__) {
         for (var ii = 0; ii < arguments.length; ++ii) {
           if (!arguments[ii]) {
-            throw new Error(
+            JX.$E(
               'JX.DOM.hide(...): ' +
               'one or more arguments were null or empty.');
           }
@@ -770,7 +770,7 @@ JX.install('DOM', {
     scry : function(root, tagname, sigil) {
       if (__DEV__) {
         if (!JX.DOM.isNode(root)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.scry(<yuck>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -805,7 +805,7 @@ JX.install('DOM', {
     find : function(root, tagname, sigil) {
       if (__DEV__) {
         if (!JX.DOM.isNode(root)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.find(<glop>, "'+tagname+'", "'+sigil+'"): '+
             'first argument must be a DOM node.');
         }
@@ -815,14 +815,14 @@ JX.install('DOM', {
 
       if (__DEV__) {
         if (result.length > 1) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.find(<node>, "'+tagname+'", "'+sigil+'"): '+
             'matched more than one node.');
         }
       }
 
       if (!result.length) {
-        throw new Error('JX.DOM.find(<node>, "' +
+        JX.$E('JX.DOM.find(<node>, "' +
           tagname + '", "' + sigil + '"): '+ 'matched no nodes.');
       }
 
