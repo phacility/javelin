@@ -171,6 +171,8 @@ JX.install('Stratcom', {
         paths = [paths];
       }
 
+      var listener = { _callback : func };
+
       //  To listen to multiple event types on multiple paths, we just install
       //  the same listener a whole bunch of times: if we install for two
       //  event types on three paths, we'll end up with six references to the
@@ -196,7 +198,7 @@ JX.install('Stratcom', {
         for (var jj = 0; jj < paths.length; ++jj) {
           var path = paths[jj];
           var id = this._handlers.length;
-          this._handlers.push(func);
+          this._handlers.push(listener);
           this._need[id] = path.length;
           ids.push(id);
           for (var kk = 0; kk < path.length; ++kk) {
@@ -217,13 +219,37 @@ JX.install('Stratcom', {
         }
       }
 
-      return {
-        remove : function() {
-          for (var ii = 0; ii < ids.length; ii++) {
-            delete JX.Stratcom._handlers[ids[ii]];
-          }
+      // Add a remove function to the listener
+      listener['remove'] = function() {
+        for (var ii = 0; ii < ids.length; ii++) {
+          delete JX.Stratcom._handlers[ids[ii]];
         }
-      };
+      }
+
+      return listener;
+    },
+
+
+    /**
+     * Sometimes you may be interested in removing a listener directly from it's
+     * handler. This is possible by calling JX.Stratcom.removeCurrentListener()
+     *
+     *   // Listen to only the first click on the page
+     *   JX.Stratcom.listen('click', null, function() {
+     *     // do interesting things
+     *     JX.Stratcom.removeCurrentListener();
+     *   });
+     *
+     * @task remove
+     */
+    removeCurrentListener : function() {
+      var context = this._execContext[this._execContext.length - 1];
+      var listeners = context.listeners;
+      // JX.Stratcom.pass will have incremented cursor by now
+      var cursor = context.cursor - 1;
+      if (listeners[cursor]) {
+        listeners[cursor].handler.remove();
+      }
     },
 
 
@@ -414,7 +440,7 @@ JX.install('Stratcom', {
       while (context.cursor < listeners.length) {
         var cursor = context.cursor++;
         if (listeners[cursor]) {
-          listeners[cursor].handler(event);
+          listeners[cursor].handler._callback(event);
         }
         if (event.getStopped()) {
           break;
