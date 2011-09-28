@@ -15,6 +15,7 @@
   <a href="?page=1" data-sigil="async-page">Page 1</a>
   <a href="?page=2" data-sigil="async-page">Page 2</a>
   <a href="?page=3" data-sigil="async-page">Page 3</a>
+  <a><label><input id="replace" type="checkbox" />Replace</label></a>
   <div style="clear: both;"></div>
 </div>
 
@@ -24,6 +25,11 @@
     The randomly generated number will help you keep track of if/when a page
     refresh ocurs.
   </p>
+  <p>
+    The following path was last rendered. If you refresh the page, this path
+    should remain constant.
+  </p>
+  <pre> <span id="path">Initializing...</span></pre>
 </div>
 
 <!-- Source -->
@@ -41,12 +47,15 @@ JX.onload(function() {
 
   function renderPage(href) {
     JX.DOM.setContent(JX.$('page'), JX.$U(href).getQueryParams().page || 1);
+    JX.DOM.setContent(JX.$('path'), href);
   }
-  renderPage(location.href);
+  renderPage(JX.History.getPath());
 
   JX.Stratcom.listen('click', 'async-page', function(e) {
     var href = e.getNode('async-page').href;
-    JX.History.push(href);
+    JX.$('replace').checked ?
+      JX.History.replace(href) :
+      JX.History.push(href);
     e.prevent();
   });
 

@@ -77,6 +77,7 @@ JX.install('History', {
     replace : function(path) {
       if (JX.History.hasPushState()) {
         history.replaceState(null, null, path);
+        JX.History._fire(path);
       } else {
         var uri = JX.$U(location.href);
         uri.setFragment(JX.History._composeFragment(path));
@@ -93,16 +94,18 @@ JX.install('History', {
           JX.History._fire(path);
         }
       } else {
-        var hash = location.hash;
+        var hash = JX.History._parseFragment(location.hash);
         if (hash !== JX.History._hash) {
           JX.History._hash = hash;
-          JX.History._fire(hash.substr(1));
+          JX.History._fire(hash);
         }
       }
     },
 
     _fire : function(path) {
-      JX.Stratcom.invoke('history:change', null, { path: path });
+      JX.Stratcom.invoke('history:change', null, {
+        path: JX.History._getBasePath(path)
+      });
     },
 
     _getBasePath : function(href) {
@@ -110,6 +113,7 @@ JX.install('History', {
     },
 
     _composeFragment : function(path) {
+      path = JX.History._getBasePath(path);
       // If the URL fragment does not change, the new path will not get pushed
       // onto the stack. So we alternate the hash prefix to force a new state.
       if (JX.History.getPath() === path) {
