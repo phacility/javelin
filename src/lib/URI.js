@@ -147,7 +147,7 @@ JX.install('URI', {
     toString : function() {
       if (__DEV__) {
         if (this.getPath() && this.getPath().charAt(0) != '/') {
-          throw new Error(
+          JX.$E(
             'JX.URI.toString(): ' +
             'Path does not begin with a "/" which means this URI will likely' +
             'be malformed. Ensure any string passed to .setPath() leads "/"');

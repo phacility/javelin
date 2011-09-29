@@ -142,17 +142,17 @@ JX.install('Stratcom', {
 
       if (__DEV__) {
         if (arguments.length != 3) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
         }
         if (arguments.length != 3) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments.');
         }
         if (typeof func != 'function') {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.listen(...): '+
             'callback is not a function.');
         }
@@ -204,12 +204,12 @@ JX.install('Stratcom', {
           for (var kk = 0; kk < path.length; ++kk) {
             if (__DEV__) {
               if (path[kk] == 'tag:#document') {
-                throw new Error(
+                JX.$E(
                   'JX.Stratcom.listen(..., "tag:#document", ...): ' +
                   'listen for all events using null, not "tag:#document"');
               }
               if (path[kk] == 'tag:window') {
-                throw new Error(
+                JX.$E(
                   'JX.Stratcom.listen(..., "tag:window", ...): ' +
                   'listen for window events using null, not "tag:window"');
               }
@@ -496,7 +496,7 @@ JX.install('Stratcom', {
     hasSigil : function(node, sigil) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.hasSigil(<non-element>, ...): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have sigils.');
@@ -519,7 +519,7 @@ JX.install('Stratcom', {
     addSigil: function(node, sigil) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.addSigil(<non-element>, ...): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have sigils.');
@@ -548,7 +548,7 @@ JX.install('Stratcom', {
     getData : function(node) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.getData(<non-element>): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have data.');
@@ -586,13 +586,13 @@ JX.install('Stratcom', {
     addData : function(node, data) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.addData(<non-element>, ...): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have sigils.');
         }
         if (!data || typeof data != 'object') {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.addData(..., <nonobject>): ' +
             'data to attach to node is not an object. You must use ' +
             'objects, not primitives, for metadata.');

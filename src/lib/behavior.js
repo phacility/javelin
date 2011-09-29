@@ -27,17 +27,17 @@
 JX.behavior = function(name, control_function) {
   if (__DEV__) {
     if (JX.behavior._behaviors.hasOwnProperty(name)) {
-      throw new Error(
+      JX.$E(
         'JX.behavior("' + name + '", ...): '+
         'behavior is already registered.');
     }
     if (!control_function) {
-      throw new Error(
+      JX.$E(
         'JX.behavior("' + name + '", <nothing>): '+
         'initialization function is required.');
     }
     if (typeof control_function != 'function') {
-      throw new Error(
+      JX.$E(
         'JX.behavior("' + name + '", <garbage>): ' +
         'initialization function is not a function.');
     }
@@ -47,7 +47,7 @@ JX.behavior = function(name, control_function) {
       'propertyIsEnumerable', 'toLocaleString', 'constructor'
     ];
     if (~enumerables.indexOf(name)) {
-      throw new Error(
+      JX.$E(
         'JX.behavior("' + name + '", <garbage>): ' +
         'do not use any of these properties as behaviors: ' +
         enumerables.join(', ')
@@ -93,7 +93,7 @@ JX.initBehaviors = function(map) {
     JX.behavior._initialized[name] = true;
   }
   if (missing_behaviors.length) {
-    throw new Error(
+    JX.$E(
       'JX.initBehavior(map): behavior(s) not registered: ' +
       missing_behaviors.join(', ')
     );

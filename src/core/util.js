@@ -3,6 +3,7 @@
  *
  * @provides javelin-util
  *
+ * @javelin-installs JX.$E
  * @javelin-installs JX.$A
  * @javelin-installs JX.$AX
  * @javelin-installs JX.isArray
@@ -15,6 +16,22 @@
  *
  * @javelin
  */
+
+/**
+ * Throw an exception and attach the caller data in the exception.
+ *
+ * @param  string  Exception message.
+ *
+ * @group util
+ */
+JX.$E = function(message) {
+  var e = new Error(message);
+  var caller_fn = JX.$E.caller;
+  if (caller_fn) {
+    e.caller_fn = caller_fn.caller;
+  }
+  throw e;
+};
 
 
 /**
@@ -216,7 +233,7 @@ JX.copy = function(copy_dst, copy_src) {
 JX.bind = function(context, func, more) {
   if (__DEV__) {
     if (typeof func != 'function') {
-      throw new Error(
+      JX.$E(
         'JX.bind(context, <yuck>, ...): '+
         'Attempting to bind something that is not a function.');
     }
