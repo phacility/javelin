@@ -86,6 +86,12 @@ JX.install('Stratcom', {
      * @task invoke
      */
     invoke : function(type, path, data) {
+      if (__DEV__) {
+        if (path && typeof path !== 'string' && !JX.isArray(path)) {
+          throw new Error(
+            'JX.Stratcom.invoke(...): path must be a string or an array.');
+        }
+      }
       return this._dispatchProxy(
         new JX.Event()
           .setType(type)
