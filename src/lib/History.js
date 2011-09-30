@@ -145,9 +145,7 @@ JX.install('History', {
     } else if ('onhashchange' in window) {
       JX.Stratcom.listen('hashchange', null, JX.History._handleChange);
     } else {
-      setInterval(function() {
-        JX.History._hash !== location.hash && JX.History._handleChange();
-      }, 200);
+      setInterval(JX.History._handleChange, 200);
     }
   }
 
