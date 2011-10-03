@@ -2,6 +2,7 @@
  * @requires javelin-stratcom
  *           javelin-install
  *           javelin-uri
+ *           javelin-util
  * @provides javelin-history
  * @javelin
  */
@@ -17,19 +18,71 @@
 JX.install('History', {
 
   statics : {
+
+    // Mechanisms to @{JX.History.install} with (in preferred support order).
+    PUSHSTATE : 3,
+    HASHCHANGE : 2,
+    POLLING : 1,
+
+    // Last path parsed from the URL fragment.
+    _hash : null,
+
     // Some browsers fire an extra "popstate" on initial page load, so we keep
     // track of the initial path to normalize behavior (and not fire the extra
     // event).
     _initialPath : null,
-    _hash : null,
+
+    // Mechanism used to interface with the browser history stack.
+    _mechanism : null,
 
     /**
-     * Test if the HTML5 History API is available.
+     * Starts history management. This method must be invoked first before any
+     * other JX.History method can be used.
      *
-     * @return bool True if history.pushState() exists.
+     * @param int An optional mechanism used to interface with the browser
+     *            history stack. If it is not supported, the next supported
+     *            mechanism will be used.
      */
-    hasPushState : function() {
-      return 'pushState' in history;
+    install : function(mechanism) {
+      if (__DEV__) {
+        if (JX.History._installed) {
+          JX.$E('JX.History.install(): can only install once.');
+        }
+        JX.History._installed = true;
+      }
+
+      // Default to using the best supported
+      mechanism = mechanism || Infinity;
+
+      if (mechanism >= JX.History.PUSHSTATE && 'pushState' in history) {
+        JX.History._mechanism = JX.History.PUSHSTATE;
+        JX.History._initialPath = JX.History._getBasePath(location.href);
+        JX.Stratcom.listen('popstate', null, JX.History._handleChange);
+      } else if (mechanism >= JX.History.HASHCHANGE &&
+                 'onhashchange' in window) {
+        JX.History._mechanism = JX.History.HASHCHANGE;
+        JX.Stratcom.listen('hashchange', null, JX.History._handleChange);
+      } else {
+        JX.History._mechanism = JX.History.POLLING;
+        setInterval(JX.History._handleChange, 200);
+      }
+    },
+
+    /**
+     * Get the name of the mechanism used to interface with the browser
+     * history stack.
+     *
+     * @return string Mechanism, either pushstate, hashchange, or polling.
+     */
+    getMechanism : function() {
+      if (__DEV__) {
+        if (!JX.History._installed) {
+          JX.$E(
+            'JX.History.getMechanism(): ' +
+            'must call JX.History.install() first.');
+        }
+      }
+      return JX.History._mechanism;
     },
 
     /**
@@ -42,7 +95,14 @@ JX.install('History', {
      * @return string Path on top of the history stack.
      */
     getPath : function() {
-      if (JX.History.hasPushState()) {
+      if (__DEV__) {
+        if (!JX.History._installed) {
+          JX.$E(
+            'JX.History.getPath(): ' +
+            'must call JX.History.install() first.');
+        }
+      }
+      if (JX.History.getMechanism() === JX.History.PUSHSTATE) {
         return JX.History._getBasePath(location.href);
       } else {
         var parsed = JX.History._parseFragment(location.hash);
@@ -57,7 +117,14 @@ JX.install('History', {
      * @return void
      */
     push : function(path) {
-      if (JX.History.hasPushState()) {
+      if (__DEV__) {
+        if (!JX.History._installed) {
+          JX.$E(
+            'JX.History.push(): ' +
+            'must call JX.History.install() first.');
+        }
+      }
+      if (JX.History.getMechanism() === JX.History.PUSHSTATE) {
         if (JX.History._initialPath && JX.History._initialPath !== path) {
           JX.History._initialPath = null;
         }
@@ -75,7 +142,14 @@ JX.install('History', {
      * @return void
      */
     replace : function(path) {
-      if (JX.History.hasPushState()) {
+      if (__DEV__) {
+        if (!JX.History._installed) {
+          JX.$E(
+            'JX.History.replace(): ' +
+            'must call JX.History.install() first.');
+        }
+      }
+      if (JX.History.getMechanism() === JX.History.PUSHSTATE) {
         history.replaceState(null, null, path);
         JX.History._fire(path);
       } else {
@@ -86,7 +160,7 @@ JX.install('History', {
     },
 
     _handleChange : function(e) {
-      if (JX.History.hasPushState()) {
+      if (JX.History.getMechanism() === JX.History.PUSHSTATE) {
         var path = JX.History._getBasePath(location.href);
         if (path === JX.History._initialPath) {
           JX.History._initialPath = null;
@@ -136,17 +210,6 @@ JX.install('History', {
       return null;
     }
 
-  },
-
-  initialize : function() {
-    if (JX.History.hasPushState()) {
-      JX.History._initialPath = JX.History._getBasePath(location.href);
-      JX.Stratcom.listen('popstate', null, JX.History._handleChange);
-    } else if ('onhashchange' in window) {
-      JX.Stratcom.listen('hashchange', null, JX.History._handleChange);
-    } else {
-      setInterval(JX.History._handleChange, 200);
-    }
   }
 
 });

@@ -43,6 +43,8 @@
 JX.Stratcom.mergeData(0, {});
 
 JX.onload(function() {
+  JX.History.install();
+
   JX.DOM.setContent(JX.$('rand'), Math.random());
 
   function renderPage(href) {
