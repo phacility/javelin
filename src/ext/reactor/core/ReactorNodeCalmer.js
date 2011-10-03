@@ -24,7 +24,7 @@ JX.install('ReactorNodeCalmer', {
       if (!this.getIsEnabled()) {
         return pulse;
       }
-      var current_time = new Date().getTime();
+      var current_time = JX.now();
       if (current_time - this.getLastTime() > this.getMinInterval()) {
         this.setLastTime(current_time);
         return pulse;
@@ -38,7 +38,7 @@ JX.install('ReactorNodeCalmer', {
       }
     },
     send : function(pulse) {
-      this.setLastTime(new Date().getTime());
+      this.setLastTime(JX.now());
       this.setIsEnabled(false);
       this.getReactorNode().forceSendValue(pulse);
       this.setIsEnabled(true);

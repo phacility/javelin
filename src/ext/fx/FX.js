@@ -83,14 +83,14 @@ JX.install('FX', {
       setTimeout(JX.bind(this, this.invoke, 'start'), 10);
       this._from = from;
       this._to = to;
-      this._start = (+new Date());
+      this._start = JX.now();
       this._interval = setInterval(
         JX.bind(this, this._tween),
         Math.round(1000 / this.getFps()));
     },
 
     _tween: function() {
-      var now = (+new Date());
+      var now = JX.now();
       var prop;
       if (now < this._start + this.getDuration()) {
         this._now = now - this._start;

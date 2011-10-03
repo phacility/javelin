@@ -13,6 +13,7 @@
  * @javelin-installs JX.keys
  * @javelin-installs JX.log
  * @javelin-installs JX.id
+ * @javelin-installs JX.now
  *
  * @javelin
  */
@@ -332,7 +333,7 @@ if (__DEV__) {
         return;
       }
       in_alert = true;
-      recent_alerts.push(new Date().getTime());
+      recent_alerts.push(JX.now());
 
       if (recent_alerts.length > 3) {
         recent_alerts.splice(0, recent_alerts.length - 3);
@@ -352,3 +353,15 @@ if (__DEV__) {
   })(window.alert);
 }
 
+/**
+ * Date.now is the fastest timestamp function, but isn't supported by every
+ * browser. This gives the fastest version the environment can support.
+ * The wrapper function makes the getTime call even slower, but benchmarking
+ * shows it to be a marginal perf loss. Considering how small of a perf
+ * difference this makes overall, it's not really a big deal. The primary
+ * reason for this is to avoid hacky "just think of the byte savings" JS
+ * like +new Date() that has an unclear outcome for the unexposed.
+ *
+ * @return Int A Unix timestamp of the current time on the local machine
+ */
+JX.now = (Date.now || function() { return new Date().getTime(); });

@@ -18,9 +18,9 @@ JX.install('RDOM', {
       if (JX.RDOM._time === null) {
         var time = new JX.ReactorNode([], JX.id);
         window.setInterval(function() {
-          time.forceSendValue(new Date().getTime());
+          time.forceSendValue(JX.now());
         }, 100);
-        JX.RDOM._time = new JX.DynVal(time, new Date().getTime());
+        JX.RDOM._time = new JX.DynVal(time, JX.now());
       }
       return JX.RDOM._time;
     },

@@ -43,7 +43,7 @@ JX.install('TypeaheadOnDemandSource', {
     haveData : null,
 
     didChange : function(value) {
-      this.lastChange = new Date().getTime();
+      this.lastChange = JX.now();
       value = this.normalize(value);
 
       if (this.haveData[value]) {
