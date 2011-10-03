@@ -41,6 +41,36 @@ describe('Javelin URI', function() {
     expect(uri.getFragment()).toEqual('fragment');
   });
 
+  function charRange(from, to) {
+    res = '';
+    for (var i = from.charCodeAt(0); i <= to.charCodeAt(0); i++) {
+      res += String.fromCharCode(i);
+    }
+    return res;
+  }
+
+  it('should reject unsafe domains', function() {
+    var unsafe_chars =
+      '\x00#/;?\\%\u2047\u2048\ufe56\ufe5f\uff03\uff0f\uff1f' +
+      charRange('\ufdd0', '\ufdef') + charRange('\ufff0', '\uffff');
+    for (var i = 0; i < unsafe_chars.length; i++) {
+      var uri = JX.$U('http://foo' + unsafe_chars.charAt(i) + 'bar');
+      expect(uri.getDomain() === 'foo' ||
+             uri.getDomain() === JX.URI.INVALID_DOMAIN).toEqual(true);
+    }
+  });
+
+  it('should allow safe domains', function() {
+    var safe_chars =
+      '-._' + charRange('a', 'z') + charRange('A', 'Z') + charRange('0', '9') +
+      '\u2046\u2049\ufdcf\ufdf0\uffef';
+    for (var i = 0; i < safe_chars.length; i++) {
+      var domain = 'foo' + safe_chars.charAt(i) + 'bar';
+      var uri = JX.$U('http://' + domain);
+      expect(uri.getDomain()).toEqual(domain);
+    }
+  });
+
   it('should set slash as the default path', function() {
     var uri = JX.$U('http://www.facebook.com');
     expect(uri.getPath()).toEqual('/');

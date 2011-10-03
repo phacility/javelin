@@ -63,7 +63,6 @@ JX.install('URI', {
 
       return kv_pairs.join('&');
     }
-
   },
 
   /**
@@ -83,6 +82,7 @@ JX.install('URI', {
       // parse the url
       var result = JX.URI._uriPattern.exec(uri);
 
+      // fallback to undefined because IE has weird behavior otherwise
       this.setProtocol(result[1] || undefined);
       this.setDomain(result[2] || undefined);
       this.setPort(result[3] || undefined);
@@ -108,7 +108,6 @@ JX.install('URI', {
 
   properties : {
     protocol: undefined,
-    domain: undefined,
     port: undefined,
     path: undefined,
     queryParams: undefined,
@@ -117,6 +116,7 @@ JX.install('URI', {
   },
 
   members : {
+    _domain: undefined,
 
     /**
      * Append and override query data values
@@ -142,6 +142,32 @@ JX.install('URI', {
       var map = {};
       map[key] = value;
       return this.addQueryParams(map);
+    },
+
+    /**
+     * Set the domain
+     *
+     * This function checks the domain name to ensure that it is safe for
+     * browser consumption.
+     */
+    setDomain : function(domain) {
+      var re = new RegExp(
+        // For the bottom 128 code points, we use a strict whitelist of
+        // characters that are allowed by all browsers: -.0-9:A-Z[]_a-z
+        '[\\x00-\\x2c\\x2f\\x3b-\\x40\\x5c\\x5e\\x60\\x7b-\\x7f' +
+        // In IE, these chararacters cause problems when entity-encoded.
+        '\\uFDD0-\\uFDEF\\uFFF0-\\uFFFF' +
+        // In Safari, these characters terminate the hostname.
+        '\\u2047\\u2048\\uFE56\\uFE5F\\uFF03\\uFF0F\\uFF1F]');
+      if (re.test(domain)) {
+        JX.$E('JX.URI.setDomain(...): invalid domain specified.');
+      }
+      this._domain = domain;
+      return this;
+    },
+
+    getDomain : function() {
+      return this._domain;
     },
 
     toString : function() {
