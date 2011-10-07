@@ -20,6 +20,8 @@ JX.install('History', {
   statics : {
 
     // Mechanisms to @{JX.History.install} with (in preferred support order).
+    // The default behavior is to use the best supported mechanism.
+    DEFAULT : Infinity,
     PUSHSTATE : 3,
     HASHCHANGE : 2,
     POLLING : 1,
@@ -51,8 +53,7 @@ JX.install('History', {
         JX.History._installed = true;
       }
 
-      // Default to using the best supported
-      mechanism = mechanism || Infinity;
+      mechanism = mechanism || JX.History.DEFAULT;
 
       if (mechanism >= JX.History.PUSHSTATE && 'pushState' in history) {
         JX.History._mechanism = JX.History.PUSHSTATE;
