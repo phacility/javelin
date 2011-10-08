@@ -161,18 +161,17 @@ JX.install('History', {
     },
 
     _handleChange : function(e) {
+      var path = JX.History.getPath();
       if (JX.History.getMechanism() === JX.History.PUSHSTATE) {
-        var path = JX.History._getBasePath(location.href);
         if (path === JX.History._initialPath) {
           JX.History._initialPath = null;
         } else {
           JX.History._fire(path);
         }
       } else {
-        var hash = JX.History._parseFragment(location.hash);
-        if (hash !== JX.History._hash) {
-          JX.History._hash = hash;
-          JX.History._fire(hash);
+        if (path !== JX.History._hash) {
+          JX.History._hash = path;
+          JX.History._fire(path);
         }
       }
     },
