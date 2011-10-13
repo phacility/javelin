@@ -156,11 +156,18 @@ JX.install('History', {
       } else {
         var uri = JX.$U(location.href);
         uri.setFragment(JX.History._composeFragment(path));
-        location.replace(uri.toString());
+        // Safari bug: "location.replace" does not respect changes made via
+        // setting "location.hash", so use "history.replaceState" if possible.
+        if ('replaceState' in history) {
+          history.replaceState(null, null, uri.toString());
+          JX.History._handleChange();
+        } else {
+          location.replace(uri.toString());
+        }
       }
     },
 
-    _handleChange : function(e) {
+    _handleChange : function() {
       var path = JX.History.getPath();
       if (JX.History.getMechanism() === JX.History.PUSHSTATE) {
         if (path === JX.History._initialPath) {

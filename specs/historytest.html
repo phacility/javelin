@@ -30,6 +30,16 @@
     should remain constant.
   </p>
   <pre> <span id="path">Initializing...</span></pre>
+  <h2>Safari Bug</h2>
+  <p>
+    This tests a known bug in Safari when using <tt>location.replace</tt> with
+    <tt>location.hash</tt>. This test should be run in Safari when installing
+    <tt>JX.History</tt> using <tt>JX.History.HASHCHANGE</tt>.
+  </p>
+  <p>
+    <button id="safari-bug-test">Clicking this button</button>
+    should go to Page 2. (The bug causes the button to go to Page 1.)
+  </p>
 </div>
 
 <!-- Source -->
@@ -63,6 +73,18 @@ JX.onload(function() {
 
   JX.Stratcom.listen('history:change', null, function(e) {
     renderPage(e.getData().path);
+  });
+
+  /**
+   * Bug Tests
+   */
+
+  JX.DOM.listen(JX.$('safari-bug-test'), 'click', null, function() {
+    var uri = JX.$U(JX.History.getPath());
+    JX.History.push(uri.setQueryParam('page', 1).toString());
+    JX.History.replace(uri.setQueryParam('page', 2).toString());
+    JX.History.push(uri.setQueryParam('page', 3).toString());
+    history.go(-1);
   });
 });
 
