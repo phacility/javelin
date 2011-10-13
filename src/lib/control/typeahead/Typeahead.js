@@ -105,20 +105,7 @@ JX.install('Typeahead', {
      *
      * @task config
      */
-    allowNullSelection : true,
-
-    /**
-     * Function. Allows you to reconfigure the Typeahead's normalizer, which is
-     * @{JX.TypeaheadNormalizer} by default. The normalizer is used to convert
-     * user input into strings suitable for matching, e.g. by lowercasing all
-     * input and removing punctuation. See @{JX.TypeaheadNormalizer} for more
-     * details. Any replacement function should accept an arbitrary user-input
-     * string and emit a normalized string suitable for tokenization and
-     * matching.
-     *
-     * @task config
-     */
-    normalizer : null
+    allowNullSelection : true
   },
 
   members : {

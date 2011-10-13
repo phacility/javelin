@@ -35,6 +35,14 @@ JX.install('TypeaheadSource', {
     normalizer : null,
 
     /**
+     * If a typeahead query should be processed before being normalized and
+     * tokenized, specify a queryExtractor.
+     *
+     * @param function
+     */
+    queryExtractor : null,
+
+    /**
      * Transformers convert data from a wire format to a runtime format. The
      * transformation mechanism allows you to choose an efficient wire format
      * and then expand it on the client side, rather than duplicating data
@@ -70,7 +78,6 @@ JX.install('TypeaheadSource', {
   members : {
     _raw : null,
     _lookup : null,
-    _normalizer : null,
 
     bindToTypeahead : function(typeahead) {
       typeahead.listen('change', JX.bind(this, this.didChange));
@@ -140,6 +147,10 @@ JX.install('TypeaheadSource', {
       var matched = {};
       var seen = {};
 
+      var query_extractor = this.getQueryExtractor();
+      if (query_extractor) {
+        value = query_extractor(value);
+      }
       var t = this.tokenize(value);
 
       // Sort tokens by longest-first. We match each name fragment with at
@@ -212,7 +223,7 @@ JX.install('TypeaheadSource', {
     },
 
     normalize : function(str) {
-      return (this.getNormalizer() || JX.bag())(str);
+      return this.getNormalizer()(str);
     },
     tokenize : function(str) {
       str = this.normalize(str);
