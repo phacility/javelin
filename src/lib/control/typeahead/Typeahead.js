@@ -66,6 +66,7 @@ JX.install('Typeahead', {
     this._root = JX.$N(
       'div',
       {className: 'jx-typeahead-results'});
+    this._hardpoint.appendChild(this._root);
     this._display = [];
 
     this._listener = JX.DOM.listen(
@@ -186,8 +187,7 @@ JX.install('Typeahead', {
       this._changeFocus(Number.NEGATIVE_INFINITY);
       this._display = [];
       this._moused = false;
-      JX.DOM.setContent(this._root, '');
-      JX.DOM.remove(this._root);
+      JX.DOM.hide(this._root);
     },
 
 
@@ -211,7 +211,7 @@ JX.install('Typeahead', {
         var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
         d.setPos(this._root);
-        this._hardpoint.appendChild(this._root);
+        JX.DOM.show(this._root);
       } else {
         this.hide();
       }
