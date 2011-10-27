@@ -132,6 +132,7 @@
     'mouseup',
     'keyup',
     'keydown',
+    'input',
     'drop',
     'dragenter',
     'dragleave',

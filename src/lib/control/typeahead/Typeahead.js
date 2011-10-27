@@ -70,7 +70,7 @@ JX.install('Typeahead', {
 
     this._listener = JX.DOM.listen(
       this._control,
-      ['focus', 'blur', 'keypress', 'keydown'],
+      ['focus', 'blur', 'keypress', 'keydown', 'input'],
       null,
       JX.bind(this, this.handleEvent));
 
