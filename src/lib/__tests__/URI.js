@@ -51,12 +51,12 @@ describe('Javelin URI', function() {
 
   it('should reject unsafe domains', function() {
     var unsafe_chars =
-      '\x00#/;?\\%\u2047\u2048\ufe56\ufe5f\uff03\uff0f\uff1f' +
+      '\x00;\\%\u2047\u2048\ufe56\ufe5f\uff03\uff0f\uff1f' +
       charRange('\ufdd0', '\ufdef') + charRange('\ufff0', '\uffff');
     for (var i = 0; i < unsafe_chars.length; i++) {
-      var uri = JX.$U('http://foo' + unsafe_chars.charAt(i) + 'bar');
-      expect(uri.getDomain() === 'foo' ||
-             uri.getDomain() === JX.URI.INVALID_DOMAIN).toEqual(true);
+      expect(function() {
+        JX.$U('http://foo' + unsafe_chars.charAt(i) + 'bar');
+      }).toThrow();
     }
   });
 
