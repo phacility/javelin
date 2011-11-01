@@ -66,7 +66,6 @@ JX.install('Typeahead', {
     this._root = JX.$N(
       'div',
       {className: 'jx-typeahead-results'});
-    this._hardpoint.appendChild(this._root);
     this._display = [];
 
     this._listener = JX.DOM.listen(
@@ -211,6 +210,9 @@ JX.install('Typeahead', {
         var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
         d.setPos(this._root);
+        if (this._root.parentNode !== this._hardpoint) {
+          this._hardpoint.appendChild(this._root);
+        }
         JX.DOM.show(this._root);
       } else {
         this.hide();
