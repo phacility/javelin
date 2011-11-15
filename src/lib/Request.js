@@ -132,6 +132,7 @@ JX.install('Request', {
 
     _onreadystatechange : function() {
       var xport = this.getTransport();
+      var response;
       try {
         if (this._finished) {
           return;
@@ -157,10 +158,20 @@ JX.install('Request', {
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an invalid response.');
           }
+          if (xport.responseText == 'for (;;);') {
+            JX.$E(
+              'JX.Request("'+this.getURI()+'", ...): '+
+              'server returned an empty response.');
+          }
         }
 
         var text = xport.responseText.substring('for (;;);'.length);
-        var response = JX.JSON.parse(text);
+        response = JX.JSON.parse(text);
+        if (!response) {
+          JX.$E(
+            'JX.Request("'+this.getURI()+'", ...): '+
+            'server returned an invalid response.');
+        }
       } catch (exception) {
 
         if (__DEV__) {
