@@ -3,6 +3,7 @@
  *
  * @provides javelin-util
  *
+ * @javelin-installs JX.$E
  * @javelin-installs JX.$A
  * @javelin-installs JX.$AX
  * @javelin-installs JX.isArray
@@ -10,12 +11,28 @@
  * @javelin-installs JX.bind
  * @javelin-installs JX.bag
  * @javelin-installs JX.keys
- * @javelin-installs JX.defer
  * @javelin-installs JX.log
  * @javelin-installs JX.id
+ * @javelin-installs JX.now
  *
  * @javelin
  */
+
+/**
+ * Throw an exception and attach the caller data in the exception.
+ *
+ * @param  string  Exception message.
+ *
+ * @group util
+ */
+JX.$E = function(message) {
+  var e = new Error(message);
+  var caller_fn = JX.$E.caller;
+  if (caller_fn) {
+    e.caller_fn = caller_fn.caller;
+  }
+  throw e;
+};
 
 
 /**
@@ -217,7 +234,7 @@ JX.copy = function(copy_dst, copy_src) {
 JX.bind = function(context, func, more) {
   if (__DEV__) {
     if (typeof func != 'function') {
-      throw new Error(
+      JX.$E(
         'JX.bind(context, <yuck>, ...): '+
         'Attempting to bind something that is not a function.');
     }
@@ -264,29 +281,6 @@ JX.keys = function(obj) {
     r.push(k);
   }
   return r;
-};
-
-
-/**
- * Defer a function for later execution, similar to ##setTimeout()##. Returns
- * an object with a ##stop()## method, which cancels the deferred call.
- *
- *   var ref = JX.defer(yell, 3000); // Yell in 3 seconds.
- *   // ...
- *   ref.stop(); // Cancel the yell.
- *
- * @param function Function to invoke after the timeout.
- * @param int?     Timeout, in milliseconds. If this value is omitted, the
- *                 function will be invoked once control returns to the browser
- *                 event loop, as with ##setTimeout(func, 0)##.
- * @return obj     An object with a ##stop()## method, which cancels function
- *                 execution.
- *
- * @group util
- */
-JX.defer = function(func, timeout) {
-  var t = setTimeout(func, timeout || 0);
-  return {stop : function() { clearTimeout(t); }}
 };
 
 
@@ -339,7 +333,7 @@ if (__DEV__) {
         return;
       }
       in_alert = true;
-      recent_alerts.push(new Date().getTime());
+      recent_alerts.push(JX.now());
 
       if (recent_alerts.length > 3) {
         recent_alerts.splice(0, recent_alerts.length - 3);
@@ -359,6 +353,18 @@ if (__DEV__) {
   })(window.alert);
 }
 
+/**
+ * Date.now is the fastest timestamp function, but isn't supported by every
+ * browser. This gives the fastest version the environment can support.
+ * The wrapper function makes the getTime call even slower, but benchmarking
+ * shows it to be a marginal perf loss. Considering how small of a perf
+ * difference this makes overall, it's not really a big deal. The primary
+ * reason for this is to avoid hacky "just think of the byte savings" JS
+ * like +new Date() that has an unclear outcome for the unexposed.
+ *
+ * @return Int A Unix timestamp of the current time on the local machine
+ */
+JX.now = (Date.now || function() { return new Date().getTime(); });
 
 
 /**
@@ -448,7 +454,7 @@ JX.install = function(new_name, new_junk) {
   // If we've already installed this, something is up.
   if (new_name in JX) {
     if (__DEV__) {
-      throw new Error(
+      JX.$E(
         'JX.install("' + new_name + '", ...): ' +
         'trying to reinstall something that has already been installed.');
     }
@@ -457,7 +463,7 @@ JX.install = function(new_name, new_junk) {
 
   if (__DEV__) {
     if ('name' in new_junk) {
-      throw new Error(
+      JX.$E(
         'JX.install("' + new_name + '", {"name": ...}): ' +
         'trying to install with "name" property.' +
         'Either remove it or call JX.createClass directly.');
@@ -511,7 +517,6 @@ JX.install = function(new_name, new_junk) {
   } while (name);
 };
 
-
 /**
  * Creates a class from a map of attributes. Requires ##extend## property to
  * be an actual Class object and not a "String". Supports ##name## property
@@ -527,6 +532,7 @@ JX.install = function(new_name, new_junk) {
 JX.createClass = function(junk) {
   var name = junk.name || '';
   var k;
+  var ii;
 
   if (__DEV__) {
     var valid = {
@@ -540,13 +546,13 @@ JX.createClass = function(junk) {
     };
     for (k in junk) {
       if (!(k in valid)) {
-        throw new Error(
+        JX.$E(
           'JX.createClass("' + name + '", {"' + k + '": ...}): ' +
           'trying to create unknown property `' + k + '`.');
       }
     }
     if (junk.constructor !== {}.constructor) {
-      throw new Error(
+      JX.$E(
         'JX.createClass("' + name + '", {"constructor": ...}): ' +
         'property `constructor` should be called `construct`.');
     }
@@ -568,7 +574,7 @@ JX.createClass = function(junk) {
       var inner = result;
       result = function() {
         if (this == window || this == JX) {
-          throw new Error(
+          JX.$E(
             '<' + Class.__readable__ + '>: ' +
             'Tried to construct an instance without the "new" operator.');
         }
@@ -638,7 +644,7 @@ JX.createClass = function(junk) {
 
     for (var member_name in junk.members) {
       if (junk.extend && member_name[0] == '_') {
-        throw new Error(
+        JX.$E(
           'JX.createClass("' + name + '", ...): ' +
           'installed member "' + member_name + '" must not be named with ' +
           'a leading underscore because it is in a subclass. Variables ' +
@@ -650,7 +656,7 @@ JX.createClass = function(junk) {
       }
       var member_value = junk.members[member_name];
       if (typeof member_value == 'object' && member_value !== null) {
-        throw new Error(
+        JX.$E(
           'JX.createClass("' + name + '", ...): ' +
           'installed member "' + member_name + '" is not a scalar or ' +
           'function. Prototypal inheritance in Javascript aliases object ' +
@@ -671,6 +677,17 @@ JX.createClass = function(junk) {
     proto[k] = junk.members[k];
   }
 
+  // IE does not enumerate some properties on objects
+  var enumerables = JX.install._enumerables;
+  if (junk.members && enumerables) {
+    ii = enumerables.length;
+    while (ii--){
+      var property = enumerables[ii];
+      if (junk.members[property]) {
+        proto[property] = junk.members[property];
+      }
+    }
+  }
 
   // Build this ridiculous event model thing. Basically, this defines
   // two instance methods, invoke() and listen(), and one static method,
@@ -703,7 +720,7 @@ JX.createClass = function(junk) {
       for (var key in old_events || {}) {
         valid_events[key] = true;
       }
-      for (var ii = 0; ii < new_events.length; ++ii) {
+      for (ii = 0; ii < new_events.length; ++ii) {
         valid_events[junk.events[ii]] = true;
       }
     }
@@ -718,7 +735,7 @@ JX.createClass = function(junk) {
     proto.invoke = function(type) {
       if (__DEV__) {
         if (!(type in this.__class__.__events__)) {
-          throw new Error(
+          JX.$E(
             this.__class__.__readable__ + '.invoke("' + type + '", ...): ' +
             'invalid event type. Valid event types are: ' +
             JX.keys(this.__class__.__events__).join(', ') + '.');
@@ -736,7 +753,7 @@ JX.createClass = function(junk) {
     proto.listen = function(type, callback) {
       if (__DEV__) {
         if (!(type in this.__class__.__events__)) {
-          throw new Error(
+          JX.$E(
             this.__class__.__readable__ + '.listen("' + type + '", ...): ' +
             'invalid event type. Valid event types are: ' +
             JX.keys(this.__class__.__events__).join(', ') + '.');
@@ -753,7 +770,7 @@ JX.createClass = function(junk) {
     Class.listen = function(type, callback) {
       if (__DEV__) {
         if (!(type in this.__events__)) {
-          throw new Error(
+          JX.$E(
             this.__readable__ + '.listen("' + type + '", ...): ' +
             'invalid event type. Valid event types are: ' +
             JX.keys(this.__events__).join(', ') + '.');
@@ -771,22 +788,22 @@ JX.createClass = function(junk) {
       'class does not define any events. Pass an "events" property to ' +
       'JX.createClass() to define events.';
     Class.listen = Class.listen || function() {
-      throw new Error(
+      JX.$E(
         this.__readable__ + '.listen(...): ' +
         error_message);
     };
     Class.invoke = Class.invoke || function() {
-      throw new Error(
+      JX.$E(
         this.__readable__ + '.invoke(...): ' +
         error_message);
     };
     proto.listen = proto.listen || function() {
-      throw new Error(
+      JX.$E(
         this.__class__.__readable__ + '.listen(...): ' +
         error_message);
     };
     proto.invoke = proto.invoke || function() {
-      throw new Error(
+      JX.$E(
         this.__class__.__readable__ + '.invoke(...): ' +
         error_message);
     };
@@ -798,6 +815,18 @@ JX.createClass = function(junk) {
 JX.install._nextObjectID = 0;
 JX.flushHoldingQueue('install', JX.install);
 
+(function() {
+  // IE does not enter this loop.
+  for (var i in {toString: 1}) {
+    return;
+  }
+
+  JX.install._enumerables = [
+    'toString', 'hasOwnProperty', 'valueOf', 'isPrototypeOf',
+    'propertyIsEnumerable', 'toLocaleString', 'constructor'
+  ];
+})();
+
 
 /**
  * @requires javelin-install
@@ -806,9 +835,13 @@ JX.flushHoldingQueue('install', JX.install);
  */
 
 /**
- * A generic event, routed by @{JX.Stratcom}. All events within Javelin are
- * represented by a {@JX.Event}, regardless of whether they originate from
- * a native DOM event (like a mouse click) or are custom application events.
+ * A generic event, routed by @{class:JX.Stratcom}. All events within Javelin
+ * are represented by a {@class:JX.Event}, regardless of whether they originate
+ * from a native DOM event (like a mouse click) or are custom application
+ * events.
+ *
+ * See @{article:Concepts: Event Delegation} for an introduction to Javelin's
+ * event delegation model.
  *
  * Events have a propagation model similar to native Javascript events, in that
  * they can be stopped with stop() (which stops them from continuing to
@@ -816,9 +849,9 @@ JX.flushHoldingQueue('install', JX.install);
  * from taking their default action, like following a link). You can do both at
  * once with kill().
  *
- * @author epriestley
  * @task stop Stopping Event Behaviors
  * @task info Getting Event Information
+ * @group event
  */
 JX.install('Event', {
   members : {
@@ -995,7 +1028,7 @@ JX.install('Event', {
   properties : {
 
     /**
-     * Native Javascript event which generated this @{JX.Event}. Not every
+     * Native Javascript event which generated this @{class:JX.Event}. Not every
      * event is generated by a native event, so there may be ##null## in
      * this field.
      *
@@ -1064,12 +1097,17 @@ JX.install('Event', {
     /**
      * @task info
      */
-    nodes : {}
+    nodes : {},
+
+    /**
+     * @task info
+     */
+    nodeDistances : {}
   },
 
   /**
-   * @{JX.Event} installs a toString() method in ##__DEV__## which allows you to
-   * log or print events and get a reasonable representation of them:
+   * @{class:JX.Event} installs a toString() method in ##__DEV__## which allows
+   * you to log or print events and get a reasonable representation of them:
    *
    *  Event<'click', ['path', 'stuff'], [object HTMLDivElement]>
    */
@@ -1111,14 +1149,13 @@ JX.install('Event', {
  * and, optionally, one or more paths. A listener will only receive events
  * which occurred on paths it is listening to. See listen() for more details.
  *
- * @author epriestley
- *
  * @task invoke   Invoking Events
  * @task listen   Listening to Events
  * @task handle   Responding to Events
  * @task sigil    Managing Sigils
  * @task meta     Managing Metadata
  * @task internal Internals
+ * @group event
  */
 JX.install('Stratcom', {
   statics : {
@@ -1164,8 +1201,8 @@ JX.install('Stratcom', {
      * objects. See @{JX.Base.invoke()} for documentation.
      *
      * @param  string       Event type.
-     * @param  list?        Optionally, a path to attach to the event. This is
-     *                      rarely meaningful for simple events.
+     * @param  string|list? Optionally, a sigil path to attach to the event.
+     *                      This is rarely meaningful for simple events.
      * @param  object?      Optionally, arbitrary data to send with the event.
      * @return @{JX.Event}  The event object which was dispatched to listeners.
      *                      The main use of this is to test whether any
@@ -1173,6 +1210,15 @@ JX.install('Stratcom', {
      * @task invoke
      */
     invoke : function(type, path, data) {
+      if (__DEV__) {
+        if (path && typeof path !== 'string' && !JX.isArray(path)) {
+          throw new Error(
+            'JX.Stratcom.invoke(...): path must be a string or an array.');
+        }
+      }
+
+      path = JX.$AX(path);
+
       return this._dispatchProxy(
         new JX.Event()
           .setType(type)
@@ -1223,24 +1269,23 @@ JX.install('Stratcom', {
      * @return object    A reference to the installed listener. You can later
      *                   remove the listener by calling this object's remove()
      *                   method.
-     * @author epriestley
      * @task listen
      */
     listen : function(types, paths, func) {
 
       if (__DEV__) {
         if (arguments.length != 3) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
         }
         if (arguments.length != 3) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments.');
         }
         if (typeof func != 'function') {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.listen(...): '+
             'callback is not a function.');
         }
@@ -1258,6 +1303,8 @@ JX.install('Stratcom', {
       } else if (!JX.isArray(paths[0])) {
         paths = [paths];
       }
+
+      var listener = { _callback : func };
 
       //  To listen to multiple event types on multiple paths, we just install
       //  the same listener a whole bunch of times: if we install for two
@@ -1284,18 +1331,18 @@ JX.install('Stratcom', {
         for (var jj = 0; jj < paths.length; ++jj) {
           var path = paths[jj];
           var id = this._handlers.length;
-          this._handlers.push(func);
+          this._handlers.push(listener);
           this._need[id] = path.length;
           ids.push(id);
           for (var kk = 0; kk < path.length; ++kk) {
             if (__DEV__) {
               if (path[kk] == 'tag:#document') {
-                throw new Error(
+                JX.$E(
                   'JX.Stratcom.listen(..., "tag:#document", ...): ' +
                   'listen for all events using null, not "tag:#document"');
               }
               if (path[kk] == 'tag:window') {
-                throw new Error(
+                JX.$E(
                   'JX.Stratcom.listen(..., "tag:window", ...): ' +
                   'listen for window events using null, not "tag:window"');
               }
@@ -1305,13 +1352,37 @@ JX.install('Stratcom', {
         }
       }
 
-      return {
-        remove : function() {
-          for (var ii = 0; ii < ids.length; ii++) {
-            delete JX.Stratcom._handlers[ids[ii]];
-          }
+      // Add a remove function to the listener
+      listener['remove'] = function() {
+        for (var ii = 0; ii < ids.length; ii++) {
+          delete JX.Stratcom._handlers[ids[ii]];
         }
-      };
+      }
+
+      return listener;
+    },
+
+
+    /**
+     * Sometimes you may be interested in removing a listener directly from it's
+     * handler. This is possible by calling JX.Stratcom.removeCurrentListener()
+     *
+     *   // Listen to only the first click on the page
+     *   JX.Stratcom.listen('click', null, function() {
+     *     // do interesting things
+     *     JX.Stratcom.removeCurrentListener();
+     *   });
+     *
+     * @task remove
+     */
+    removeCurrentListener : function() {
+      var context = this._execContext[this._execContext.length - 1];
+      var listeners = context.listeners;
+      // JX.Stratcom.pass will have incremented cursor by now
+      var cursor = context.cursor - 1;
+      if (listeners[cursor]) {
+        listeners[cursor].handler.remove();
+      }
     },
 
 
@@ -1328,10 +1399,12 @@ JX.install('Stratcom', {
     dispatch : function(event) {
       var path = [];
       var nodes = {};
-      var push = function(key, node) {
+      var distances = {};
+      var push = function(key, node, distance) {
         // we explicitly only store the first occurrence of each key
         if (!nodes.hasOwnProperty(key)) {
           nodes[key] = node;
+          distances[key] = distance;
           path.push(key);
         }
       };
@@ -1350,23 +1423,25 @@ JX.install('Stratcom', {
         target = null;
       }
 
+      var distance = 1;
       var cursor = target;
       while (cursor && cursor.getAttribute) {
-        push('tag:' + cursor.nodeName.toLowerCase(), cursor);
+        push('tag:' + cursor.nodeName.toLowerCase(), cursor, distance);
 
         var id = cursor.id;
         if (id) {
-          push('id:' + id, cursor);
+          push('id:' + id, cursor, distance);
         }
 
         var sigils = cursor.getAttribute('data-sigil');
         if (sigils) {
           sigils = sigils.split(' ');
           for (var ii = 0; ii < sigils.length; ii++) {
-            push(sigils[ii], cursor);
+            push(sigils[ii], cursor, distance);
           }
         }
 
+        ++distance;
         cursor = cursor.parentNode;
       }
 
@@ -1382,6 +1457,7 @@ JX.install('Stratcom', {
         .setType(etype)
         .setTarget(target)
         .setNodes(nodes)
+        .setNodeDistances(distances)
         .setPath(path.reverse());
 
       // Don't touch this for debugging purposes
@@ -1407,32 +1483,58 @@ JX.install('Stratcom', {
       }
 
       var path = proxy.getPath();
+      var distances = proxy.getNodeDistances();
       var len = path.length;
       var hits = {};
+      var hit_distances = {};
       var matches;
+
+      // A large number (larger than any distance we will ever encounter), but
+      // we need to do math on it in the sort function so we can't use
+      // Number.POSITIVE_INFINITY.
+      var far_away = 1000000;
 
       for (var root = -1; root < len; ++root) {
         matches = scope[(root == -1) ? this._auto : path[root]];
         if (matches) {
+          var distance = distances[path[root]] || far_away;
           for (var ii = 0; ii < matches.length; ++ii) {
-            hits[matches[ii]] = (hits[matches[ii]] || 0) + 1;
+            var match = matches[ii];
+            hits[match] = (hits[match] || 0) + 1;
+            hit_distances[match] = Math.min(
+              hit_distances[match] || distance,
+              distance
+            );
           }
         }
       }
 
-      var exec = [];
+      var listeners = [];
 
       for (var k in hits) {
         if (hits[k] == this._need[k]) {
           var handler = this._handlers[k];
           if (handler) {
-            exec.push(handler);
+            listeners.push({
+              distance: hit_distances[k],
+              handler: handler
+            });
           }
         }
       }
 
+      // Sort listeners by matched sigil closest to the target node
+      // Listeners with the same closest sigil are called in an undefined order
+      listeners.sort(function(a, b) {
+        if (__DEV__) {
+          // Make sure people play by the rules. >:)
+          return (a.distance - b.distance) || (Math.random() - 0.5);
+        }
+        return a.distance - b.distance;
+      });
+
       this._execContext.push({
-        handlers: exec,
+        listeners: listeners,
         event: proxy,
         cursor: 0
       });
@@ -1443,6 +1545,7 @@ JX.install('Stratcom', {
 
       return proxy;
     },
+
 
     /**
      * Pass on an event, allowing other handlers to process it. The use case
@@ -1466,11 +1569,11 @@ JX.install('Stratcom', {
     pass : function() {
       var context = this._execContext[this._execContext.length - 1];
       var event = context.event;
-      var handlers = context.handlers;
-      while (context.cursor < handlers.length) {
+      var listeners = context.listeners;
+      while (context.cursor < listeners.length) {
         var cursor = context.cursor++;
-        if (handlers[cursor]){
-          handlers[cursor](event);
+        if (listeners[cursor]) {
+          listeners[cursor].handler._callback(event);
         }
         if (event.getStopped()) {
           break;
@@ -1526,7 +1629,7 @@ JX.install('Stratcom', {
     hasSigil : function(node, sigil) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.hasSigil(<non-element>, ...): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have sigils.');
@@ -1549,7 +1652,7 @@ JX.install('Stratcom', {
     addSigil: function(node, sigil) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.addSigil(<non-element>, ...): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have sigils.');
@@ -1578,7 +1681,7 @@ JX.install('Stratcom', {
     getData : function(node) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.getData(<non-element>): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have data.');
@@ -1616,13 +1719,13 @@ JX.install('Stratcom', {
     addData : function(node, data) {
       if (__DEV__) {
         if (!node || !node.getAttribute) {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.addData(<non-element>, ...): ' +
             'node is not an element. Most likely, you\'re passing window or ' +
             'document, which are not elements and can\'t have sigils.');
         }
         if (!data || typeof data != 'object') {
-          throw new Error(
+          JX.$E(
             'JX.Stratcom.addData(..., <nonobject>): ' +
             'data to attach to node is not an object. You must use ' +
             'objects, not primitives, for metadata.');
@@ -1672,19 +1775,31 @@ JX.install('Stratcom', {
 JX.behavior = function(name, control_function) {
   if (__DEV__) {
     if (JX.behavior._behaviors.hasOwnProperty(name)) {
-      throw new Error(
-        'JX.behavior("'+name+'", ...): '+
+      JX.$E(
+        'JX.behavior("' + name + '", ...): '+
         'behavior is already registered.');
     }
     if (!control_function) {
-      throw new Error(
-        'JX.behavior("'+name+'", <nothing>): '+
+      JX.$E(
+        'JX.behavior("' + name + '", <nothing>): '+
         'initialization function is required.');
     }
     if (typeof control_function != 'function') {
-      throw new Error(
-        'JX.behavior("'+name+'", <garbage>): '+
+      JX.$E(
+        'JX.behavior("' + name + '", <garbage>): ' +
         'initialization function is not a function.');
+    }
+    // IE does not enumerate over these properties
+    var enumerables = [
+      'toString', 'hasOwnProperty', 'valueOf', 'isPrototypeOf',
+      'propertyIsEnumerable', 'toLocaleString', 'constructor'
+    ];
+    if (~enumerables.indexOf(name)) {
+      JX.$E(
+        'JX.behavior("' + name + '", <garbage>): ' +
+        'do not use any of these properties as behaviors: ' +
+        enumerables.join(', ')
+      );
     }
   }
   JX.behavior._behaviors[name] = control_function;
@@ -1707,13 +1822,11 @@ JX.behavior = function(name, control_function) {
  * @group behavior
  */
 JX.initBehaviors = function(map) {
+  var missing_behaviors = [];
   for (var name in map) {
-    if (__DEV__) {
-      if (!(name in JX.behavior._behaviors)) {
-        throw new Error(
-          'JX.initBehavior({"'+name+'" : ...}): ' +
-          'behavior is not registered.');
-      }
+    if (!(name in JX.behavior._behaviors)) {
+      missing_behaviors.push(name);
+      continue;
     }
     var configs = map[name];
     if (!configs.length) {
@@ -1726,6 +1839,12 @@ JX.initBehaviors = function(map) {
       JX.behavior._behaviors[name](configs[ii], JX.behavior._statics[name]);
     }
     JX.behavior._initialized[name] = true;
+  }
+  if (missing_behaviors.length) {
+    JX.$E(
+      'JX.initBehavior(map): behavior(s) not registered: ' +
+      missing_behaviors.join(', ')
+    );
   }
 };
 
@@ -1747,6 +1866,8 @@ JX.flushHoldingQueue('behavior', JX.behavior);
 
 /**
  * Make basic AJAX XMLHTTPRequests.
+ *
+ * @group workflow
  */
 JX.install('Request', {
   construct : function(uri, handler) {
@@ -1787,7 +1908,7 @@ JX.install('Request', {
     send : function() {
       if (this._sent) {
         if (__DEV__) {
-          throw new Error(
+          JX.$E(
             'JX.Request.send(): '+
             'attempting to send a Request that has already been sent.');
         }
@@ -1813,7 +1934,7 @@ JX.install('Request', {
       }
 
       if (this.getTimeout()) {
-        this._timer = JX.defer(
+        this._timer = setTimeout(
           JX.bind(
             this,
             this._fail,
@@ -1830,12 +1951,12 @@ JX.install('Request', {
       if (__DEV__) {
         if (this.getFile()) {
           if (method != 'POST') {
-            throw new Error(
+            JX.$E(
               'JX.Request.send(): ' +
               'attempting to send a file over GET. You must use POST.');
           }
           if (this._data) {
-            throw new Error(
+            JX.$E(
               'JX.Request.send(): ' +
               'attempting to send data and a file. You can not send both ' +
               'at once.');
@@ -1867,6 +1988,7 @@ JX.install('Request', {
 
     _onreadystatechange : function() {
       var xport = this.getTransport();
+      var response;
       try {
         if (this._finished) {
           return;
@@ -1883,19 +2005,29 @@ JX.install('Request', {
 
         if (__DEV__) {
           if (!xport.responseText.length) {
-            throw new Error(
+            JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an empty response.');
           }
           if (xport.responseText.indexOf('for (;;);') != 0) {
-            throw new Error(
+            JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an invalid response.');
+          }
+          if (xport.responseText == 'for (;;);') {
+            JX.$E(
+              'JX.Request("'+this.getURI()+'", ...): '+
+              'server returned an empty response.');
           }
         }
 
         var text = xport.responseText.substring('for (;;);'.length);
-        var response = JX.JSON.parse(text);
+        response = JX.JSON.parse(text);
+        if (!response) {
+          JX.$E(
+            'JX.Request("'+this.getURI()+'", ...): '+
+            'server returned an invalid response.');
+        }
       } catch (exception) {
 
         if (__DEV__) {
@@ -1919,9 +2051,9 @@ JX.install('Request', {
         }
       } catch (exception) {
         //  In Firefox+Firebug, at least, something eats these. :/
-        JX.defer(function() {
+        setTimeout(function() {
           throw exception;
-        });
+        }, 0);
       }
     },
 
@@ -1947,7 +2079,8 @@ JX.install('Request', {
 
     _cleanup : function() {
       this._finished = true;
-      this._timer && this._timer.stop();
+      clearTimeout(this._timer);
+      this._timer = null;
       this._transport.abort();
     },
 
@@ -2249,7 +2382,7 @@ JX.install('Vector', {
         x += node.offsetLeft;
         y += node.offsetTop;
         node = node.offsetParent;
-      } while (node.offsetParent && (node.offsetParent != document.body))
+      } while (node && node != document.body);
 
       return new JX.Vector(x, y);
     },
@@ -2385,7 +2518,8 @@ JX.install('Vector', {
  *   LANG=HTML
  *   <div id="some_id">...</div>
  *
- * If the specified node does not exist, @{JX.$()} will throw ##JX.$.NotFound##.
+ * If the specified node does not exist, @{JX.$()} will throw an exception.
+ *
  * For other ways to select nodes from the document, see @{JX.DOM.scry()} and
  * @{JX.DOM.find()}.
  *
@@ -2398,7 +2532,7 @@ JX.$ = function(id) {
 
   if (__DEV__) {
     if (!id) {
-      throw new Error('Empty ID passed to JX.$()!');
+      JX.$E('Empty ID passed to JX.$()!');
     }
   }
 
@@ -2406,7 +2540,7 @@ JX.$ = function(id) {
   if (!node || (node.id != id)) {
     if (__DEV__) {
       if (node && (node.id != id)) {
-        throw new Error(
+        JX.$E(
           'JX.$("'+id+'"): '+
           'document.getElementById() returned an element without the '+
           'correct ID. This usually means that the element you are trying '+
@@ -2414,20 +2548,11 @@ JX.$ = function(id) {
           '"name" attribute.');
       }
     }
-    throw JX.$.NotFound;
+    JX.$E("JX.$('" + id + "') call matched no nodes.");
   }
 
   return node;
 };
-
-JX.$.NotFound = {};
-if (__DEV__) {
-  //  If we're in dev, upgrade this object into an Error so that it will
-  //  print something useful if it escapes the stack after being thrown.
-  JX.$.NotFound = new Error(
-    'JX.$() or JX.DOM.find() call matched no nodes.');
-}
-
 
 /**
  * Upcast a string into an HTML object so it is treated as markup instead of
@@ -2442,7 +2567,10 @@ if (__DEV__) {
  * the edge cases are crazy and you should always be reasonably able to emit
  * a cohesive tag instead of an unappendable fragment.
  *
- * You may use @{JX.$H} as a shortcut for creating new JX.HTML instances.
+ * You may use @{JX.$H} as a shortcut for creating new JX.HTML instances:
+ *
+ *   JX.$N('div', {}, some_html_blob); // Treat as string (safe)
+ *   JX.$N('div', {}, JX.$H(some_html_blob)); // Treat as HTML (unsafe!)
  *
  * @task build String into HTML
  * @task nodes HTML into Nodes
@@ -2458,7 +2586,7 @@ JX.install('HTML', {
       var evil_stuff = new RegExp('^\\s*<(' + tags.join('|') + ')\\b', 'i');
       var match = null;
       if (match = str.match(evil_stuff)) {
-        throw new Error(
+        JX.$E(
           'new JX.HTML("<' + match[1] + '>..."): ' +
           'call initializes an HTML object with an invalid partial fragment ' +
           'and can not be converted into DOM nodes. The enclosing tag of an ' +
@@ -2468,7 +2596,7 @@ JX.install('HTML', {
 
       var really_evil = /<script\b/;
       if (str.match(really_evil)) {
-        throw new Error(
+        JX.$E(
           'new JX.HTML("...<script>..."): ' +
           'call initializes an HTML object with an embedded script tag! ' +
           'Are you crazy?! Do NOT do this!!!');
@@ -2476,16 +2604,16 @@ JX.install('HTML', {
 
       var wont_work = /<object\b/;
       if (str.match(wont_work)) {
-        throw new Error(
+        JX.$E(
           'new JX.HTML("...<object>..."): ' +
           'call initializes an HTML object with an embedded <object> tag. IE ' +
           'will not do the right thing with this.');
       }
 
-      //  TODO(epriestley): May need to deny <option> more broadly, see
-      //  http://support.microsoft.com/kb/829907 and the whole mess in the
-      //  heavy stack. But I seem to have gotten away without cloning into the
-      //  documentFragment below, so this may be a nonissue.
+      // TODO(epriestley): May need to deny <option> more broadly, see
+      // http://support.microsoft.com/kb/829907 and the whole mess in the
+      // heavy stack. But I seem to have gotten away without cloning into the
+      // documentFragment below, so this may be a nonissue.
     }
 
     this._content = str;
@@ -2505,9 +2633,9 @@ JX.install('HTML', {
       wrapper.innerHTML = this._content;
       var fragment = document.createDocumentFragment();
       while (wrapper.firstChild) {
-        //  TODO(epriestley): Do we need to do a bunch of cloning junk here?
-        //  See heavy stack. I'm disconnecting the nodes instead; this seems
-        //  to work but maybe my test case just isn't extensive enough.
+        // TODO(epriestley): Do we need to do a bunch of cloning junk here?
+        // See heavy stack. I'm disconnecting the nodes instead; this seems
+        // to work but maybe my test case just isn't extensive enough.
         fragment.appendChild(wrapper.removeChild(wrapper.firstChild));
       }
       return fragment;
@@ -2596,7 +2724,7 @@ JX.$H = function(str) {
  * @{JX.HTML} for discussion.
  *
  * You can create new nodes with a Javelin sigil (and, optionally, metadata) by
- * providing "sigil" and "metadata" keys in the attribute dictionary.
+ * providing "sigil" and "meta" keys in the attribute dictionary.
  *
  * @param string                  Tag name, like 'a' or 'div'.
  * @param dict|string|@{JX.HTML}? Property dictionary, or content if you don't
@@ -2618,7 +2746,7 @@ JX.$N = function(tag, attr, content) {
 
   if (__DEV__) {
     if (tag.toLowerCase() != tag) {
-      throw new Error(
+      JX.$E(
         '$N("'+tag+'", ...): '+
         'tag name must be in lower case; '+
         'use "'+tag.toLowerCase()+'", not "'+tag+'".');
@@ -2644,7 +2772,7 @@ JX.$N = function(tag, attr, content) {
 
   if (__DEV__) {
     if (('metadata' in attr) || ('data' in attr)) {
-      throw new Error(
+      JX.$E(
         '$N(' + tag + ', ...): ' +
         'use the key "meta" to specify metadata, not "data" or "metadata".');
     }
@@ -2665,6 +2793,7 @@ JX.$N = function(tag, attr, content) {
  * @task stratcom Attaching Event Listeners
  * @task content Changing DOM Content
  * @task nodes Updating Nodes
+ * @task serialize Serializing Forms
  * @task test Testing DOM Properties
  * @task convenience Convenience Methods
  * @task query Finding Nodes in the DOM
@@ -2677,13 +2806,25 @@ JX.install('DOM', {
     _autoid : 0,
     _metrics : {},
 
+
+/* -(  Changing DOM Content  )----------------------------------------------- */
+
+
     /**
+     * Set the content of some node. This uses the same content semantics as
+     * other Javelin content methods, see @{function:JX.$N} for a detailed
+     * explanation. Previous content will be replaced: you can also
+     * @{method:prependContent} or @{method:appendContent}.
+     *
+     * @param Node  Node to set content of.
+     * @param mixed Content to set.
+     * @return void
      * @task content
      */
     setContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.setContent(<yuck>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -2697,28 +2838,42 @@ JX.install('DOM', {
 
 
     /**
+     * Prepend content to some node. This method uses the same content semantics
+     * as other Javelin methods, see @{function:JX.$N} for an explanation. You
+     * can also @{method:setContent} or @{method:appendContent}.
+     *
+     * @param Node  Node to prepend content to.
+     * @param mixed Content to prepend.
+     * @return void
      * @task content
      */
     prependContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.prependContent(<junk>, ...): '+
             'first argument must be a DOM node.');
         }
       }
 
-      this._insertContent(node, content, this._mechanismPrepend);
+      this._insertContent(node, content, this._mechanismPrepend, true);
     },
 
 
     /**
+     * Append content to some node. This method uses the same content semantics
+     * as other Javelin methods, see @{function:JX.$N} for an explanation. You
+     * can also @{method:setContent} or @{method:prependContent}.
+     *
+     * @param Node Node to append the content of.
+     * @param mixed Content to append.
+     * @return void
      * @task content
      */
     appendContent : function(node, content) {
       if (__DEV__) {
         if (!JX.DOM.isNode(node)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.appendContent(<bleh>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -2729,6 +2884,11 @@ JX.install('DOM', {
 
 
     /**
+     * Internal, add content to a node by prepending.
+     *
+     * @param Node  Node to prepend content to.
+     * @param Node  Node to prepend.
+     * @return void
      * @task content
      */
     _mechanismPrepend : function(node, content) {
@@ -2737,6 +2897,10 @@ JX.install('DOM', {
 
 
     /**
+     * Internal, add content to a node by appending.
+     *
+     * @param Node  Node to append content to.
+     * @param Node  Node to append.
      * @task content
      */
     _mechanismAppend : function(node, content) {
@@ -2745,28 +2909,55 @@ JX.install('DOM', {
 
 
     /**
+     * Internal, add content to a node using some specified mechanism.
+     *
+     * @param Node      Node to add content to.
+     * @param mixed     Content to add.
+     * @param function  Callback for actually adding the nodes.
+     * @param bool      True if array elements should be passed to the mechanism
+     *                  in reverse order, i.e. the mechanism prepends nodes.
+     * @return void
      * @task content
      */
-    _insertContent : function(parent, content, mechanism) {
-      if (content == null) {
-        return;
-      }
-      if (content instanceof JX.HTML) {
-        content = content.getFragment();
-      }
+    _insertContent : function(parent, content, mechanism, reverse) {
       if (JX.isArray(content)) {
-        for (var ii = 0; ii < content.length; ii++) {
-          this._insertContent(parent, content[ii], mechanism);
+        if (reverse) {
+          content = [].concat(content).reverse();
         }
-      } else if (content.nodeType) {
-        mechanism(parent, content);
+        for (var ii = 0; ii < content.length; ii++) {
+          JX.DOM._insertContent(parent, content[ii], mechanism, reverse);
+        }
       } else {
-        mechanism(parent, document.createTextNode(content));
+        var type = typeof content;
+        if (content instanceof JX.HTML) {
+          content = content.getFragment();
+        } else if (type == 'string' || type == 'number') {
+          content = document.createTextNode(content);
+        }
+
+        if (__DEV__) {
+          if (content && !content.nodeType) {
+            JX.$E(
+              'JX.DOM._insertContent(<node>, ...): '+
+              'second argument must be a string, a number, ' +
+              'a DOM node or a JX.HTML instance');
+          }
+        }
+
+        content && mechanism(parent, content);
       }
     },
 
 
+/* -(  Updating Nodes  )----------------------------------------------------- */
+
+
     /**
+     * Remove a node from its parent, so it is no longer a child of any other
+     * node.
+     *
+     * @param Node Node to remove.
+     * @return Node The node.
      * @task nodes
      */
     remove : function(node) {
@@ -2776,12 +2967,20 @@ JX.install('DOM', {
 
 
     /**
+     * Replace a node with some other piece of content. This method obeys
+     * Javelin content semantics, see @{function:JX.$N} for an explanation.
+     * You can also @{method:setContent}, @{method:prependContent}, or
+     * @{method:appendContent}.
+     *
+     * @param Node Node to replace.
+     * @param mixed Content to replace it with.
+     * @return Node the original node.
      * @task nodes
      */
     replace : function(node, replacement) {
       if (__DEV__) {
         if (!node.parentNode) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.replace(<node>, ...): '+
             'node has no parent node, so it can not be replaced.');
         }
@@ -2803,18 +3002,7 @@ JX.install('DOM', {
     },
 
 
-    /**
-     * Retrieve the nearest parent node matching the desired sigil.
-     * @param  Node The child element to search from
-     * @return  The matching parent or null if no parent could be found
-     * @author jgabbard
-     */
-    nearest : function(node, sigil) {
-      while (node && node.getAttribute && !JX.Stratcom.hasSigil(node, sigil)) {
-        node = node.parentNode;
-      }
-      return node;
-    },
+/* -(  Serializing Froms  )-------------------------------------------------- */
 
 
     /**
@@ -2826,6 +3014,7 @@ JX.install('DOM', {
      *
      * @param   Node  The form element to convert into a list of pairs.
      * @return  List  A list of <name, value> pairs.
+     * @task serialize
      */
     convertFormToListOfPairs : function(form) {
       var elements = form.getElementsByTagName('*');
@@ -2855,6 +3044,7 @@ JX.install('DOM', {
      *
      * @param   Node  The form element to convert into a dictionary.
      * @return  Dict  A dictionary of form values.
+     * @task serialize
      */
     convertFormToDictionary : function(form) {
       var data = {};
@@ -2866,12 +3056,15 @@ JX.install('DOM', {
     },
 
 
+/* -(  Testing DOM Properties  )--------------------------------------------- */
+
+
     /**
      * Test if an object is a valid Node.
      *
-     * @task test
      * @param wild Something which might be a Node.
      * @return bool True if the parameter is a DOM node.
+     * @task test
      */
     isNode : function(node) {
       return !!(node && node.nodeName && (node !== window));
@@ -2885,11 +3078,11 @@ JX.install('DOM', {
      *
      *   JX.DOM.isType(node, ['input', 'select', 'textarea']);
      *
-     * @task    test
      * @param   wild        Something which might be a Node.
      * @param   string|list One or more tags which you want to test for.
      * @return  bool        True if the object is a node, and it's a node of one
      *                      of the provided types.
+     * @task    test
      */
     isType : function(node, of_type) {
       node = ('' + (node.nodeName || '')).toUpperCase();
@@ -2901,6 +3094,7 @@ JX.install('DOM', {
       }
       return false;
     },
+
 
     /**
      * Listen for events occuring beneath a specific node in the DOM. This is
@@ -2929,7 +3123,7 @@ JX.install('DOM', {
           var t = types[ix];
 
           if (!(t in JX.__allowedEvents)) {
-            throw new Error(
+            JX.$E(
               'JX.DOM.listen(...): ' +
               'can only listen to events registered in init.js. "' +
                t + '" not found.');
@@ -2950,16 +3144,16 @@ JX.install('DOM', {
     },
 
     uniqID : function(node) {
-      if (!node.id) {
-        node.id = 'autoid_'+(++JX.DOM._autoid);
+      if (!node.getAttribute('id')) {
+        node.setAttribute('id', 'autoid_'+(++JX.DOM._autoid));
       }
-      return node.id;
+      return node.getAttribute('id');
     },
 
     alterClass : function(node, className, add) {
       if (__DEV__) {
         if (add !== false && add !== true) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.alterClass(...): ' +
             'expects the third parameter to be Boolean: ' +
             add + ' was provided');
@@ -2997,7 +3191,7 @@ JX.install('DOM', {
       if (__DEV__) {
         for (var ii = 0; ii < arguments.length; ++ii) {
           if (!arguments[ii]) {
-            throw new Error(
+            JX.$E(
               'JX.DOM.show(...): ' +
               'one or more arguments were null or empty.');
           }
@@ -3022,7 +3216,7 @@ JX.install('DOM', {
       if (__DEV__) {
         for (var ii = 0; ii < arguments.length; ++ii) {
           if (!arguments[ii]) {
-            throw new Error(
+            JX.$E(
               'JX.DOM.hide(...): ' +
               'one or more arguments were null or empty.');
           }
@@ -3069,7 +3263,7 @@ JX.install('DOM', {
     scry : function(root, tagname, sigil) {
       if (__DEV__) {
         if (!JX.DOM.isNode(root)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.scry(<yuck>, ...): '+
             'first argument must be a DOM node.');
         }
@@ -3091,8 +3285,7 @@ JX.install('DOM', {
 
     /**
      * Select a node uniquely identified by a root, tagname and sigil. This
-     * is similar to JX.DOM.scry() but expects exactly one result. It will
-     * throw JX.$.NotFound if it matches no results.
+     * is similar to JX.DOM.scry() but expects exactly one result.
      *
      * @task query
      *
@@ -3105,7 +3298,7 @@ JX.install('DOM', {
     find : function(root, tagname, sigil) {
       if (__DEV__) {
         if (!JX.DOM.isNode(root)) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.find(<glop>, "'+tagname+'", "'+sigil+'"): '+
             'first argument must be a DOM node.');
         }
@@ -3115,14 +3308,15 @@ JX.install('DOM', {
 
       if (__DEV__) {
         if (result.length > 1) {
-          throw new Error(
+          JX.$E(
             'JX.DOM.find(<node>, "'+tagname+'", "'+sigil+'"): '+
             'matched more than one node.');
         }
       }
 
       if (!result.length) {
-        throw JX.$.NotFound;
+        JX.$E('JX.DOM.find(<node>, "' +
+          tagname + '", "' + sigil + '"): '+ 'matched no nodes.');
       }
 
       return result[0];
@@ -3159,19 +3353,52 @@ JX.install('DOM', {
 /**
  * Simple JSON serializer.
  *
- * @requires javelin-install javelin-util
+ * @requires javelin-install
  * @provides javelin-json
  * @javelin
  */
 
+/**
+ * JSON serializer and parser. This class uses the native JSON parser if it is
+ * available; if not, it provides an eval-based parser and a simple serializer.
+ *
+ * NOTE: This class uses eval() on some systems, without sanitizing input. It is
+ * not safe to use with untrusted data. Javelin does not provide a library
+ * suitable for parsing untrusted JSON.
+ *
+ * Usage is straightforward:
+ *
+ *    JX.JSON.stringify({"bees":"knees"}); // Returns string: '{"bees":"knees"}'
+ *    JX.JSON.parse('{"bees":"knees"}');   // Returns object: {"bees":"knees"}
+ *
+ * @task json      JSON Manipulation
+ * @task internal  Internal
+ * @group util
+ */
 JX.install('JSON', {
   statics : {
+
+
+/* -(  JSON Manipulation  )-------------------------------------------------- */
+
+
+    /**
+     * Parse a **trusted** JSON string into an object. Accepts a valid JSON
+     * string and returns the object it encodes.
+     *
+     * NOTE: This method does not sanitize input and uses an eval-based parser
+     * on some systems. It is **NOT SAFE** to use with untrusted inputs.
+     *
+     * @param   string A valid, trusted JSON string.
+     * @return  object The object encoded by the JSON string.
+     * @task json
+     */
     parse : function(data) {
-      if (typeof data != 'string'){
+      if (typeof data != 'string') {
         return null;
       }
 
-      if (JSON && JSON.parse) {
+      if (window.JSON && JSON.parse) {
         var obj;
         try {
           obj = JSON.parse(data);
@@ -3181,22 +3408,22 @@ JX.install('JSON', {
 
       return eval('(' + data + ')');
     },
-    stringify : function(obj) {
-      if (__DEV__) {
-        try {
-          return JX.JSON._stringify(obj);
-        } catch (x) {
-          JX.log(
-            'JX.JSON.serialize(...): '+
-            'caught exception while serializing object. ('+x+')');
-        }
-      } else {
-        return JX.JSON._stringify(obj);
-      }
-    },
 
-    _stringify : function(val) {
-      if (JSON && JSON.stringify) { return JSON.stringify(val); }
+    /**
+     * Serialize an object into a JSON string. Accepts an object comprised of
+     * maps, lists and scalars and transforms it into a JSON representation.
+     * This method has undefined behavior if you pass in other complicated
+     * things, e.g. object graphs containing cycles, document.body, or Date
+     * objects.
+     *
+     * @param   object  An object comprised of maps, lists and scalars.
+     * @return  string  JSON representation of the object.
+     * @task json
+     */
+    stringify : function(val) {
+      if (window.JSON && JSON.stringify) {
+        return JSON.stringify(val);
+      }
 
       var out = [];
       if (
@@ -3206,10 +3433,14 @@ JX.install('JSON', {
       }
 
       if (val.push && val.pop) {
+        var v;
         for (var ii = 0; ii < val.length; ii++) {
-          if (typeof val[ii] != 'undefined') {
-            out.push(JX.JSON._stringify(val[ii]));
-          }
+
+          // For consistency with JSON.stringify(), encode undefined array
+          // indices as null.
+          v = (typeof val[ii] == 'undefined') ? null : val[ii];
+
+          out.push(JX.JSON.stringify(v));
         }
         return '[' + out.join(',') + ']';
       }
@@ -3219,14 +3450,19 @@ JX.install('JSON', {
       }
 
       for (var k in val) {
-        out.push(JX.JSON._esc(k) + ':' + JX.JSON._stringify(val[k]));
+        out.push(JX.JSON._esc(k) + ':' + JX.JSON.stringify(val[k]));
       }
       return '{' + out.join(',') + '}';
     },
 
+
+/* -(  Internal  )----------------------------------------------------------- */
+
+
     // Lifted more or less directly from Crockford's JSON2.
     _escexp : /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
 
+    // List of control character escape codes.
     _meta : {
       '\b' : '\\b',
       '\t' : '\\t',
@@ -3237,6 +3473,15 @@ JX.install('JSON', {
       '\\' : '\\\\'
     },
 
+    /**
+     * Quote and escape a string for inclusion in serialized JSON. Finds
+     * characters in the string which need to be escaped and uses
+     * @{method:_replace} to escape them.
+     *
+     * @param string Unescaped string.
+     * @return string Escaped string.
+     * @task internal
+     */
     _esc : function(str) {
       JX.JSON._escexp.lastIndex = 0;
       return JX.JSON._escexp.test(str) ?
@@ -3244,13 +3489,20 @@ JX.install('JSON', {
         '"' + str + '"';
     },
 
+    /**
+     * Helper callback for @{method:_esc}, escapes characters which can't be
+     * represented normally in serialized JSON.
+     *
+     * @param string Unescaped character.
+     * @return string Escaped character.
+     * @task internal
+     */
     _replace : function(m) {
       if (m in JX.JSON._meta) {
         return JX.JSON._meta[m];
       }
       return '\\u' + (('0000' + m.charCodeAt(0).toString(16)).slice(-4));
     }
-
   }
 });
 
@@ -3320,7 +3572,6 @@ JX.install('URI', {
 
       return kv_pairs.join('&');
     }
-
   },
 
   /**
@@ -3340,12 +3591,13 @@ JX.install('URI', {
       // parse the url
       var result = JX.URI._uriPattern.exec(uri);
 
-      this.setProtocol(result[1]);
-      this.setDomain(result[2]);
-      this.setPort(result[3]);
+      // fallback to undefined because IE has weird behavior otherwise
+      this.setProtocol(result[1] || undefined);
+      this.setDomain(result[2] || undefined);
+      this.setPort(result[3] || undefined);
       var path = result[4];
       var query = result[5];
-      this.setFragment(result[6]);
+      this.setFragment(result[6] || undefined);
 
       // parse the path
       this.setPath(path.charAt(0) == '/' ? path : '/' + path);
@@ -3365,7 +3617,6 @@ JX.install('URI', {
 
   properties : {
     protocol: undefined,
-    domain: undefined,
     port: undefined,
     path: undefined,
     queryParams: undefined,
@@ -3374,6 +3625,7 @@ JX.install('URI', {
   },
 
   members : {
+    _domain: undefined,
 
     /**
      * Append and override query data values
@@ -3401,10 +3653,36 @@ JX.install('URI', {
       return this.addQueryParams(map);
     },
 
+    /**
+     * Set the domain
+     *
+     * This function checks the domain name to ensure that it is safe for
+     * browser consumption.
+     */
+    setDomain : function(domain) {
+      var re = new RegExp(
+        // For the bottom 128 code points, we use a strict whitelist of
+        // characters that are allowed by all browsers: -.0-9:A-Z[]_a-z
+        '[\\x00-\\x2c\\x2f\\x3b-\\x40\\x5c\\x5e\\x60\\x7b-\\x7f' +
+        // In IE, these chararacters cause problems when entity-encoded.
+        '\\uFDD0-\\uFDEF\\uFFF0-\\uFFFF' +
+        // In Safari, these characters terminate the hostname.
+        '\\u2047\\u2048\\uFE56\\uFE5F\\uFF03\\uFF0F\\uFF1F]');
+      if (re.test(domain)) {
+        JX.$E('JX.URI.setDomain(...): invalid domain specified.');
+      }
+      this._domain = domain;
+      return this;
+    },
+
+    getDomain : function() {
+      return this._domain;
+    },
+
     toString : function() {
       if (__DEV__) {
         if (this.getPath() && this.getPath().charAt(0) != '/') {
-          throw new Error(
+          JX.$E(
             'JX.URI.toString(): ' +
             'Path does not begin with a "/" which means this URI will likely' +
             'be malformed. Ensure any string passed to .setPath() leads "/"');

@@ -132,6 +132,7 @@
     'mouseup',
     'keyup',
     'keydown',
+    'input',
     'drop',
     'dragenter',
     'dragleave',
@@ -173,6 +174,7 @@
     'resize',
     'focus',
     'blur',
+    'popstate',
     'hashchange'
   ];
 

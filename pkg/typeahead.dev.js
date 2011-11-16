@@ -32,6 +32,7 @@
  * @task start        Activating a Typeahead
  * @task control      Controlling Typeaheads from Javascript
  * @task internal     Internal Methods
+ * @group control
  */
 JX.install('Typeahead', {
   /**
@@ -69,7 +70,7 @@ JX.install('Typeahead', {
 
     this._listener = JX.DOM.listen(
       this._control,
-      ['focus', 'blur', 'keypress', 'keydown'],
+      ['focus', 'blur', 'keypress', 'keydown', 'input'],
       null,
       JX.bind(this, this.handleEvent));
 
@@ -104,20 +105,7 @@ JX.install('Typeahead', {
      *
      * @task config
      */
-    allowNullSelection : true,
-
-    /**
-     * Function. Allows you to reconfigure the Typeahead's normalizer, which is
-     * @{JX.TypeaheadNormalizer} by default. The normalizer is used to convert
-     * user input into strings suitable for matching, e.g. by lowercasing all
-     * input and removing punctuation. See @{JX.TypeaheadNormalizer} for more
-     * details. Any replacement function should accept an arbitrary user-input
-     * string and emit a normalized string suitable for tokenization and
-     * matching.
-     *
-     * @task config
-     */
-    normalizer : null
+    allowNullSelection : true
   },
 
   members : {
@@ -198,8 +186,7 @@ JX.install('Typeahead', {
       this._changeFocus(Number.NEGATIVE_INFINITY);
       this._display = [];
       this._moused = false;
-      JX.DOM.setContent(this._root, '');
-      JX.DOM.remove(this._root);
+      JX.DOM.hide(this._root);
     },
 
 
@@ -223,7 +210,10 @@ JX.install('Typeahead', {
         var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
         d.setPos(this._root);
-        this._hardpoint.appendChild(this._root);
+        if (this._root.parentNode !== this._hardpoint) {
+          this._hardpoint.appendChild(this._root);
+        }
+        JX.DOM.show(this._root);
       } else {
         this.hide();
       }
@@ -382,13 +372,13 @@ JX.install('Typeahead', {
 
       // We need to defer because the keystroke won't be present in the input's
       // value field yet.
-      JX.defer(JX.bind(this, function() {
+      setTimeout(JX.bind(this, function() {
         if (this._value == this._control.value) {
           // The typeahead value hasn't changed.
           return;
         }
         this.refresh();
-      }));
+      }), 0);
     },
 
     /**
@@ -429,12 +419,22 @@ JX.install('Typeahead', {
  * @javelin
  */
 
+/**
+ * @group control
+ */
 JX.install('TypeaheadNormalizer', {
   statics : {
+    /**
+     * Normalizes a string by lowercasing it and stripping out extra spaces
+     * and punctuation.
+     *
+     * @param string
+     * @return string Normalized string.
+     */
     normalize : function(str) {
       return ('' + str)
-        .toLowerCase()
-        .replace(/[^a-z0-9 ]/g, '')
+        .toLocaleLowerCase()
+        .replace(/[\.,-\/#!$%\^&\*;:{}=\-_`~()]/g, '')
         .replace(/ +/g, ' ')
         .replace(/^\s*|\s*$/g, '');
     }
@@ -451,6 +451,9 @@ JX.install('TypeaheadNormalizer', {
  * @javelin
  */
 
+/**
+ * @group control
+ */
 JX.install('TypeaheadSource', {
   construct : function() {
     this._raw = {};
@@ -474,6 +477,14 @@ JX.install('TypeaheadSource', {
      * @param function
      */
     normalizer : null,
+
+    /**
+     * If a typeahead query should be processed before being normalized and
+     * tokenized, specify a queryExtractor.
+     *
+     * @param function
+     */
+    queryExtractor : null,
 
     /**
      * Transformers convert data from a wire format to a runtime format. The
@@ -511,7 +522,6 @@ JX.install('TypeaheadSource', {
   members : {
     _raw : null,
     _lookup : null,
-    _normalizer : null,
 
     bindToTypeahead : function(typeahead) {
       typeahead.listen('change', JX.bind(this, this.didChange));
@@ -581,6 +591,10 @@ JX.install('TypeaheadSource', {
       var matched = {};
       var seen = {};
 
+      var query_extractor = this.getQueryExtractor();
+      if (query_extractor) {
+        value = query_extractor(value);
+      }
       var t = this.tokenize(value);
 
       // Sort tokens by longest-first. We match each name fragment with at
@@ -653,7 +667,7 @@ JX.install('TypeaheadSource', {
     },
 
     normalize : function(str) {
-      return (this.getNormalizer() || JX.bag())(str);
+      return this.getNormalizer()(str);
     },
     tokenize : function(str) {
       str = this.normalize(str);
@@ -691,6 +705,8 @@ JX.install('TypeaheadSource', {
  * URI. This is appropriate if the total data size is small (up to perhaps a
  * few thousand items). If you have more items so you can't ship them down to
  * the client in one repsonse, use @{JX.TypeaheadOnDemandSource}.
+ *
+ * @group control
  */
 JX.install('TypeaheadPreloadedSource', {
 
@@ -748,6 +764,9 @@ JX.install('TypeaheadPreloadedSource', {
  * @javelin
  */
 
+/**
+ * @group control
+ */
 JX.install('TypeaheadOnDemandSource', {
 
   extend : 'TypeaheadSource',
@@ -780,16 +799,17 @@ JX.install('TypeaheadOnDemandSource', {
     haveData : null,
 
     didChange : function(value) {
-      this.lastChange = new Date().getTime();
+      this.lastChange = JX.now();
       value = this.normalize(value);
 
       if (this.haveData[value]) {
         this.matchResults(value);
       } else {
         this.waitForResults();
-        JX.defer(
+        setTimeout(
           JX.bind(this, this.sendRequest, this.lastChange, value),
-          this.getQueryDelay());
+          this.getQueryDelay()
+        );
       }
     },
 
@@ -852,6 +872,8 @@ JX.install('TypeaheadOnDemandSource', {
  *
  * If you do this correctly, the input should suggest items and enter them as
  * tokens as the user types.
+ *
+ * @group control
  */
 JX.install('Tokenizer', {
   construct : function(containerNode) {
@@ -932,22 +954,19 @@ JX.install('Tokenizer', {
       typeahead.setInputNode(this._focus);
       typeahead.start();
 
-      JX.defer(
-        JX.bind(
-          this,
-          function() {
-            var container = this._orig.parentNode;
-            JX.DOM.setContent(container, root);
-            var map = this._initialValue || {};
-            for (var k in map) {
-              this.addToken(k, map[k]);
-            }
-            JX.DOM.appendContent(
-              root,
-              JX.$N('div', {style: {clear: 'both'}})
-            );
-            this._redraw();
-          }));
+      setTimeout(JX.bind(this, function() {
+        var container = this._orig.parentNode;
+        JX.DOM.setContent(container, root);
+        var map = this._initialValue || {};
+        for (var k in map) {
+          this.addToken(k, map[k]);
+        }
+        JX.DOM.appendContent(
+          root,
+          JX.$N('div', {style: {clear: 'both'}})
+        );
+        this._redraw();
+      }), 0);
     },
 
     setInitialValue : function(map) {
@@ -1126,9 +1145,9 @@ JX.install('Tokenizer', {
             if (!completed) {
               this._focus.value = '';
             }
-            JX.defer(JX.bind(this, function() {
+            setTimeout(JX.bind(this, function() {
               this.getNextInput().focus();
-            }));
+            }), 0);
           }
           break;
         case 'delete':
@@ -1149,7 +1168,7 @@ JX.install('Tokenizer', {
               JX.keys(this._tokenMap).length == this.getLimit()) {
             e.prevent();
           }
-          JX.defer(JX.bind(this, this._redraw));
+          setTimeout(JX.bind(this, this._redraw), 0);
           break;
       }
     },
@@ -1168,7 +1187,7 @@ JX.install('Tokenizer', {
     focus : function() {
       var focus = this._focus;
       JX.DOM.show(focus);
-      JX.defer(function() { JX.DOM.focus(focus); });
+      setTimeout(function() { JX.DOM.focus(focus); }, 0);
     }
   }
 });

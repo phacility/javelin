@@ -7,6 +7,8 @@
 /**
  * Show a transparent "mask" over the page; used by Workflow to draw visual
  * attention to modal dialogs.
+ *
+ * @group control
  */
 JX.install('Mask', {
   statics : {
@@ -44,11 +46,14 @@ JX.install('Mask', {
  * @javelin
  */
 
+/**
+ * @group workflow
+ */
 JX.install('Workflow', {
   construct : function(uri, data) {
     if (__DEV__) {
       if (!uri || uri == '#') {
-        throw new Error(
+        JX.$E(
           'new JX.Workflow(<?>, ...): '+
           'bogus URI provided when creating workflow.');
       }
@@ -193,7 +198,7 @@ JX.install('Workflow', {
         this._pop();
       } else if (r) {
         if (__DEV__) {
-          throw new Error('Response to workflow request went unhandled.');
+          JX.$E('Response to workflow request went unhandled.');
         }
       }
     },
