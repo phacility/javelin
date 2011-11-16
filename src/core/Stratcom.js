@@ -77,8 +77,8 @@ JX.install('Stratcom', {
      * objects. See @{JX.Base.invoke()} for documentation.
      *
      * @param  string       Event type.
-     * @param  list?        Optionally, a path to attach to the event. This is
-     *                      rarely meaningful for simple events.
+     * @param  string|list? Optionally, a sigil path to attach to the event.
+     *                      This is rarely meaningful for simple events.
      * @param  object?      Optionally, arbitrary data to send with the event.
      * @return @{JX.Event}  The event object which was dispatched to listeners.
      *                      The main use of this is to test whether any
@@ -92,6 +92,9 @@ JX.install('Stratcom', {
             'JX.Stratcom.invoke(...): path must be a string or an array.');
         }
       }
+
+      path = JX.$AX(path);
+
       return this._dispatchProxy(
         new JX.Event()
           .setType(type)
