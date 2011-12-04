@@ -21,7 +21,7 @@ JX.install('Request', {
     }
   },
 
-  events : ['open', 'send', 'done', 'error', 'finally'],
+  events : ['start', 'open', 'send', 'done', 'error', 'finally'],
 
   members : {
 
@@ -50,12 +50,26 @@ JX.install('Request', {
     },
 
     send : function() {
-      if (this._sent) {
+      if (this._sent || this._finished) {
         if (__DEV__) {
-          JX.$E(
-            'JX.Request.send(): '+
-            'attempting to send a Request that has already been sent.');
+          if (this._sent) {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send a Request that has already been sent.');
+          }
+          if (this._finished) {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send a Request that has finished or aborted.');
+          }
         }
+        return;
+      }
+
+      // Fire the "start" event before doing anything. A listener may
+      // perform pre-processing or validation on this request
+      this.invoke('start', this);
+      if (this._finished) {
         return;
       }
 
@@ -91,6 +105,9 @@ JX.install('Request', {
       // Must happen after xport.open so that listeners can modify the transport
       // Some transport properties can only be set after the transport is open
       this.invoke('open', this);
+      if (this._finished) {
+        return;
+      }
 
       if (__DEV__) {
         if (this.getFile()) {
@@ -109,6 +126,9 @@ JX.install('Request', {
       }
 
       this.invoke('send', this);
+      if (this._finished) {
+        return;
+      }
 
       if (method == 'POST') {
         if (this.getFile()) {
@@ -225,11 +245,25 @@ JX.install('Request', {
       this._finished = true;
       clearTimeout(this._timer);
       this._timer = null;
-      this._transport.abort();
+
+      // Should not abort the transport request if it has already completed
+      // Otherwise, we may see an "HTTP request aborted" error in the console
+      // despite it possibly having succeeded.
+      if (this._transport && this._transport.readyState != 4) {
+        this._transport.abort();
+      }
     },
 
     setData : function(dictionary) {
-      this._data = [];
+      this._data = null;
+      dictionary && this.addData(dictionary);
+      return this;
+    },
+
+    addData : function(dictionary) {
+      if (!this._data) {
+        this._data = [];
+      }
       for (var k in dictionary) {
         this._data.push([k, dictionary[k]]);
       }
