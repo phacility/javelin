@@ -256,7 +256,7 @@ JX.install('Request', {
 
     setData : function(dictionary) {
       this._data = null;
-      dictionary && this.addData(dictionary);
+      this.addData(dictionary);
       return this;
     },
 
