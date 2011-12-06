@@ -477,18 +477,31 @@ JX.install('Stratcom', {
      * start the Stratcom queue.
      *
      * @param  int          The datablock to merge data into.
-     * @param  dict          Dictionary of metadata.
+     * @param  dict         Dictionary of metadata.
      * @return void
      * @task internal
      */
     mergeData : function(block, data) {
-      this._data[block] = data;
-      if (block == 0) {
-        JX.Stratcom.ready = true;
-        JX.flushHoldingQueue('install-init', function(fn) {
-          fn();
-        });
-        JX.__rawEventQueue({type: 'start-queue'});
+      if (this._data[block]) {
+        if (__DEV__) {
+          for (var key in data) {
+            if (key in this._data[block]) {
+              JX.$E(
+                'JX.Stratcom.mergeData(' + block + ', ...); is overwriting ' +
+                'existing data.');
+            }
+          }
+        }
+        JX.copy(this._data[block], data);
+      } else {
+        this._data[block] = data;
+        if (block === 0) {
+          JX.Stratcom.ready = true;
+          JX.flushHoldingQueue('install-init', function(fn) {
+            fn();
+          });
+          JX.__rawEventQueue({type: 'start-queue'});
+        }
       }
     },
 

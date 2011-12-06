@@ -80,6 +80,27 @@ describe('Stratcom Tests', function() {
 
   });
 
+  it('should allow the merge of additional data', function() {
+    ensure__DEV__(true, function() {
+      var clown = JX.$N('div');
+      clown.setAttribute('data-meta', '0_0');
+      JX.Stratcom.mergeData('0', {'0' : 'clown'});
+
+      expect(JX.Stratcom.getData(clown)).toEqual('clown');
+
+      var town = JX.$N('div');
+      town.setAttribute('data-meta', '0_1');
+      JX.Stratcom.mergeData('0', {'1' : 'town'});
+
+      expect(JX.Stratcom.getData(clown)).toEqual('clown');
+      expect(JX.Stratcom.getData(town)).toEqual('town');
+
+      expect(function() {
+        JX.Stratcom.mergeData('0', {'0' : 'oops'});
+      }).toThrow();
+    });
+  });
+
   // it('can set data serializer', function() {
   //   var uri = new JX.URI('http://www.facebook.com/home.php?key=value');
   //   uri.setQuerySerializer(JX.PHPQuerySerializer.serialize);
