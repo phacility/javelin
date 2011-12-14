@@ -101,6 +101,54 @@ describe('Stratcom Tests', function() {
     });
   });
 
+  it('all listeners should be called', function() {
+    ensure__DEV__(true, function() {
+      var callback_count = 0;
+      JX.Stratcom.listen('custom:eventA', null, function() {
+        callback_count++;
+      });
+
+      JX.Stratcom.listen('custom:eventA', null, function() {
+        callback_count++;
+      });
+
+      expect(callback_count).toEqual(0);
+      JX.Stratcom.invoke('custom:eventA');
+      expect(callback_count).toEqual(2);
+    });
+  });
+
+  it('removed listeners should not be called', function() {
+    ensure__DEV__(true, function() {
+      var callback_count = 0;
+      var listeners = [];
+      var remove_listeners = function() {
+        while (listeners.length) {
+          listeners.pop().remove();
+        }
+      };
+
+      listeners.push(
+        JX.Stratcom.listen('custom:eventB', null, function() {
+          callback_count++;
+          remove_listeners();
+        })
+      );
+
+      listeners.push(
+        JX.Stratcom.listen('custom:eventB', null, function() {
+          callback_count++;
+          remove_listeners();
+        })
+      );
+
+      expect(callback_count).toEqual(0);
+      JX.Stratcom.invoke('custom:eventB');
+      expect(listeners.length).toEqual(0);
+      expect(callback_count).toEqual(1);
+    });
+  });
+
   // it('can set data serializer', function() {
   //   var uri = new JX.URI('http://www.facebook.com/home.php?key=value');
   //   uri.setQuerySerializer(JX.PHPQuerySerializer.serialize);

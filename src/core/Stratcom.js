@@ -230,10 +230,13 @@ JX.install('Stratcom', {
 
       // Add a remove function to the listener
       listener['remove'] = function() {
-        for (var ii = 0; ii < ids.length; ii++) {
-          delete JX.Stratcom._handlers[ids[ii]];
+        if (listener._callback) {
+          delete listener._callback;
+          for (var ii = 0; ii < ids.length; ii++) {
+            delete JX.Stratcom._handlers[ids[ii]];
+          }
         }
-      }
+      };
 
       return listener;
     },
@@ -449,7 +452,8 @@ JX.install('Stratcom', {
       while (context.cursor < listeners.length) {
         var cursor = context.cursor++;
         if (listeners[cursor]) {
-          listeners[cursor].handler._callback(event);
+          var handler = listeners[cursor].handler;
+          handler._callback && handler._callback(event);
         }
         if (event.getStopped()) {
           break;
