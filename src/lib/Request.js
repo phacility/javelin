@@ -4,6 +4,7 @@
  *           javelin-util
  *           javelin-behavior
  *           javelin-json
+ *           javelin-dom
  * @provides javelin-request
  * @javelin
  */
@@ -237,7 +238,15 @@ JX.install('Request', {
         }
       }
 
-      this.invoke('done', this.getRaw() ? response : response.payload, this);
+      var payload;
+      if (this.getRaw()) {
+        payload = response;
+      } else {
+        payload = response.payload;
+        JX.Request._parseResponsePayload(payload);
+      }
+
+      this.invoke('done', payload, this);
       this.invoke('finally');
     },
 
@@ -288,6 +297,32 @@ JX.install('Request', {
         uri.push(name + '=' + value);
       }
       return uri.join('&');
+    },
+
+    /**
+     * When we receive a JSON blob, parse it to introduce meaningful objects
+     * where there are magic keys for placeholders.
+     *
+     * Objects with the magic key '__html' are translated into JX.HTML objects.
+     *
+     * This function destructively modifies its input.
+     */
+    _parseResponsePayload: function(parent, index) {
+      var recurse = JX.Request._parseResponsePayload;
+      var obj = (typeof index !== 'undefined') ? parent[index] : parent;
+      if (JX.isArray(obj)) {
+        for (var ii = 0; ii < obj.length; ii++) {
+          recurse(obj, ii);
+        }
+      } else if (obj && typeof obj == 'object') {
+        if (obj.__html) {
+          parent[index] = JX.$H(obj.__html);
+        } else {
+          for (var key in obj) {
+            recurse(obj, key);
+          }
+        }
+      }
     }
   },
 
