@@ -35,6 +35,13 @@ JX.install('Tokenizer', {
     this._containerNode = containerNode;
   },
 
+  events : [
+    /**
+     * Emitted when the value of the tokenizer changes, similar to an 'onchange'
+     * from a <select />.
+     */
+    'change'],
+
   properties : {
     limit : null,
     nextInput : null
@@ -247,6 +254,8 @@ JX.install('Tokenizer', {
 
       root.insertBefore(token, focus);
 
+      this.invoke('change', this);
+
       return true;
     },
 
@@ -336,6 +345,9 @@ JX.install('Tokenizer', {
       delete this._tokenMap[index];
       this._redraw(true);
       this.focus();
+
+      this.invoke('change', this);
+
       return true;
     },
 
