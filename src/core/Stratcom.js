@@ -155,11 +155,6 @@ JX.install('Stratcom', {
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
         }
-        if (arguments.length != 3) {
-          JX.$E(
-            'JX.Stratcom.listen(...): '+
-            'requires exactly 3 arguments.');
-        }
         if (typeof func != 'function') {
           JX.$E(
             'JX.Stratcom.listen(...): '+
