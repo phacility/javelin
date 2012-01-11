@@ -744,11 +744,11 @@ JX.install('DOM', {
       }
       var proxy = this._metrics[pseudoclass];
       document.body.appendChild(proxy);
-        proxy.style.width = x ? (x+'px') : '';
-        JX.DOM.setContent(
-          proxy,
-          JX.$H(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
-        var metrics = JX.Vector.getDim(proxy);
+      proxy.style.width = x ? (x+'px') : '';
+      JX.DOM.setContent(
+        proxy,
+        JX.$H(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
+      var metrics = JX.Vector.getDim(proxy);
       document.body.removeChild(proxy);
       return metrics;
     },
