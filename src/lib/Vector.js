@@ -121,8 +121,8 @@ JX.install('Vector', {
       return JX.Vector.getPos(x);
     }
 
-    this.x = parseFloat(x);
-    this.y = parseFloat(y);
+    this.x = (x === null) ? null : parseFloat(x);
+    this.y = (y === null) ? null : parseFloat(y);
   },
 
   members : {
