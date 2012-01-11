@@ -193,6 +193,9 @@ JX.install('Tokenizer', {
 
       this._typeahead.handleEvent(e);
       if (e.getPrevented()) {
+        // Supporting using the Enter/Return key event, as the Return key
+        // keeps focus on the input tag in tokenizer
+        this._focus.value = '';
         return;
       }
 
@@ -205,6 +208,7 @@ JX.install('Tokenizer', {
       } else if (e.getType() == 'keydown') {
         this._onkeydown(e);
       } else if (e.getType() == 'blur') {
+        this._focus.value = '';
         this._redraw();
       }
     },
