@@ -70,8 +70,6 @@ JX.install('Tokenizer', {
         }
       }
 
-      JX.Stratcom.addData(this._containerNode, {tokenizer : this});
-
       this._orig = JX.DOM.find(this._containerNode, 'input', 'tokenizer-input');
       this._tokens = [];
       this._tokenMap = {};
