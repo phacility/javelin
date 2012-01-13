@@ -315,7 +315,7 @@ JX.install('Request', {
           recurse(obj, ii);
         }
       } else if (obj && typeof obj == 'object') {
-        if (obj.__html) {
+        if (obj.__html != null) {
           parent[index] = JX.$H(obj.__html);
         } else {
           for (var key in obj) {
