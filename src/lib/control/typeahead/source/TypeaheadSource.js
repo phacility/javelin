@@ -15,6 +15,7 @@ JX.install('TypeaheadSource', {
     this._raw = {};
     this._lookup = {};
     this.setNormalizer(JX.TypeaheadNormalizer.normalize);
+    this._excludeIDs = {};
   },
 
   events : ['waiting', 'resultsready', 'complete'],
@@ -78,6 +79,7 @@ JX.install('TypeaheadSource', {
   members : {
     _raw : null,
     _lookup : null,
+    _excludeIDs : null,
 
     bindToTypeahead : function(typeahead) {
       typeahead.listen('change', JX.bind(this, this.didChange));
@@ -97,8 +99,24 @@ JX.install('TypeaheadSource', {
       this._lookup = {};
     },
 
+    addExcludeID : function(id) {
+      if (id) {
+        this._excludeIDs[id] = true;
+      }
+    },
+
+    removeExcludeID : function (id) {
+      if (id) {
+        delete this._excludeIDs[id];
+      }
+    },
+
     addResult : function(obj) {
       obj = (this.getTransformer() || this._defaultTransformer)(obj);
+
+      if (obj && obj.id && this._excludeIDs[obj.id]) {
+        return;
+      }
 
       if (obj.id in this._raw) {
         // We're already aware of this result. This will happen if someone
