@@ -209,20 +209,25 @@ JX.install('TypeaheadSource', {
       var hits = [];
       for (var k in match_count) {
         if (match_count[k] == t.length) {
-          hits.push(k);
+          hits.push([k, this._raw[k].sort || this._raw[k].display]);
         }
       }
+      hits.sort(this.compareHits);
 
       var nodes = this.renderNodes(value, hits);
       this.invoke('resultsready', nodes);
       this.invoke('complete');
     },
 
+    compareHits : function(a, b) {
+        return a[1].localeCompare(b[1]);
+    },
+
     renderNodes : function(value, hits) {
       var n = Math.min(this.getMaximumResultCount(), hits.length);
       var nodes = [];
       for (var kk = 0; kk < n; kk++) {
-        nodes.push(this.createNode(this._raw[hits[kk]]));
+        nodes.push(this.createNode(this._raw[hits[kk][0]]));
       }
       return nodes;
     },
