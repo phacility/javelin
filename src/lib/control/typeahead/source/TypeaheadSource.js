@@ -209,10 +209,9 @@ JX.install('TypeaheadSource', {
       var hits = [];
       for (var k in match_count) {
         if (match_count[k] == t.length) {
-          hits.push([k, this._raw[k].sort || this._raw[k].display]);
+          hits.push(k);
         }
       }
-      hits.sort(this.compareHits);
 
       var nodes = this.renderNodes(value, hits);
       this.invoke('resultsready', nodes);
@@ -224,10 +223,18 @@ JX.install('TypeaheadSource', {
     },
 
     renderNodes : function(value, hits) {
-      var n = Math.min(this.getMaximumResultCount(), hits.length);
+      var hits_sort = [];
+      for (var kk = 0; kk < hits.length; ++kk) {
+        hits_sort.push(
+          [hits[kk], this._raw[hits[kk]].sort || this._raw[hits[kk]].name]
+        );
+      }
+      hits_sort.sort(this.compareHits);
+
+      var n = Math.min(this.getMaximumResultCount(), hits_sort.length);
       var nodes = [];
       for (var kk = 0; kk < n; kk++) {
-        nodes.push(this.createNode(this._raw[hits[kk][0]]));
+        nodes.push(this.createNode(this._raw[hits_sort[kk][0]]));
       }
       return nodes;
     },
