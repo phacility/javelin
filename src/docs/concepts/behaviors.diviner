@@ -168,7 +168,7 @@ Javelin behaviors provide a more structured solution to some of these problems:
   - The entire interface the server may invoke against can be readily inferred.
 
 Note that Javelin does provide @{function:JX.onload}, which behaves like
-##onloadRegister()##. However, it use is discouraged.
+##onloadRegister()##. However, its use is discouraged.
 
 The two major downsides to the behavior design appear to be:
 
