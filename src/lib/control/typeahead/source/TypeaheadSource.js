@@ -213,28 +213,30 @@ JX.install('TypeaheadSource', {
         }
       }
 
+      this.sortHits(value, hits);
+
       var nodes = this.renderNodes(value, hits);
       this.invoke('resultsready', nodes);
       this.invoke('complete');
     },
 
-    compareHits : function(a, b) {
-        return a[1].localeCompare(b[1]);
+    sortHits : function(value, hits) {
+       // Sorting function that floats results with lower indexes to the top
+       var sortingFn = JX.bind(this, function(a, b) {
+         var obj_a = this._raw[a];
+         var key_a = obj_a.sort || obj_a.name;
+         var obj_b = this._raw[b];
+         var key_b = obj_b.sort || obj_b.name;
+         return key_a.localeCompare(key_b);
+       });
+       hits.sort(sortingFn);
     },
 
     renderNodes : function(value, hits) {
-      var hits_sort = [];
-      for (var kk = 0; kk < hits.length; ++kk) {
-        hits_sort.push(
-          [hits[kk], this._raw[hits[kk]].sort || this._raw[hits[kk]].name]
-        );
-      }
-      hits_sort.sort(this.compareHits);
-
-      var n = Math.min(this.getMaximumResultCount(), hits_sort.length);
+      var n = Math.min(this.getMaximumResultCount(), hits.length);
       var nodes = [];
       for (var kk = 0; kk < n; kk++) {
-        nodes.push(this.createNode(this._raw[hits_sort[kk][0]]));
+        nodes.push(this.createNode(this._raw[hits[kk]]));
       }
       return nodes;
     },
