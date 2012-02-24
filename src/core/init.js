@@ -137,6 +137,7 @@
     'dragenter',
     'dragleave',
     'dragover',
+    'paste',
     'touchstart',
     'touchmove',
     'touchend',
