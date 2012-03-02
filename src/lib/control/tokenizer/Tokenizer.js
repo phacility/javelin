@@ -193,9 +193,6 @@ JX.install('Tokenizer', {
 
       this._typeahead.handleEvent(e);
       if (e.getPrevented()) {
-        // Supporting using the Enter/Return key event, as the Return key
-        // keeps focus on the input tag in tokenizer
-        this._focus.value = '';
         return;
       }
 
