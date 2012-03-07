@@ -72,7 +72,37 @@ JX.install('TypeaheadSource', {
      *
      * @param int
      */
-    maximumResultCount : 5
+    maximumResultCount : 5,
+
+    /**
+     * Optional function which is used to sort results. Inputs are the input
+     * string, the list of matches, and a default comparator. The function
+     * should sort the list for display. This is the minimum useful
+     * implementation:
+     *
+     *   function(value, list, comparator) {
+     *     list.sort(comparator);
+     *   }
+     *
+     * Alternatively, you may pursue more creative implementations.
+     *
+     * The `value` is a raw string; you can bind the datasource into the
+     * function and use normalize() or tokenize() to parse it.
+     *
+     * The `list` is a list of objects returned from the transformer function,
+     * see the `transformer` property. These are the objects in the list which
+     * match the value.
+     *
+     * The `comparator` is a sort callback which implements sensible default
+     * sorting rules (e.g., alphabetic order), which you can use as a fallback
+     * if you just want to tweak the results (e.g., put some items at the top).
+     *
+     * The function is called after the user types some text, immediately before
+     * the possible completion results are displayed to the user.
+     *
+     * @param function
+     */
+    sortHandler : null
 
   },
 
@@ -221,15 +251,27 @@ JX.install('TypeaheadSource', {
     },
 
     sortHits : function(value, hits) {
-       // Sorting function that floats results with lower indexes to the top
-       var sortingFn = JX.bind(this, function(a, b) {
-         var obj_a = this._raw[a];
-         var key_a = obj_a.sort || obj_a.name;
-         var obj_b = this._raw[b];
-         var key_b = obj_b.sort || obj_b.name;
-         return key_a.localeCompare(key_b);
-       });
-       hits.sort(sortingFn);
+      var objs = [];
+      for (var ii = 0; ii < hits.length; ii++) {
+        objs.push(this._raw[hits[ii]]);
+      }
+
+       var default_comparator = function(u, v) {
+         var key_u = u.sort || u.name;
+         var key_v = v.sort || v.name;
+         return key_u.localeCompare(key_v);
+      };
+
+      var handler = this.getSortHandler() || function(value, list, cmp) {
+        list.sort(cmp);
+      };
+
+      handler(value, objs, default_comparator);
+
+      hits.splice(0, hits.length);
+      for (var ii = 0; ii < objs.length; ii++) {
+        hits.push(objs[ii].id);
+      }
     },
 
     renderNodes : function(value, hits) {
@@ -274,5 +316,3 @@ JX.install('TypeaheadSource', {
     }
   }
 });
-
-
