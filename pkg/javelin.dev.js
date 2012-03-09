@@ -1279,11 +1279,6 @@ JX.install('Stratcom', {
             'JX.Stratcom.listen(...): '+
             'requires exactly 3 arguments. Did you mean JX.DOM.listen?');
         }
-        if (arguments.length != 3) {
-          JX.$E(
-            'JX.Stratcom.listen(...): '+
-            'requires exactly 3 arguments.');
-        }
         if (typeof func != 'function') {
           JX.$E(
             'JX.Stratcom.listen(...): '+
@@ -1354,10 +1349,13 @@ JX.install('Stratcom', {
 
       // Add a remove function to the listener
       listener['remove'] = function() {
-        for (var ii = 0; ii < ids.length; ii++) {
-          delete JX.Stratcom._handlers[ids[ii]];
+        if (listener._callback) {
+          delete listener._callback;
+          for (var ii = 0; ii < ids.length; ii++) {
+            delete JX.Stratcom._handlers[ids[ii]];
+          }
         }
-      }
+      };
 
       return listener;
     },
@@ -1573,7 +1571,8 @@ JX.install('Stratcom', {
       while (context.cursor < listeners.length) {
         var cursor = context.cursor++;
         if (listeners[cursor]) {
-          listeners[cursor].handler._callback(event);
+          var handler = listeners[cursor].handler;
+          handler._callback && handler._callback(event);
         }
         if (event.getStopped()) {
           break;
@@ -1601,18 +1600,31 @@ JX.install('Stratcom', {
      * start the Stratcom queue.
      *
      * @param  int          The datablock to merge data into.
-     * @param  dict          Dictionary of metadata.
+     * @param  dict         Dictionary of metadata.
      * @return void
      * @task internal
      */
     mergeData : function(block, data) {
-      this._data[block] = data;
-      if (block == 0) {
-        JX.Stratcom.ready = true;
-        JX.flushHoldingQueue('install-init', function(fn) {
-          fn();
-        });
-        JX.__rawEventQueue({type: 'start-queue'});
+      if (this._data[block]) {
+        if (__DEV__) {
+          for (var key in data) {
+            if (key in this._data[block]) {
+              JX.$E(
+                'JX.Stratcom.mergeData(' + block + ', ...); is overwriting ' +
+                'existing data.');
+            }
+          }
+        }
+        JX.copy(this._data[block], data);
+      } else {
+        this._data[block] = data;
+        if (block === 0) {
+          JX.Stratcom.ready = true;
+          JX.flushHoldingQueue('install-init', function(fn) {
+            fn();
+          });
+          JX.__rawEventQueue({type: 'start-queue'});
+        }
       }
     },
 
@@ -1860,6 +1872,7 @@ JX.flushHoldingQueue('behavior', JX.behavior);
  *           javelin-util
  *           javelin-behavior
  *           javelin-json
+ *           javelin-dom
  * @provides javelin-request
  * @javelin
  */
@@ -1877,7 +1890,7 @@ JX.install('Request', {
     }
   },
 
-  events : ['open', 'send', 'done', 'error', 'finally'],
+  events : ['start', 'open', 'send', 'done', 'error', 'finally'],
 
   members : {
 
@@ -1906,12 +1919,26 @@ JX.install('Request', {
     },
 
     send : function() {
-      if (this._sent) {
+      if (this._sent || this._finished) {
         if (__DEV__) {
-          JX.$E(
-            'JX.Request.send(): '+
-            'attempting to send a Request that has already been sent.');
+          if (this._sent) {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send a Request that has already been sent.');
+          }
+          if (this._finished) {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send a Request that has finished or aborted.');
+          }
         }
+        return;
+      }
+
+      // Fire the "start" event before doing anything. A listener may
+      // perform pre-processing or validation on this request
+      this.invoke('start', this);
+      if (this._finished) {
         return;
       }
 
@@ -1947,6 +1974,9 @@ JX.install('Request', {
       // Must happen after xport.open so that listeners can modify the transport
       // Some transport properties can only be set after the transport is open
       this.invoke('open', this);
+      if (this._finished) {
+        return;
+      }
 
       if (__DEV__) {
         if (this.getFile()) {
@@ -1965,6 +1995,9 @@ JX.install('Request', {
       }
 
       this.invoke('send', this);
+      if (this._finished) {
+        return;
+      }
 
       if (method == 'POST') {
         if (this.getFile()) {
@@ -2073,7 +2106,15 @@ JX.install('Request', {
         }
       }
 
-      this.invoke('done', this.getRaw() ? response : response.payload, this);
+      var payload;
+      if (this.getRaw()) {
+        payload = response;
+      } else {
+        payload = response.payload;
+        JX.Request._parseResponsePayload(payload);
+      }
+
+      this.invoke('done', payload, this);
       this.invoke('finally');
     },
 
@@ -2081,11 +2122,25 @@ JX.install('Request', {
       this._finished = true;
       clearTimeout(this._timer);
       this._timer = null;
-      this._transport.abort();
+
+      // Should not abort the transport request if it has already completed
+      // Otherwise, we may see an "HTTP request aborted" error in the console
+      // despite it possibly having succeeded.
+      if (this._transport && this._transport.readyState != 4) {
+        this._transport.abort();
+      }
     },
 
     setData : function(dictionary) {
-      this._data = [];
+      this._data = null;
+      this.addData(dictionary);
+      return this;
+    },
+
+    addData : function(dictionary) {
+      if (!this._data) {
+        this._data = [];
+      }
       for (var k in dictionary) {
         this._data.push([k, dictionary[k]]);
       }
@@ -2110,6 +2165,32 @@ JX.install('Request', {
         uri.push(name + '=' + value);
       }
       return uri.join('&');
+    },
+
+    /**
+     * When we receive a JSON blob, parse it to introduce meaningful objects
+     * where there are magic keys for placeholders.
+     *
+     * Objects with the magic key '__html' are translated into JX.HTML objects.
+     *
+     * This function destructively modifies its input.
+     */
+    _parseResponsePayload: function(parent, index) {
+      var recurse = JX.Request._parseResponsePayload;
+      var obj = (typeof index !== 'undefined') ? parent[index] : parent;
+      if (JX.isArray(obj)) {
+        for (var ii = 0; ii < obj.length; ii++) {
+          recurse(obj, ii);
+        }
+      } else if (obj && typeof obj == 'object') {
+        if (obj.__html != null) {
+          parent[index] = JX.$H(obj.__html);
+        } else {
+          for (var key in obj) {
+            recurse(obj, key);
+          }
+        }
+      }
     }
   },
 
@@ -2262,8 +2343,8 @@ JX.install('Vector', {
       return JX.Vector.getPos(x);
     }
 
-    this.x = parseFloat(x);
-    this.y = parseFloat(y);
+    this.x = (x === null) ? null : parseFloat(x);
+    this.y = (y === null) ? null : parseFloat(y);
   },
 
   members : {
@@ -3237,11 +3318,11 @@ JX.install('DOM', {
       }
       var proxy = this._metrics[pseudoclass];
       document.body.appendChild(proxy);
-        proxy.style.width = x ? (x+'px') : '';
-        JX.DOM.setContent(
-          proxy,
-          JX.$H(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
-        var metrics = JX.Vector.getDim(proxy);
+      proxy.style.width = x ? (x+'px') : '';
+      JX.DOM.setContent(
+        proxy,
+        JX.$H(JX.DOM.htmlize(node.value).replace(/\n/g, '<br />')));
+      var metrics = JX.Vector.getDim(proxy);
       document.body.removeChild(proxy);
       return metrics;
     },

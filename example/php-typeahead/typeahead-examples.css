@@ -24,3 +24,11 @@ div.jx-typeahead-results a.focused {
   color: #ffffff;
   text-decoration: none;
 }
+
+input.jx-typeahead {
+  width: 200px;
+}
+
+input.jx-typeahead-placeholder {
+  color: #888888;
+}

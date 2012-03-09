@@ -85,7 +85,9 @@ JX.install('Typeahead', {
       'mousedown',
       'tag:a',
       JX.bind(this, function(e) {
-        this._choose(e.getNode('tag:a'));
+        if (!e.isRightButton()) {
+          this._choose(e.getNode('tag:a'));
+        }
         e.prevent();
       }));
 
@@ -116,6 +118,9 @@ JX.install('Typeahead', {
     _value : null,
     _stop : false,
     _focus : -1,
+    _focused : false,
+    _placeholderVisible : false,
+    _placeholder : null,
     _display : null,
     _datasource : null,
 
@@ -136,6 +141,7 @@ JX.install('Typeahead', {
             "setDatasource().");
         }
       }
+      this.updatePlaceholder();
     },
 
 
@@ -339,7 +345,13 @@ JX.install('Typeahead', {
      * @task internal
      */
     _update : function(event) {
-      var k = event && event.getSpecialKey();
+
+      if (event.getType() == 'focus') {
+        this._focused = true;
+        this.updatePlaceholder();
+      }
+
+      var k = event.getSpecialKey();
       if (k && event.getType() == 'keydown') {
         switch (k) {
           case 'up':
@@ -398,6 +410,8 @@ JX.install('Typeahead', {
       }
       var type = e.getType();
       if (type == 'blur') {
+        this._focused = false;
+        this.updatePlaceholder();
         this.hide();
       } else {
         this._update(e);
@@ -408,6 +422,62 @@ JX.install('Typeahead', {
       if (this._listener) {
         this._listener.remove();
       }
+    },
+
+
+    /**
+     * Set a string to display in the control when it is not focused, like
+     * "Type a user's name...". This string hints to the user how to use the
+     * control.
+     *
+     * When the string is displayed, the input will have class
+     * "jx-typeahead-placeholder".
+     *
+     * @param string Placeholder string, or null for no placeholder.
+     * @return this
+     *
+     * @task config
+     */
+    setPlaceholder : function(string) {
+      this._placeholder = string;
+      this.updatePlaceholder();
+      return this;
+    },
+
+
+    /**
+     * Update the control to either show or hide the placeholder text as
+     * necessary.
+     *
+     * @return void
+     * @task internal
+     */
+    updatePlaceholder : function() {
+
+      if (this._placeholderVisible) {
+        // If the placeholder is visible, we want to hide if the control has
+        // been focused or the placeholder has been removed.
+        if (this._focused || !this._placeholder) {
+          this._placeholderVisible = false;
+          this._control.value = '';
+        }
+      } else if (!this._focused) {
+        // If the placeholder is not visible, we want to show it if the control
+        // has benen blurred.
+        if (this._placeholder) {
+          this._placeholderVisible = true;
+        }
+      }
+
+      if (this._placeholderVisible) {
+        // We need to resist the Tokenizer wiping the input on blur.
+        this._control.value = this._placeholder;
+      }
+
+      JX.DOM.alterClass(
+        this._control,
+        'jx-typeahead-placeholder',
+        this._placeholderVisible);
     }
   }
 });
@@ -459,6 +529,7 @@ JX.install('TypeaheadSource', {
     this._raw = {};
     this._lookup = {};
     this.setNormalizer(JX.TypeaheadNormalizer.normalize);
+    this._excludeIDs = {};
   },
 
   events : ['waiting', 'resultsready', 'complete'],
@@ -515,13 +586,44 @@ JX.install('TypeaheadSource', {
      *
      * @param int
      */
-    maximumResultCount : 5
+    maximumResultCount : 5,
+
+    /**
+     * Optional function which is used to sort results. Inputs are the input
+     * string, the list of matches, and a default comparator. The function
+     * should sort the list for display. This is the minimum useful
+     * implementation:
+     *
+     *   function(value, list, comparator) {
+     *     list.sort(comparator);
+     *   }
+     *
+     * Alternatively, you may pursue more creative implementations.
+     *
+     * The `value` is a raw string; you can bind the datasource into the
+     * function and use normalize() or tokenize() to parse it.
+     *
+     * The `list` is a list of objects returned from the transformer function,
+     * see the `transformer` property. These are the objects in the list which
+     * match the value.
+     *
+     * The `comparator` is a sort callback which implements sensible default
+     * sorting rules (e.g., alphabetic order), which you can use as a fallback
+     * if you just want to tweak the results (e.g., put some items at the top).
+     *
+     * The function is called after the user types some text, immediately before
+     * the possible completion results are displayed to the user.
+     *
+     * @param function
+     */
+    sortHandler : null
 
   },
 
   members : {
     _raw : null,
     _lookup : null,
+    _excludeIDs : null,
 
     bindToTypeahead : function(typeahead) {
       typeahead.listen('change', JX.bind(this, this.didChange));
@@ -541,8 +643,24 @@ JX.install('TypeaheadSource', {
       this._lookup = {};
     },
 
+    addExcludeID : function(id) {
+      if (id) {
+        this._excludeIDs[id] = true;
+      }
+    },
+
+    removeExcludeID : function (id) {
+      if (id) {
+        delete this._excludeIDs[id];
+      }
+    },
+
     addResult : function(obj) {
       obj = (this.getTransformer() || this._defaultTransformer)(obj);
+
+      if (obj && obj.id && this._excludeIDs[obj.id]) {
+        return;
+      }
 
       if (obj.id in this._raw) {
         // We're already aware of this result. This will happen if someone
@@ -639,9 +757,35 @@ JX.install('TypeaheadSource', {
         }
       }
 
+      this.sortHits(value, hits);
+
       var nodes = this.renderNodes(value, hits);
       this.invoke('resultsready', nodes);
       this.invoke('complete');
+    },
+
+    sortHits : function(value, hits) {
+      var objs = [];
+      for (var ii = 0; ii < hits.length; ii++) {
+        objs.push(this._raw[hits[ii]]);
+      }
+
+       var default_comparator = function(u, v) {
+         var key_u = u.sort || u.name;
+         var key_v = v.sort || v.name;
+         return key_u.localeCompare(key_v);
+      };
+
+      var handler = this.getSortHandler() || function(value, list, cmp) {
+        list.sort(cmp);
+      };
+
+      handler(value, objs, default_comparator);
+
+      hits.splice(0, hits.length);
+      for (var ii = 0; ii < objs.length; ii++) {
+        hits.push(objs[ii].id);
+      }
     },
 
     renderNodes : function(value, hits) {
@@ -674,7 +818,7 @@ JX.install('TypeaheadSource', {
       if (!str.length) {
         return [];
       }
-      return str.split(/ /g);
+      return str.split(/\s/g);
     },
     _defaultTransformer : function(object) {
       return {
@@ -686,8 +830,6 @@ JX.install('TypeaheadSource', {
     }
   }
 });
-
-
 
 
 /**
@@ -880,6 +1022,13 @@ JX.install('Tokenizer', {
     this._containerNode = containerNode;
   },
 
+  events : [
+    /**
+     * Emitted when the value of the tokenizer changes, similar to an 'onchange'
+     * from a <select />.
+     */
+    'change'],
+
   properties : {
     limit : null,
     nextInput : null
@@ -897,6 +1046,7 @@ JX.install('Tokenizer', {
     _initialValue : null,
     _seq : 0,
     _lastvalue : null,
+    _placeholder : null,
 
     start : function() {
       if (__DEV__) {
@@ -1043,7 +1193,12 @@ JX.install('Tokenizer', {
       } else if (e.getType() == 'keydown') {
         this._onkeydown(e);
       } else if (e.getType() == 'blur') {
+        this._focus.value = '';
         this._redraw();
+
+        // Explicitly update the placeholder since we just wiped the field
+        // value.
+        this._typeahead.updatePlaceholder();
       }
     },
 
@@ -1053,6 +1208,15 @@ JX.install('Tokenizer', {
     },
 
     _redraw : function(force) {
+
+      // If there are tokens in the tokenizer, never show a placeholder.
+      // Otherwise, show one if one is configured.
+      if (JX.keys(this._tokenMap).length) {
+        this._typeahead.setPlaceholder(null);
+      } else {
+        this._typeahead.setPlaceholder(this._placeholder);
+      }
+
       var focus = this._focus;
 
       if (focus.value === this._lastvalue && !force) {
@@ -1074,6 +1238,11 @@ JX.install('Tokenizer', {
       focus.value = focus.value;
     },
 
+    setPlaceholder : function(string) {
+      this._placeholder = string;
+      return this;
+    },
+
     addToken : function(key, value) {
       if (key in this._tokenMap) {
         return false;
@@ -1091,6 +1260,8 @@ JX.install('Tokenizer', {
       this._tokens.push(key);
 
       root.insertBefore(token, focus);
+
+      this.invoke('change', this);
 
       return true;
     },
@@ -1181,6 +1352,9 @@ JX.install('Tokenizer', {
       delete this._tokenMap[index];
       this._redraw(true);
       this.focus();
+
+      this.invoke('change', this);
+
       return true;
     },
 

@@ -6,6 +6,7 @@ JX.behavior('typeahead-examples', function(config) {
   typeahead.listen('choose', function(target) {
     JX.$U(target.href).go();
   });
+  typeahead.setPlaceholder('Type an animal name...');
   typeahead.start();
 
 
@@ -16,6 +17,7 @@ JX.behavior('typeahead-examples', function(config) {
   ondemandtypeahead.listen('choose', function(target) {
     JX.$U(target.href).go();
   });
+  ondemandtypeahead.setPlaceholder('Type an animal name...');
   ondemandtypeahead.start();
 
 });

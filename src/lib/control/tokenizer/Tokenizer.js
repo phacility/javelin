@@ -59,6 +59,7 @@ JX.install('Tokenizer', {
     _initialValue : null,
     _seq : 0,
     _lastvalue : null,
+    _placeholder : null,
 
     start : function() {
       if (__DEV__) {
@@ -207,6 +208,10 @@ JX.install('Tokenizer', {
       } else if (e.getType() == 'blur') {
         this._focus.value = '';
         this._redraw();
+
+        // Explicitly update the placeholder since we just wiped the field
+        // value.
+        this._typeahead.updatePlaceholder();
       }
     },
 
@@ -216,6 +221,15 @@ JX.install('Tokenizer', {
     },
 
     _redraw : function(force) {
+
+      // If there are tokens in the tokenizer, never show a placeholder.
+      // Otherwise, show one if one is configured.
+      if (JX.keys(this._tokenMap).length) {
+        this._typeahead.setPlaceholder(null);
+      } else {
+        this._typeahead.setPlaceholder(this._placeholder);
+      }
+
       var focus = this._focus;
 
       if (focus.value === this._lastvalue && !force) {
@@ -235,6 +249,11 @@ JX.install('Tokenizer', {
       // Firefox. If we don't do this, it doesn't redraw the input so pasting
       // in an email address doesn't give you a very good behavior.
       focus.value = focus.value;
+    },
+
+    setPlaceholder : function(string) {
+      this._placeholder = string;
+      return this;
     },
 
     addToken : function(key, value) {

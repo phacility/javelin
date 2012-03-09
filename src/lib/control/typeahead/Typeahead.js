@@ -118,6 +118,9 @@ JX.install('Typeahead', {
     _value : null,
     _stop : false,
     _focus : -1,
+    _focused : false,
+    _placeholderVisible : false,
+    _placeholder : null,
     _display : null,
     _datasource : null,
 
@@ -138,6 +141,7 @@ JX.install('Typeahead', {
             "setDatasource().");
         }
       }
+      this.updatePlaceholder();
     },
 
 
@@ -341,7 +345,13 @@ JX.install('Typeahead', {
      * @task internal
      */
     _update : function(event) {
-      var k = event && event.getSpecialKey();
+
+      if (event.getType() == 'focus') {
+        this._focused = true;
+        this.updatePlaceholder();
+      }
+
+      var k = event.getSpecialKey();
       if (k && event.getType() == 'keydown') {
         switch (k) {
           case 'up':
@@ -400,6 +410,8 @@ JX.install('Typeahead', {
       }
       var type = e.getType();
       if (type == 'blur') {
+        this._focused = false;
+        this.updatePlaceholder();
         this.hide();
       } else {
         this._update(e);
@@ -410,6 +422,62 @@ JX.install('Typeahead', {
       if (this._listener) {
         this._listener.remove();
       }
+    },
+
+
+    /**
+     * Set a string to display in the control when it is not focused, like
+     * "Type a user's name...". This string hints to the user how to use the
+     * control.
+     *
+     * When the string is displayed, the input will have class
+     * "jx-typeahead-placeholder".
+     *
+     * @param string Placeholder string, or null for no placeholder.
+     * @return this
+     *
+     * @task config
+     */
+    setPlaceholder : function(string) {
+      this._placeholder = string;
+      this.updatePlaceholder();
+      return this;
+    },
+
+
+    /**
+     * Update the control to either show or hide the placeholder text as
+     * necessary.
+     *
+     * @return void
+     * @task internal
+     */
+    updatePlaceholder : function() {
+
+      if (this._placeholderVisible) {
+        // If the placeholder is visible, we want to hide if the control has
+        // been focused or the placeholder has been removed.
+        if (this._focused || !this._placeholder) {
+          this._placeholderVisible = false;
+          this._control.value = '';
+        }
+      } else if (!this._focused) {
+        // If the placeholder is not visible, we want to show it if the control
+        // has benen blurred.
+        if (this._placeholder) {
+          this._placeholderVisible = true;
+        }
+      }
+
+      if (this._placeholderVisible) {
+        // We need to resist the Tokenizer wiping the input on blur.
+        this._control.value = this._placeholder;
+      }
+
+      JX.DOM.alterClass(
+        this._control,
+        'jx-typeahead-placeholder',
+        this._placeholderVisible);
     }
   }
 });

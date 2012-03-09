@@ -173,6 +173,7 @@
   var window_events = [
     ('onpagehide' in window) ? 'pagehide' : 'unload',
     'resize',
+    'scroll',
     'focus',
     'blur',
     'popstate',
