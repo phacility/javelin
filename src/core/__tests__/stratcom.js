@@ -149,6 +149,23 @@ describe('Stratcom Tests', function() {
     });
   });
 
+  it('should throw when accessing data in an unloaded block', function() {
+    ensure__DEV__(true, function() {
+
+      var n = JX.$N('div');
+      n.setAttribute('data-meta', '9999999_9999999');
+
+      var caught;
+      try {
+        JX.Stratcom.getData(n);
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught instanceof Error).toEqual(true);
+    });
+  });
+
   // it('can set data serializer', function() {
   //   var uri = new JX.URI('http://www.facebook.com/home.php?key=value');
   //   uri.setQuerySerializer(JX.PHPQuerySerializer.serialize);

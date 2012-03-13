@@ -582,6 +582,12 @@ JX.install('Stratcom', {
         var index = meta_id[1];
         if (block && (index in block)) {
           return block[index];
+        } else if (__DEV__) {
+          JX.$E(
+            'JX.Stratcom.getData(<node>): Tried to access data (block ' +
+            meta_id[0] + ', index ' + index + ') that was not present. This ' +
+            'probably means you are calling getData() before the block ' +
+            'is provided by mergeData().');
         }
       }
 
