@@ -35,7 +35,7 @@ JX.behavior('tic-tac-toe', function() {
             changeState(board, 'play');
           }
         })
-        .setData({game: JX.JSON.serialize(game)})
+        .setData({game: JX.JSON.stringify(game)})
         .send();
     });
 
