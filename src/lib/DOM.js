@@ -536,7 +536,8 @@ JX.install('DOM', {
         var type = elements[ii].type;
         var tag  = elements[ii].tagName;
         if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
-             type in {text: 1, hidden: 1, password: 1, email: 1} ||
+             type in {text: 1, hidden: 1, password: 1, email: 1, tel: 1,
+                      number: 1} ||
              tag in {TEXTAREA: 1, SELECT: 1}) {
           data.push([elements[ii].name, elements[ii].value]);
         }
