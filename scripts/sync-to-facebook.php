@@ -5,7 +5,7 @@ require_once dirname(__FILE__).'/__init_script__.php';
 require_once 'sync-spec.php';
 
 if ($argc != 2) {
-  echo "usage: sync-to-facebook <php_root>\n";
+  echo "usage: sync-to-facebook.php <php_root>\n";
   exit(1);
 }
 

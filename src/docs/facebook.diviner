@@ -34,7 +34,7 @@ Now you should be able to build the individual binaries:
 
 To synchronize Javelin **from** Facebook trunk, run the synchronize script:
 
-  javelin/ $ ./scripts/synchronize-from-facebook.php ~/www
+  javelin/ $ ./scripts/sync-from-facebook.php ~/www
 
 ...where ##~/www## is the root you want to pull Javelin files from. The script
 will copy files out of ##html/js/javelin## and build packages, and leave the
@@ -44,7 +44,7 @@ then push, diff, or send a pull request.
 To synchronize Javelin **to** Facebook trunk, run the, uh, reverse-synchronize
 script:
 
-  javelin/ $ ./scripts/synchronize-to-facebook.php ~/www
+  javelin/ $ ./scripts/sync-to-facebook.php ~/www
 
 ...where ##~/www## is the root you want to push Javelin files to. The script
 will copy files out of the working copy into your ##www## and leave you with a
