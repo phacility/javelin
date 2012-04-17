@@ -42,15 +42,19 @@ JX.behavior = function(name, control_function) {
         'initialization function is not a function.');
     }
     // IE does not enumerate over these properties
-    var enumerables = [
-      'toString', 'hasOwnProperty', 'valueOf', 'isPrototypeOf',
-      'propertyIsEnumerable', 'toLocaleString', 'constructor'
-    ];
-    if (~enumerables.indexOf(name)) {
+    var enumerables = {
+      toString: true,
+      hasOwnProperty: true,
+      valueOf: true,
+      isPrototypeOf: true,
+      propertyIsEnumerable: true,
+      toLocaleString: true,
+      constructor: true
+    };
+    if (enumerables[name]) {
       JX.$E(
         'JX.behavior("' + name + '", <garbage>): ' +
-        'do not use any of these properties as behaviors: ' +
-        enumerables.join(', ')
+        'do not use this property as a behavior.'
       );
     }
   }
