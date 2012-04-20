@@ -29,6 +29,15 @@ JX.install('Resource', {
         uri, resource, path, type;
 
       list = JX.$AX(list);
+
+      // In the event there are no resources to wait on, call the callback and
+      // exit. NOTE: it's better to do this check outside this function and not
+      // call through JX.Resource, but it's not always easy/possible to do so
+      if (!list.length) {
+        setTimeout(callback, 0);
+        return;
+      }
+
       for (var ii = 0; ii < list.length; ii++) {
         uri = new JX.URI(list[ii]);
         resource = uri.toString();
