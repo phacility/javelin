@@ -688,8 +688,8 @@ JX.install('DOM', {
 
     /**
      * Show one or more elements, by removing their "display" style. This
-     * assumes you have hidden them with hide(), or explicitly set the style
-     * to "display: none;".
+     * assumes you have hidden them with @{method:hide}, or explicitly set
+     * the style to `display: none;`.
      *
      * @task convenience
      * @param ... One or more nodes to remove "display" styles from.
@@ -713,8 +713,8 @@ JX.install('DOM', {
 
 
     /**
-     * Hide one or more elements, by setting "display: none;" on them. This is
-     * a convenience method. See also show().
+     * Hide one or more elements, by setting `display: none;` on them. This is
+     * a convenience method. See also @{method:show}.
      *
      * @task convenience
      * @param ... One or more nodes to set "display: none" on.
