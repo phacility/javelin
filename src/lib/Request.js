@@ -22,7 +22,7 @@ JX.install('Request', {
     }
   },
 
-  events : ['start', 'open', 'send', 'done', 'error', 'finally'],
+  events : ['start', 'open', 'send', 'statechange', 'done', 'error', 'finally'],
 
   members : {
 
@@ -155,6 +155,7 @@ JX.install('Request', {
       var xport = this.getTransport();
       var response;
       try {
+        this.invoke('statechange', this);
         if (this._finished) {
           return;
         }
