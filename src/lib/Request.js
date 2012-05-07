@@ -22,7 +22,8 @@ JX.install('Request', {
     }
   },
 
-  events : ['start', 'open', 'send', 'statechange', 'done', 'error', 'finally'],
+  events : ['start', 'open', 'send', 'statechange', 'done', 'error', 'finally',
+            'uploadprogress'],
 
   members : {
 
@@ -76,6 +77,27 @@ JX.install('Request', {
 
       var xport = this.getTransport();
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
+      if (xport.upload) {
+        xport.upload.progress = JX.bind(this, this._onuploadprogress);
+      }
+
+      var method = this.getMethod().toUpperCase();
+
+      if (__DEV__) {
+        if (this.getFile()) {
+          if (method != 'POST') {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send a file over GET. You must use POST.');
+          }
+          if (this._data) {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send data and a file. You can not send both ' +
+              'at once.');
+          }
+        }
+      }
 
       var list_of_pairs = this._data || [];
       list_of_pairs.push(['__ajax__', true]);
@@ -86,9 +108,11 @@ JX.install('Request', {
       var q = (this.getDataSerializer() ||
                JX.Request.defaultDataSerializer)(list_of_pairs);
       var uri = this.getURI();
-      var method = this.getMethod().toUpperCase();
 
-      if (method == 'GET') {
+      // If we're sending a file, submit the metadata via the URI instead of
+      // via the request body, because the entire post body will be consumed by
+      // the file content.
+      if (method == 'GET' || this.getFile()) {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
@@ -108,22 +132,6 @@ JX.install('Request', {
       this.invoke('open', this);
       if (this._finished) {
         return;
-      }
-
-      if (__DEV__) {
-        if (this.getFile()) {
-          if (method != 'POST') {
-            JX.$E(
-              'JX.Request.send(): ' +
-              'attempting to send a file over GET. You must use POST.');
-          }
-          if (this._data) {
-            JX.$E(
-              'JX.Request.send(): ' +
-              'attempting to send data and a file. You can not send both ' +
-              'at once.');
-          }
-        }
       }
 
       this.invoke('send', this);
@@ -149,6 +157,10 @@ JX.install('Request', {
 
     abort : function() {
       this._cleanup();
+    },
+
+    _onuploadprogress : function(progress) {
+      this.invoke('uploadprogress', progress);
     },
 
     _onreadystatechange : function() {
