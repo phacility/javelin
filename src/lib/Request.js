@@ -181,25 +181,30 @@ JX.install('Request', {
           return;
         }
 
+        var expect_guard = this.getExpectCSRFGuard();
+
         if (__DEV__) {
           if (!xport.responseText.length) {
             JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an empty response.');
           }
-          if (xport.responseText.indexOf('for (;;);') != 0) {
+          if (expect_guard && xport.responseText.indexOf('for (;;);') != 0) {
             JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an invalid response.');
           }
-          if (xport.responseText == 'for (;;);') {
+          if (expect_guard && xport.responseText == 'for (;;);') {
             JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an empty response.');
           }
         }
 
-        var text = xport.responseText.substring('for (;;);'.length);
+        var text = xport.responseText;
+        if (expect_guard) {
+          text = text.substring('for (;;);'.length);
+        }
         response = JX.JSON.parse(text);
         if (!response) {
           JX.$E(
@@ -359,7 +364,14 @@ JX.install('Request', {
      *
      * @param int Timeout, in milliseconds (e.g. 3000 = 3 seconds).
      */
-    timeout : null
+    timeout : null,
+
+    /**
+     * Whether or not we should expect the CSRF guard in the reponse.
+     *
+     * @param bool
+     */
+    expectCSRFGuard : true
   }
 
 });
