@@ -78,7 +78,7 @@ JX.install('Request', {
       var xport = this.getTransport();
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
       if (xport.upload) {
-        xport.upload.progress = JX.bind(this, this._onuploadprogress);
+        xport.upload.onprogress = JX.bind(this, this._onuploadprogress);
       }
 
       var method = this.getMethod().toUpperCase();
