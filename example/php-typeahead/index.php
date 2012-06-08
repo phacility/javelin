@@ -49,10 +49,10 @@
 
 <?php
 
-  require_once '../../support/php/Javelin.php';
+  require_once '../../support/php/JavelinHelper.php';
 
 
-  Javelin::initBehavior(
+  JavelinHelper::initBehavior(
     'typeahead-examples',
     array(
       'preloadedURI'        => 'preloaded-source.php',
@@ -69,7 +69,7 @@
   <script src="typeahead-examples.js" type="text/javascript"></script>
 <?php
 
-  echo Javelin::renderHTMLFooter();
+  echo JavelinHelper::renderHTMLFooter();
 
 ?>
 </html>

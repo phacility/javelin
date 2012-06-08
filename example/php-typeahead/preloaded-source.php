@@ -1,6 +1,6 @@
 <?php
 
-require_once '../../support/php/Javelin.php';
+require_once '../../support/php/JavelinHelper.php';
 
 $list = file_get_contents('animals.txt');
 $list = explode("\n", trim($list));
@@ -13,4 +13,4 @@ foreach ($list as $id => $animal) {
     $id);
 }
 
-echo Javelin::renderAjaxResponse($response);
+echo JavelinHelper::renderAjaxResponse($response);

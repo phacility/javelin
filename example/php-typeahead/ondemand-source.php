@@ -1,6 +1,6 @@
 <?php
 
-require_once '../../support/php/Javelin.php';
+require_once '../../support/php/JavelinHelper.php';
 
 $query = $_GET['q'];
 
@@ -17,4 +17,4 @@ foreach ($list as $animal) {
   }
 }
 
-echo Javelin::renderAjaxResponse($response);
+echo JavelinHelper::renderAjaxResponse($response);

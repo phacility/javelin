@@ -38,7 +38,7 @@ you. For example, using the PHP library:
 
   lang=php
   $config = array('hogName' => 'Ethel');
-  Javelin::initBehaviors('win-a-hog', $config);
+  JavelinHelper::initBehaviors('win-a-hog', $config);
 
 Regardless, this will alert the user that they've won a hog (named Ethel, which
 is a good name for a hog) when they load the page.

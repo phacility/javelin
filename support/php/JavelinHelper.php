@@ -5,7 +5,7 @@
  * tags with Javelin metadata, and produce Ajax responses in the format Javelin
  * understands.
  */
-class Javelin {
+class JavelinHelper {
 
   protected static $instance = null;
 
@@ -79,7 +79,7 @@ class Javelin {
 
     if ($javelin->behavior) {
       $behavior = json_encode($javelin->behavior);
-      Javelin::onload('JX.initBehaviors('.$behavior.')');
+      JavelinHelper::onload('JX.initBehaviors('.$behavior.')');
       $javelin->behavior = array();
     }
 
@@ -147,7 +147,7 @@ class Javelin {
 
   protected static function getInstance() {
     if (empty(self::$instance)) {
-      self::$instance = new Javelin();
+      self::$instance = new JavelinHelper();
     }
     return self::$instance;
   }

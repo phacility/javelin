@@ -27,11 +27,11 @@
     <p>Click a square to make the first move.</p>
 <?php
 
-  require_once '../../support/php/Javelin.php';
+  require_once '../../support/php/JavelinHelper.php';
 
   $table = array();
   $table[] = '<tr>';
-  $table[] = Javelin::renderTag(
+  $table[] = JavelinHelper::renderTag(
     'td',
     'Your move.',
     array(
@@ -42,7 +42,7 @@
   for ($y = 0; $y < 3; $y++) {
     $table[] = '<tr>';
     for ($x = 0; $x < 3; $x++) {
-      $table[] = Javelin::renderTag(
+      $table[] = JavelinHelper::renderTag(
         'td',
         '',
         array(
@@ -57,14 +57,14 @@
     $table[] = '</tr>';
   }
 
-  echo Javelin::renderTag(
+  echo JavelinHelper::renderTag(
     'table',
     implode("\n", $table),
     array(
       'sigil' => 'tic-tac-board',
     ));
 
-  Javelin::initBehavior('tic-tac-toe');
+  JavelinHelper::initBehavior('tic-tac-toe');
 
 ?>
   </body>
@@ -72,7 +72,7 @@
   <script src="tic-tac-toe.js" type="text/javascript"></script>
 <?php
 
-  echo Javelin::renderHTMLFooter();
+  echo JavelinHelper::renderHTMLFooter();
 
 ?>
 </html>
