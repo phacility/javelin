@@ -275,7 +275,7 @@ JX.bag = function() {
  *
  * @group util
  */
-JX.keys = function(obj) {
+JX.keys = Object.keys || function(obj) {
   var r = [];
   for (var k in obj) {
     r.push(k);
