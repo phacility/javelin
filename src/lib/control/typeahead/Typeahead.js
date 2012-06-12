@@ -88,7 +88,6 @@ JX.install('Typeahead', {
         if (!e.isRightButton()) {
           this._choose(e.getNode('tag:a'));
         }
-        e.prevent();
       }));
 
   },
@@ -464,7 +463,7 @@ JX.install('Typeahead', {
       } else if (!this._focused) {
         // If the placeholder is not visible, we want to show it if the control
         // has benen blurred.
-        if (this._placeholder) {
+        if (this._placeholder && !this._control.value) {
           this._placeholderVisible = true;
         }
       }
