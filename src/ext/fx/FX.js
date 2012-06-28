@@ -22,7 +22,8 @@ JX.install('FX', {
     duration: 500,
     element: null,
     property: null,
-    transition: null
+    transition: null,
+    cbk:null
   },
 
   members: {
@@ -33,7 +34,7 @@ JX.install('FX', {
     _config: null,
     _interval: null,
 
-    start: function(config) {
+    start: function(config, cbk) {
       if (__DEV__) {
         if (!config) {
           throw new Error('What styles do you want to animate?');
@@ -55,6 +56,7 @@ JX.install('FX', {
           to[prop] = JX.Color.hexToRgb(to[prop], true);
         }
       }
+      this.setCbk(cbk);
       this._animate(from, to);
       return this;
     },
@@ -62,6 +64,7 @@ JX.install('FX', {
     stop: function() {
       clearInterval(this._interval);
       this._interval = null;
+      this.getCbk() && (this.getCbk())();
       return this;
     },
 
@@ -142,10 +145,10 @@ JX.install('FX', {
   },
 
   statics: {
-    fade: function(element, visible) {
+    fade: function(element, visible, cbk) {
       return new JX.FX(element).setDuration(250).start({
         opacity: visible ? [0, 1] : [1, 0]
-      });
+      },cbk);
     },
 
     highlight: function(element, color) {
