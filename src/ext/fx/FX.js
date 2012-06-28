@@ -145,8 +145,8 @@ JX.install('FX', {
   },
 
   statics: {
-    fade: function(element, visible, cbk) {
-      return new JX.FX(element).setDuration(250).start({
+    fade: function(element, visible, duration, cbk) {
+      return new JX.FX(element).setDuration(duration || 250).start({
         opacity: visible ? [0, 1] : [1, 0]
       },cbk);
     },
