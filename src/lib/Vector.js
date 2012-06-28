@@ -135,15 +135,19 @@ JX.install('Vector', {
      * corner of the document, you could do this (assuming it has 'position:
      * absolute'):
      *
-     *   JX.$V(0, 0).setPos(node);
+     *   JX.$V(0, 0).setPos(node,xDir,yDir);
      *
      * @param Node Node to move.
+     * @param String [xDir='left'] x-coordinate of position['left','right']
+     * @param String [yDir='top'] y-coordinate of position['top','bottom']
      * @return this
      * @task update
      */
-    setPos : function(node) {
-      node.style.left = (this.x === null) ? '' : (parseInt(this.x, 10) + 'px');
-      node.style.top  = (this.y === null) ? '' : (parseInt(this.y, 10) + 'px');
+    setPos : function(node,xDir,yDir) {
+      xDir = xDir || 'left';
+      yDir = yDir || 'top';
+      node.style[xDir] = (this.x === null) ? '' : (parseInt(this.x, 10) + 'px');
+      node.style[yDir]  = (this.y === null) ? '' : (parseInt(this.y, 10) + 'px');
       return this;
     },
 
