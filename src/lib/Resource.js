@@ -64,16 +64,20 @@ JX.install('Resource', {
 
     _loadJS: function(uri) {
       var script = document.createElement('script');
-      var callback = function() {
-        this.onload = this.onerror = this.onreadystatechange = null;
+      var load_callback = function() {
         JX.Resource._complete(uri);
+      };
+      var error_callback = function() {
+        JX.$E('Resource: JS file download failure: ' + uri);
       };
 
       JX.copy(script, {
         type: 'text/javascript',
         src: uri
       });
-      script.onload = script.onerror = callback;
+
+      script.onload = load_callback;
+      script.onerror = error_callback;
       script.onreadystatechange = function() {
         var state = this.readyState;
         if (state == 'complete' || state == 'loaded') {
