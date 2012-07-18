@@ -80,7 +80,7 @@ example:
 
 One way to think about behaviors are that they take the anonymous function
 passed to @{function:JX.behavior} and put it in a private Javelin namespace,
-which you access with @{function:JX.initBeahvior}.
+which you access with @{function:JX.initBehavior}.
 
 Another way to think about them is that you are defining methods which represent
 the entirety of the API exposed by the document. The recommended approach to
