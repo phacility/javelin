@@ -156,6 +156,10 @@ JX.install('Request', {
         return;
       }
 
+      //Sets the X-Requested-With header to be compliant with other 
+      //libraries and frameworks.
+      xport.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
       if (method == 'POST') {
         if (this.getFile()) {
           xport.send(this.getFile());
