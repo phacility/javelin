@@ -151,10 +151,6 @@ JX.install('TypeaheadSource', {
     addResult : function(obj) {
       obj = (this.getTransformer() || this._defaultTransformer)(obj);
 
-      if (obj && obj.id && this._excludeIDs[obj.id]) {
-        return;
-      }
-
       if (obj.id in this._raw) {
         // We're already aware of this result. This will happen if someone
         // searches for "zeb" and then for "zebra" with a
@@ -245,7 +241,7 @@ JX.install('TypeaheadSource', {
 
       var hits = [];
       for (var k in match_count) {
-        if (match_count[k] == t.length) {
+        if (match_count[k] == t.length && !this._excludeIDs[k]) {
           hits.push(k);
         }
       }
