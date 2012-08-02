@@ -219,7 +219,11 @@ JX.install('URI', {
       if (JX.Stratcom.invoke('go', null, {uri: uri}).getPrevented()) {
         return;
       }
-      (uri && (window.location = uri)) || window.location.reload(true);
+      if (!uri) {
+        // window.location.reload clears cache in Firefox.
+        uri = window.location.pathname + (window.location.query || '');
+      }
+      window.location = uri;
     }
 
   }
