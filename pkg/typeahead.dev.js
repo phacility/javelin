@@ -88,7 +88,6 @@ JX.install('Typeahead', {
         if (!e.isRightButton()) {
           this._choose(e.getNode('tag:a'));
         }
-        e.prevent();
       }));
 
   },
@@ -464,7 +463,7 @@ JX.install('Typeahead', {
       } else if (!this._focused) {
         // If the placeholder is not visible, we want to show it if the control
         // has benen blurred.
-        if (this._placeholder) {
+        if (this._placeholder && !this._control.value) {
           this._placeholderVisible = true;
         }
       }
@@ -569,8 +568,15 @@ JX.install('TypeaheadSource', {
      *    - **name**: the string used for matching against user input.
      *    - **uri**: the URI corresponding with the object (must be present
      *      but need not be meaningful)
+     *
+     * You can also give:
      *    - **display**: the text or nodes to show in the DOM. Usually just the
      *      same as ##name##.
+     *    - **tokenizable**: if you want to tokenize something other than the
+     *      ##name##, for the typeahead to complete on, specify it here.  A
+     *      selected entry from the typeahead will still insert the ##name##
+     *      into the input, but the ##tokenizable## field lets you complete on
+     *      non-name things.
      *
      * The default transformer expects a three element list with elements
      * [name, uri, id]. It assigns the first element to both ##name## and
@@ -681,7 +687,7 @@ JX.install('TypeaheadSource', {
       }
 
       this._raw[obj.id] = obj;
-      var t = this.tokenize(obj.name);
+      var t = this.tokenize(obj.tokenizable || obj.name);
       for (var jj = 0; jj < t.length; ++jj) {
         this._lookup[t[jj]] = this._lookup[t[jj]] || [];
         this._lookup[t[jj]].push(obj.id);

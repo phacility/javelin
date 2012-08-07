@@ -275,7 +275,7 @@ JX.bag = function() {
  *
  * @group util
  */
-JX.keys = function(obj) {
+JX.keys = Object.keys || function(obj) {
   var r = [];
   for (var k in obj) {
     r.push(k);
@@ -1706,6 +1706,12 @@ JX.install('Stratcom', {
         var index = meta_id[1];
         if (block && (index in block)) {
           return block[index];
+        } else if (__DEV__) {
+          JX.$E(
+            'JX.Stratcom.getData(<node>): Tried to access data (block ' +
+            meta_id[0] + ', index ' + index + ') that was not present. This ' +
+            'probably means you are calling getData() before the block ' +
+            'is provided by mergeData().');
         }
       }
 
@@ -1802,15 +1808,19 @@ JX.behavior = function(name, control_function) {
         'initialization function is not a function.');
     }
     // IE does not enumerate over these properties
-    var enumerables = [
-      'toString', 'hasOwnProperty', 'valueOf', 'isPrototypeOf',
-      'propertyIsEnumerable', 'toLocaleString', 'constructor'
-    ];
-    if (~enumerables.indexOf(name)) {
+    var enumerables = {
+      toString: true,
+      hasOwnProperty: true,
+      valueOf: true,
+      isPrototypeOf: true,
+      propertyIsEnumerable: true,
+      toLocaleString: true,
+      constructor: true
+    };
+    if (enumerables[name]) {
       JX.$E(
         'JX.behavior("' + name + '", <garbage>): ' +
-        'do not use any of these properties as behaviors: ' +
-        enumerables.join(', ')
+        'do not use this property as a behavior.'
       );
     }
   }
@@ -1890,7 +1900,8 @@ JX.install('Request', {
     }
   },
 
-  events : ['start', 'open', 'send', 'done', 'error', 'finally'],
+  events : ['start', 'open', 'send', 'statechange', 'done', 'error', 'finally',
+            'uploadprogress'],
 
   members : {
 
@@ -1901,21 +1912,38 @@ JX.install('Request', {
     _block : null,
     _data : null,
 
-    getTransport : function() {
-      var xport = this._transport;
-      if (!xport) {
+    _getSameOriginTransport : function() {
+      try {
         try {
-          try {
-            xport = new XMLHttpRequest();
-          } catch (x) {
-            xport = new ActiveXObject("Msxml2.XMLHTTP");
-          }
+          return new XMLHttpRequest();
         } catch (x) {
-          xport = new ActiveXObject("Microsoft.XMLHTTP");
+          return new ActiveXObject("Msxml2.XMLHTTP");
         }
-        this._transport = xport;
+      } catch (x) {
+        return new ActiveXObject("Microsoft.XMLHTTP");
       }
-      return xport;
+    },
+
+    _getCORSTransport : function() {
+      try {
+        var xport = new XMLHttpRequest();
+        if ('withCredentials' in xport) {
+          // XHR supports CORS
+        } else if (typeof XDomainRequest != 'undefined') {
+          xport = new XDomainRequest();
+        }
+        return xport;
+      } catch (x) {
+        return new XDomainRequest();
+      }
+    },
+
+    getTransport : function() {
+      if (!this._transport) {
+        this._transport = this.getCORS() ? this._getCORSTransport() :
+                                           this._getSameOriginTransport();
+      }
+      return this._transport;
     },
 
     send : function() {
@@ -1944,6 +1972,27 @@ JX.install('Request', {
 
       var xport = this.getTransport();
       xport.onreadystatechange = JX.bind(this, this._onreadystatechange);
+      if (xport.upload) {
+        xport.upload.onprogress = JX.bind(this, this._onuploadprogress);
+      }
+
+      var method = this.getMethod().toUpperCase();
+
+      if (__DEV__) {
+        if (this.getFile()) {
+          if (method != 'POST') {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send a file over GET. You must use POST.');
+          }
+          if (this._data) {
+            JX.$E(
+              'JX.Request.send(): ' +
+              'attempting to send data and a file. You can not send both ' +
+              'at once.');
+          }
+        }
+      }
 
       var list_of_pairs = this._data || [];
       list_of_pairs.push(['__ajax__', true]);
@@ -1954,9 +2003,11 @@ JX.install('Request', {
       var q = (this.getDataSerializer() ||
                JX.Request.defaultDataSerializer)(list_of_pairs);
       var uri = this.getURI();
-      var method = this.getMethod().toUpperCase();
 
-      if (method == 'GET') {
+      // If we're sending a file, submit the metadata via the URI instead of
+      // via the request body, because the entire post body will be consumed by
+      // the file content.
+      if (method == 'GET' || this.getFile()) {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
@@ -1976,22 +2027,6 @@ JX.install('Request', {
       this.invoke('open', this);
       if (this._finished) {
         return;
-      }
-
-      if (__DEV__) {
-        if (this.getFile()) {
-          if (method != 'POST') {
-            JX.$E(
-              'JX.Request.send(): ' +
-              'attempting to send a file over GET. You must use POST.');
-          }
-          if (this._data) {
-            JX.$E(
-              'JX.Request.send(): ' +
-              'attempting to send data and a file. You can not send both ' +
-              'at once.');
-          }
-        }
       }
 
       this.invoke('send', this);
@@ -2019,10 +2054,15 @@ JX.install('Request', {
       this._cleanup();
     },
 
+    _onuploadprogress : function(progress) {
+      this.invoke('uploadprogress', progress);
+    },
+
     _onreadystatechange : function() {
       var xport = this.getTransport();
       var response;
       try {
+        this.invoke('statechange', this);
         if (this._finished) {
           return;
         }
@@ -2037,25 +2077,26 @@ JX.install('Request', {
         }
 
         if (__DEV__) {
+          var expect_guard = this.getExpectCSRFGuard();
+
           if (!xport.responseText.length) {
             JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an empty response.');
           }
-          if (xport.responseText.indexOf('for (;;);') != 0) {
+          if (expect_guard && xport.responseText.indexOf('for (;;);') != 0) {
             JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an invalid response.');
           }
-          if (xport.responseText == 'for (;;);') {
+          if (expect_guard && xport.responseText == 'for (;;);') {
             JX.$E(
               'JX.Request("'+this.getURI()+'", ...): '+
               'server returned an empty response.');
           }
         }
 
-        var text = xport.responseText.substring('for (;;);'.length);
-        response = JX.JSON.parse(text);
+        response = this._extractResponse(xport);
         if (!response) {
           JX.$E(
             'JX.Request("'+this.getURI()+'", ...): '+
@@ -2073,21 +2114,59 @@ JX.install('Request', {
       }
 
       try {
-        if (response.error) {
-          this._fail(response.error);
-        } else {
-          JX.Stratcom.mergeData(
-            this._block,
-            response.javelin_metadata || {});
-          this._done(response);
-          JX.initBehaviors(response.javelin_behaviors || {});
-        }
+        this._handleResponse(response);
+        this._cleanup();
       } catch (exception) {
         //  In Firefox+Firebug, at least, something eats these. :/
         setTimeout(function() {
           throw exception;
         }, 0);
       }
+    },
+
+    _extractResponse : function(xport) {
+      var text = xport.responseText;
+
+      if (this.getExpectCSRFGuard()) {
+        text = text.substring('for (;;);'.length);
+      }
+
+      var type = this.getResponseType().toUpperCase();
+      if (type == 'TEXT') {
+        return text;
+      } else if (type == 'JSON' || type == 'JAVELIN') {
+        return JX.JSON.parse(text);
+      } else if (type == 'XML') {
+        var doc;
+        try {
+          if (typeof DOMParser != 'undefined') {
+            var parser = new DOMParser();
+            doc = parser.parseFromString(text, "text/xml");
+          } else {  // IE
+            // an XDomainRequest
+            doc = new ActiveXObject("Microsoft.XMLDOM");
+            doc.async = false;
+            doc.loadXML(xport.responseText);
+          }
+
+          return doc.documentElement;
+        } catch (exception) {
+          if (__DEV__) {
+            JX.log(
+              'JX.Request("'+this.getURI()+'", ...): '+
+              'caught exception extracting response: '+exception);
+          }
+          this._fail();
+          return null;
+        }
+      }
+
+      if (__DEV__) {
+        JX.$E(
+          'JX.Request("'+this.getURI()+'", ...): '+
+          'unrecognized response type.');
+      }
+      return null;
     },
 
     _fail : function(error) {
@@ -2150,8 +2229,25 @@ JX.install('Request', {
     setDataWithListOfPairs : function(list_of_pairs) {
       this._data = list_of_pairs;
       return this;
-    }
+    },
 
+    _handleResponse : function(response) {
+      if (this.getResponseType().toUpperCase() == 'JAVELIN') {
+        if (response.error) {
+          this._fail(response.error);
+        } else {
+          JX.Stratcom.mergeData(
+            this._block,
+            response.javelin_metadata || {});
+          this._done(response);
+          JX.initBehaviors(response.javelin_behaviors || {});
+        }
+      } else {
+        this._cleanup();
+        this.invoke('done', response, this);
+        this.invoke('finally');
+      }
+    }
   },
 
   statics : {
@@ -2214,7 +2310,29 @@ JX.install('Request', {
      *
      * @param int Timeout, in milliseconds (e.g. 3000 = 3 seconds).
      */
-    timeout : null
+    timeout : null,
+
+    /**
+     * Whether or not we should expect the CSRF guard in the response.
+     *
+     * @param bool
+     */
+    expectCSRFGuard : true,
+
+    /**
+     * Whether it should be a CORS (Cross-Origin Resource Sharing) request to
+     * a third party domain other than the current site.
+     *
+     * @param bool
+     */
+    CORS : false,
+
+    /**
+     * Type of the response.
+     *
+     * @param enum 'JAVELIN', 'JSON', 'XML', 'TEXT'
+     */
+    responseType : 'JAVELIN'
   }
 
 });
@@ -3110,7 +3228,8 @@ JX.install('DOM', {
         var type = elements[ii].type;
         var tag  = elements[ii].tagName;
         if ((type in {radio: 1, checkbox: 1} && elements[ii].checked) ||
-             type in {text: 1, hidden: 1, password: 1, email: 1} ||
+             type in {text: 1, hidden: 1, password: 1, email: 1, tel: 1,
+                      number: 1} ||
              tag in {TEXTAREA: 1, SELECT: 1}) {
           data.push([elements[ii].name, elements[ii].value]);
         }
@@ -3261,8 +3380,8 @@ JX.install('DOM', {
 
     /**
      * Show one or more elements, by removing their "display" style. This
-     * assumes you have hidden them with hide(), or explicitly set the style
-     * to "display: none;".
+     * assumes you have hidden them with @{method:hide}, or explicitly set
+     * the style to `display: none;`.
      *
      * @task convenience
      * @param ... One or more nodes to remove "display" styles from.
@@ -3286,8 +3405,8 @@ JX.install('DOM', {
 
 
     /**
-     * Hide one or more elements, by setting "display: none;" on them. This is
-     * a convenience method. See also show().
+     * Hide one or more elements, by setting `display: none;` on them. This is
+     * a convenience method. See also @{method:show}.
      *
      * @task convenience
      * @param ... One or more nodes to set "display: none" on.
