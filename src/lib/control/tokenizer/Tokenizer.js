@@ -150,7 +150,7 @@ JX.install('Tokenizer', {
             if (this.shouldHideResultsOnChoose()) {
               this._typeahead.hide();
             }
-            this._focus.value = '';
+            this._typeahead.clear();
             this._redraw();
             this.focus();
           }

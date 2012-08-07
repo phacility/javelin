@@ -302,6 +302,7 @@ JX.install('Typeahead', {
      */
     clear : function() {
       this._control.value = '';
+      this._value = '';
       this.hide();
     },
 
