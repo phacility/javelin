@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>Javelin Example: Simple</title>
+    <script src="../pkg/init.min.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="php-typeahead/typeahead-examples.css" type="text/css" />
+  </head>
+  <body>
+
+    <div id="tok"
+      class="jx-tokenizer-container"
+      style="position: relative; width: 300px;">
+      <input
+        type="text"
+        class="jx-tokenizer"
+        data-sigil="tokenizer-input"
+        style="width: 0px;"
+        disabled="disabled"
+        />
+    </div>
+
+  </body>
+  <script src="../pkg/javelin.min.js" type="text/javascript"></script>
+  <script src="../pkg/typeahead.dev.js" type="text/javascript"></script>
+  <script src="../src/lib/control/typeahead/source/TypeaheadStaticSource.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    JX.Stratcom.mergeData(0, {});
+    JX.onload(function() {
+
+      // Data for the tokenizer. I put "z" in front of every one so you can get
+      // all the results by typing "z", to understand the behavior more easily.
+
+      var data = [
+        ['z Apple', null, 1, 'fruit'],
+        ['z Banana', null, 2, 'fruit'],
+        ['z Cherry', null, 3, 'fruit'],
+        ['z Dog', null, 4, 'animal'],
+        ['z Cat', null, 5, 'animal'],
+        ['z Bird', null, 6, 'animal'],
+      ];
+
+      var datasource = new JX.TypeaheadStaticSource(data);
+      var typ = new JX.Typeahead(JX.$('tok'));
+      var tok = new JX.Tokenizer(JX.$('tok'));
+
+      // Transformer for the datasource. We add an extra 'tokenType' key, loaded
+      // from our data. This is either "fruit" or "animal".
+
+      function transformer(object) {
+        return {
+          name: object[0],
+          display: object[0],
+          uri: object[1],
+          id: object[2],
+          tokenType: object[3]
+        };
+      }
+
+      // Sort/filter handler. We query the tokenizer to see which tokens it
+      // has selected, then build a map of selected types. If we've already
+      // selected an animal, don't show any more animals. If we've already
+      // selected a fruit, don't show any more fruit.
+
+      function sort_handler(value, list, cmp) {
+        var token;
+        var have_types = {};
+        for (var k in tok.getTokens()) {
+          token = datasource.getResult(k);
+          have_types[token.tokenType] = true;
+        }
+
+        for (var ii = 0; ii < list.length; ii++) {
+          if (have_types[list[ii].tokenType]) {
+            list.splice(ii, 1);
+            ii--;
+          }
+        }
+      }
+
+      datasource.setSortHandler(sort_handler);
+      datasource.setTransformer(transformer);
+
+      typ.setDatasource(datasource);
+
+      tok.setTypeahead(typ);
+      tok.start();
+
+    });
+  </script>
+</html>

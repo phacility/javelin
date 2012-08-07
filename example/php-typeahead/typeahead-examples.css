@@ -32,3 +32,25 @@ input.jx-typeahead {
 input.jx-typeahead-placeholder {
   color: #888888;
 }
+
+
+input.jx-tokenizer-input {
+  outline: none;
+  border: none;
+  width: auto;
+}
+
+a.jx-tokenizer-token {
+  background: #cfdfff;
+  padding: 1px 2px;
+  border: 1px solid #334466;
+  margin: 1px;
+}
+
+.jx-tokenizer-x {
+  padding: 0 0 0 6px;
+}
+
+.jx-tokenizer-container {
+  border: 1px solid #dfdfdf;
+}
