@@ -182,6 +182,20 @@ JX.install('TypeaheadSource', {
       return this;
     },
 
+
+    /**
+     * Get the raw state of a result by its ID. A number of other events and
+     * mechanisms give a list of result IDs and limited additional data; if you
+     * need to act on the full result data you can look it up here.
+     *
+     * @param scalar Result ID.
+     * @return dict Corresponding raw result.
+     */
+    getResult : function(id) {
+      return this._raw[id];
+    },
+
+
     matchResults : function(value) {
 
       // This table keeps track of the number of tokens each potential match
