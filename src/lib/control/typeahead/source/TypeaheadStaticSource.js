@@ -32,7 +32,7 @@ JX.install('TypeaheadStaticSource', {
       for (var ii = 0; ii < this._data.length; ii++) {
         this.addResult(this._data[ii]);
       }
-    },
+    }
   }
 });
 
