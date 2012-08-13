@@ -167,6 +167,10 @@ JX.install('Typeahead', {
       this._datasource = datasource;
     },
 
+    getDatasource : function() {
+      return this._datasource;
+    },
+
     /**
      * Override the <input /> selected in the constructor with some other input.
      * This is primarily useful when building a control on top of the typeahead,
