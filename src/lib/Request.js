@@ -142,7 +142,7 @@ JX.install('Request', {
           this.getTimeout());
       }
 
-      xport.open(method, uri, true);
+      xport.open(method, uri, this.getAsync());
 
       // Must happen after xport.open so that listeners can modify the transport
       // Some transport properties can only be set after the transport is open
@@ -422,6 +422,7 @@ JX.install('Request', {
      * @param string HTTP method, one of "POST" or "GET".
      */
     method : 'POST',
+    async : true,
     file : null,
     raw : false,
 
