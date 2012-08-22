@@ -135,9 +135,10 @@ before the listener subscribed to 'outer'
     </div>
   </div>
 
-  lang=js
+  <script type="text/javascript">
   JX.Stratcom.listen('click', ['outer'], function(e) { ... });
   JX.Stratcom.listen('click', ['inner'], function(e) { ... });
+  </script>
 
 
 = Listening to Class Events =
