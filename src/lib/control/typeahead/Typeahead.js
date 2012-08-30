@@ -122,6 +122,8 @@ JX.install('Typeahead', {
     _placeholder : null,
     _display : null,
     _datasource : null,
+    _waitingListener : null,
+    _readyListener : null,
 
     /**
      * Activate your properly configured typeahead. It won't do anything until
@@ -154,15 +156,19 @@ JX.install('Typeahead', {
      *                               draw from.
      */
     setDatasource : function(datasource) {
-      if (__DEV__) {
-        if (this._datasource) {
-          throw new Error(
-            "JX.Typeahead.setDatasource(): " +
-            "Typeahead already has a datasource.");
-        }
+      if (this._datasource) {
+        this._datasource.unbindFromTypeahead();
+        this._waitingListener.remove();
+        this._readyListener.remove();
       }
-      datasource.listen('waiting', JX.bind(this, this.waitForResults));
-      datasource.listen('resultsready', JX.bind(this, this.showResults));
+      this._waitingListener = datasource.listen(
+        'waiting',
+        JX.bind(this, this.waitForResults)
+      );
+      this._readyListener = datasource.listen(
+        'resultsready',
+        JX.bind(this, this.showResults)
+      );
       datasource.bindToTypeahead(this);
       this._datasource = datasource;
     },
