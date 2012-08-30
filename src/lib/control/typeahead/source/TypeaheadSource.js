@@ -117,10 +117,23 @@ JX.install('TypeaheadSource', {
     _raw : null,
     _lookup : null,
     _excludeIDs : null,
+    _changeListener : null,
+    _startListener : null,
 
     bindToTypeahead : function(typeahead) {
-      typeahead.listen('change', JX.bind(this, this.didChange));
-      typeahead.listen('start', JX.bind(this, this.didStart));
+      this._changeListener = typeahead.listen(
+        'change',
+        JX.bind(this, this.didChange)
+      );
+      this._startListener = typeahead.listen(
+        'start',
+        JX.bind(this, this.didStart)
+      );
+    },
+
+    unbindFromTypeahead : function() {
+      this._changeListener.remove();
+      this._startListener.remove();
     },
 
     didChange : function(value) {
