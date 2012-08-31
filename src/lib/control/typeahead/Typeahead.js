@@ -331,8 +331,11 @@ JX.install('Typeahead', {
      * @task control
      */
     submit : function() {
-      if (this._focus >= 0 && this._display[this._focus]) {
-        this._choose(this._display[this._focus]);
+      var result = this._focus >= 0 ?
+        JX.DOM.scry(this._root, 'a', 'typeahead-result')[this._focus] : 
+        null;
+      if (result) {
+        this._choose(result);
         return true;
       } else {
         result = this.invoke('query', this._control.value);
