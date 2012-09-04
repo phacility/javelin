@@ -129,6 +129,11 @@ JX.install('Tokenizer', {
           JX.$N('div', {style: {clear: 'both'}})
         );
         this._redraw();
+
+        // After adding some initial values to tokenizer, we should refresh
+        // the typeahead list to make it aware of this prefilling (e.g. not
+        // to show these items in suggestions).
+        this._typeahead.refresh();
       }), 0);
     },
 
