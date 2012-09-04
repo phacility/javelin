@@ -217,10 +217,14 @@ JX.install('Typeahead', {
     showResults : function(results) {
       var obj = {show: results};
       var e = this.invoke('show', obj);
-      this._display = obj.show;
+
+      // Note that the results list may have been update by the "show" event
+      // listener. Non-result node (e.g. divider or label) may have been
+      // inserted.
+      JX.DOM.setContent(this._root, results);
+      this._display = JX.DOM.scry(this._root, 'a', 'typeahead-result');
 
       if (this._display.length && !e.getPrevented()) {
-        JX.DOM.setContent(this._root, this._display);
         this._changeFocus(Number.NEGATIVE_INFINITY);
         var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
@@ -231,6 +235,7 @@ JX.install('Typeahead', {
         JX.DOM.show(this._root);
       } else {
         this.hide();
+        JX.DOM.setContent(this._root, null);
       }
     },
 
