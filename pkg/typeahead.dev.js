@@ -122,6 +122,8 @@ JX.install('Typeahead', {
     _placeholder : null,
     _display : null,
     _datasource : null,
+    _waitingListener : null,
+    _readyListener : null,
 
     /**
      * Activate your properly configured typeahead. It won't do anything until
@@ -154,17 +156,25 @@ JX.install('Typeahead', {
      *                               draw from.
      */
     setDatasource : function(datasource) {
-      if (__DEV__) {
-        if (this._datasource) {
-          throw new Error(
-            "JX.Typeahead.setDatasource(): " +
-            "Typeahead already has a datasource.");
-        }
+      if (this._datasource) {
+        this._datasource.unbindFromTypeahead();
+        this._waitingListener.remove();
+        this._readyListener.remove();
       }
-      datasource.listen('waiting', JX.bind(this, this.waitForResults));
-      datasource.listen('resultsready', JX.bind(this, this.showResults));
+      this._waitingListener = datasource.listen(
+        'waiting',
+        JX.bind(this, this.waitForResults)
+      );
+      this._readyListener = datasource.listen(
+        'resultsready',
+        JX.bind(this, this.showResults)
+      );
       datasource.bindToTypeahead(this);
       this._datasource = datasource;
+    },
+
+    getDatasource : function() {
+      return this._datasource;
     },
 
     /**
@@ -302,6 +312,7 @@ JX.install('Typeahead', {
      */
     clear : function() {
       this._control.value = '';
+      this._value = '';
       this.hide();
     },
 
@@ -630,10 +641,23 @@ JX.install('TypeaheadSource', {
     _raw : null,
     _lookup : null,
     _excludeIDs : null,
+    _changeListener : null,
+    _startListener : null,
 
     bindToTypeahead : function(typeahead) {
-      typeahead.listen('change', JX.bind(this, this.didChange));
-      typeahead.listen('start', JX.bind(this, this.didStart));
+      this._changeListener = typeahead.listen(
+        'change',
+        JX.bind(this, this.didChange)
+      );
+      this._startListener = typeahead.listen(
+        'start',
+        JX.bind(this, this.didStart)
+      );
+    },
+
+    unbindFromTypeahead : function() {
+      this._changeListener.remove();
+      this._startListener.remove();
     },
 
     didChange : function(value) {
@@ -663,10 +687,6 @@ JX.install('TypeaheadSource', {
 
     addResult : function(obj) {
       obj = (this.getTransformer() || this._defaultTransformer)(obj);
-
-      if (obj && obj.id && this._excludeIDs[obj.id]) {
-        return;
-      }
 
       if (obj.id in this._raw) {
         // We're already aware of this result. This will happen if someone
@@ -698,6 +718,20 @@ JX.install('TypeaheadSource', {
       this.invoke('waiting');
       return this;
     },
+
+
+    /**
+     * Get the raw state of a result by its ID. A number of other events and
+     * mechanisms give a list of result IDs and limited additional data; if you
+     * need to act on the full result data you can look it up here.
+     *
+     * @param scalar Result ID.
+     * @return dict Corresponding raw result.
+     */
+    getResult : function(id) {
+      return this._raw[id];
+    },
+
 
     matchResults : function(value) {
 
@@ -758,7 +792,7 @@ JX.install('TypeaheadSource', {
 
       var hits = [];
       for (var k in match_count) {
-        if (match_count[k] == t.length) {
+        if (match_count[k] == t.length && !this._excludeIDs[k]) {
           hits.push(k);
         }
       }
@@ -1143,7 +1177,7 @@ JX.install('Tokenizer', {
             if (this.shouldHideResultsOnChoose()) {
               this._typeahead.hide();
             }
-            this._focus.value = '';
+            this._typeahead.clear();
             this._redraw();
             this.focus();
           }

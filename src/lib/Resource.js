@@ -81,7 +81,7 @@ JX.install('Resource', {
       script.onreadystatechange = function() {
         var state = this.readyState;
         if (state == 'complete' || state == 'loaded') {
-          callback();
+          load_callback();
         }
       };
       document.getElementsByTagName('head')[0].appendChild(script);
