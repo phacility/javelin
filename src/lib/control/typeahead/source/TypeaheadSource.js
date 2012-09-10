@@ -317,6 +317,7 @@ JX.install('TypeaheadSource', {
       return JX.$N(
         'a',
         {
+          sigil: 'typeahead-result',
           href: data.uri,
           name: data.name,
           rel: data.id,
