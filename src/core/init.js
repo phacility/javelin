@@ -123,6 +123,7 @@
 
   var document_events = [
     'click',
+    'dblclick',
     'change',
     'submit',
     'keypress',
