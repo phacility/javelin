@@ -99,7 +99,7 @@ JX.install('Tokenizer', {
           this,
           function(e) {
             if (e.getNode('remove')) {
-              this._remove(e.getNodeData('token').key);
+              this._remove(e.getNodeData('token').key, true);
             } else if (e.getTarget() == this._root) {
               this.focus();
             }
@@ -279,6 +279,10 @@ JX.install('Tokenizer', {
       return true;
     },
 
+    removeToken : function(key) {
+      return this._remove(key, false);
+    },
+
     buildInput: function(value) {
       return JX.$N('input', {
         className: 'jx-tokenizer-input',
@@ -338,7 +342,7 @@ JX.install('Tokenizer', {
           if (!this._focus.value.length) {
             var tok;
             while (tok = this._tokens.pop()) {
-              if (this._remove(tok)) {
+              if (this._remove(tok, true)) {
                 break;
               }
             }
@@ -357,14 +361,14 @@ JX.install('Tokenizer', {
       }
     },
 
-    _remove : function(index) {
+    _remove : function(index, focus) {
       if (!this._tokenMap[index]) {
         return false;
       }
       JX.DOM.remove(this._tokenMap[index].node);
       delete this._tokenMap[index];
       this._redraw(true);
-      this.focus();
+      focus && this.focus();
 
       this.invoke('change', this);
 
