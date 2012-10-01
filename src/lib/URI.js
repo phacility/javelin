@@ -185,6 +185,10 @@ JX.install('URI', {
       }
       str += this.getDomain() || '';
 
+      if (this.getPort()) {
+        str += ':' + this.getPort();
+      }
+
       // If there is a domain or a protocol, we need to provide '/' for the
       // path. If we don't have either and also don't have a path, we can omit
       // it to produce a partial URI without path information which begins

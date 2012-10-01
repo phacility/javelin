@@ -4,9 +4,10 @@
 describe('Javelin URI', function() {
 
   it('should understand parts of a uri', function() {
-    var uri = JX.$U('http://www.facebook.com/home.php?key=value#fragment');
+    var uri = JX.$U('http://www.facebook.com:123/home.php?key=value#fragment');
     expect(uri.getProtocol()).toEqual('http');
     expect(uri.getDomain()).toEqual('www.facebook.com');
+    expect(uri.getPort()).toEqual('123');
     expect(uri.getPath()).toEqual('/home.php');
     expect(uri.getQueryParams()).toEqual({'key' : 'value'});
     expect(uri.getFragment()).toEqual('fragment');
