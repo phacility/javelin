@@ -325,6 +325,15 @@ JX.install('Typeahead', {
     /**
      * @task control
      */
+    enable : function() {
+      this._control.disabled = false;
+      this._stop = false;
+    },
+
+
+    /**
+     * @task control
+     */
     disable : function() {
       this._control.blur();
       this._control.disabled = true;

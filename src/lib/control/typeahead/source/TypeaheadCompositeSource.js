@@ -45,13 +45,13 @@ JX.install('TypeaheadCompositeSource', {
     },
 
     childWaiting : function() {
-      if (!this.results.length) {
+      if (!this.results || !this.results.length) {
         this.invoke('waiting');
       }
     },
 
     childResultsReady : function(nodes) {
-      this.results = this.mergeResults(this.results, nodes);
+      this.results = this.mergeResults(this.results || [], nodes);
       this.invoke('resultsready', this.results);
     },
 
