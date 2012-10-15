@@ -311,6 +311,7 @@ JX.$N = function(tag, attr, content) {
 JX.install('DOM', {
   statics : {
     _autoid : 0,
+    _uniqid : 0,
     _metrics : {},
 
 
@@ -639,13 +640,13 @@ JX.install('DOM', {
         }
       }
 
-      var id = ['id:' + JX.DOM.uniqID(node)];
+      var auto_id = ['autoid:' + JX.DOM._getAutoID(node)];
       path = JX.$AX(path || []);
       if (!path.length) {
-        path = id;
+        path = auto_id;
       } else {
         for (var ii = 0; ii < path.length; ii++) {
-          path[ii] = id.concat(JX.$AX(path[ii]));
+          path[ii] = auto_id.concat(JX.$AX(path[ii]));
         }
       }
       return JX.Stratcom.listen(type, path, callback);
@@ -653,7 +654,7 @@ JX.install('DOM', {
 
     uniqID : function(node) {
       if (!node.getAttribute('id')) {
-        node.setAttribute('id', 'autoid_'+(++JX.DOM._autoid));
+        node.setAttribute('id', 'uniqid_'+(++JX.DOM._uniqid));
       }
       return node.getAttribute('id');
     },
@@ -850,9 +851,16 @@ JX.install('DOM', {
      * @param Node Node to move document scroll position to, if possible.
      * @return void
      */
-     scrollTo : function(node) {
-       window.scrollTo(0, JX.$V(node).y);
-     }
+    scrollTo : function(node) {
+      window.scrollTo(0, JX.$V(node).y);
+    },
+
+    _getAutoID : function(node) {
+      if (!node.getAttribute('data-autoid')) {
+        node.setAttribute('data-autoid', 'autoid_'+(++JX.DOM._autoid));
+      }
+      return node.getAttribute('data-autoid');
+    }
   }
 });
 

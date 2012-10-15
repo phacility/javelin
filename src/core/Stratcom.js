@@ -315,6 +315,11 @@ JX.install('Stratcom', {
           }
         }
 
+        var auto_id = cursor.getAttribute('data-autoid');
+        if (auto_id) {
+          push('autoid:' + auto_id, cursor, distance);
+        }
+
         ++distance;
         cursor = cursor.parentNode;
       }
