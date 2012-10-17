@@ -101,16 +101,16 @@ JX.install('Request', {
       var method = this.getMethod().toUpperCase();
 
       if (__DEV__) {
-        if (this.getFile()) {
+        if (this.getRawData()) {
           if (method != 'POST') {
             JX.$E(
               'JX.Request.send(): ' +
-              'attempting to send a file over GET. You must use POST.');
+              'attempting to send post data over GET. You must use POST.');
           }
           if (this._data) {
             JX.$E(
               'JX.Request.send(): ' +
-              'attempting to send data and a file. You can not send both ' +
+              'attempting to send data and raw data. You can not send both ' +
               'at once.');
           }
         }
@@ -157,8 +157,8 @@ JX.install('Request', {
       }
 
       if (method == 'POST') {
-        if (this.getFile()) {
-          xport.send(this.getFile());
+        if (this.getRawData()) {
+          xport.send(this.getRawData());
         } else {
           xport.setRequestHeader(
             'Content-Type',
@@ -348,6 +348,24 @@ JX.install('Request', {
       return this;
     },
 
+    setFile : function(file) {
+      if (__DEV__) {
+        JX.$E(
+          'JX.Request.setFile(): ' +
+          'DEPRECATED. Use JX.Request.setRawData instead.');
+      }
+      return this.setRawData(file);
+    },
+
+    getFile : function() {
+      if (__DEV__) {
+        JX.$E(
+          'JX.Request.getFile(): ' +
+          'DEPRECATED. Use JX.Request.getRawData instead.');
+      }
+      return this.getRawData();
+    },
+
     setDataWithListOfPairs : function(list_of_pairs) {
       this._data = list_of_pairs;
       return this;
@@ -422,7 +440,14 @@ JX.install('Request', {
      * @param string HTTP method, one of "POST" or "GET".
      */
     method : 'POST',
-    file : null,
+    /**
+     * Set the data parameter of transport.send. Useful if you want to send a
+     * file or FormData. Not that you cannot send raw data and data at the same
+     * time.
+     *
+     * @param Data, argument to transport.send
+     */
+    rawData: null,
     raw : false,
 
     /**
