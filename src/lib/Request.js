@@ -129,7 +129,7 @@ JX.install('Request', {
       // If we're sending a file, submit the metadata via the URI instead of
       // via the request body, because the entire post body will be consumed by
       // the file content.
-      if (method == 'GET' || this.getFile()) {
+      if (method == 'GET' || this.getRawData()) {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
