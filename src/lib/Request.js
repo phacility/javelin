@@ -107,12 +107,6 @@ JX.install('Request', {
               'JX.Request.send(): ' +
               'attempting to send post data over GET. You must use POST.');
           }
-          if (this._data) {
-            JX.$E(
-              'JX.Request.send(): ' +
-              'attempting to send data and raw data. You can not send both ' +
-              'at once.');
-          }
         }
       }
 
