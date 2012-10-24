@@ -342,24 +342,6 @@ JX.install('Request', {
       return this;
     },
 
-    setFile : function(file) {
-      if (__DEV__) {
-        JX.$E(
-          'JX.Request.setFile(): ' +
-          'DEPRECATED. Use JX.Request.setRawData instead.');
-      }
-      return this.setRawData(file);
-    },
-
-    getFile : function() {
-      if (__DEV__) {
-        JX.$E(
-          'JX.Request.getFile(): ' +
-          'DEPRECATED. Use JX.Request.getRawData instead.');
-      }
-      return this.getRawData();
-    },
-
     setDataWithListOfPairs : function(list_of_pairs) {
       this._data = list_of_pairs;
       return this;
