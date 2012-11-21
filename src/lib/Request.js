@@ -5,6 +5,7 @@
  *           javelin-behavior
  *           javelin-json
  *           javelin-dom
+ *           javelin-resource
  * @provides javelin-request
  * @javelin
  */
@@ -355,8 +356,17 @@ JX.install('Request', {
           JX.Stratcom.mergeData(
             this._block,
             response.javelin_metadata || {});
-          this._done(response);
-          JX.initBehaviors(response.javelin_behaviors || {});
+
+          var when_complete = JX.bind(this, function() {
+            this._done(response);
+            JX.initBehaviors(response.javelin_behaviors || {});
+          });
+
+          if (response.javelin_resources) {
+            JX.Resource.load(response.javelin_resources, when_complete);
+          } else {
+            when_complete();
+          }
         }
       } else {
         this._cleanup();
