@@ -136,6 +136,35 @@ JX.install('Event', {
 
 
     /**
+     * Determine if a click event is a normal click (left mouse button, no
+     * modifier keys).
+     *
+     * @return bool
+     * @task info
+     */
+    isNormalClick : function() {
+      if (this.getType() != 'click') {
+        return false;
+      }
+
+      var r = this.getRawEvent();
+      if (r.metaKey || r.altKey || r.ctrlkey || r.shiftKey) {
+        return false;
+      }
+
+      if (('which' in r) && (r.which != 1)) {
+        return false;
+      }
+
+      if (('button' in r) && r.button) {
+        return false;
+      }
+
+      return true;
+    },
+
+
+    /**
      * Get the node corresponding to the specified key in this event's node map.
      * This is a simple helper method that makes the API for accessing nodes
      * less ugly.
