@@ -626,20 +626,6 @@ JX.install('DOM', {
      *                    method.
      */
     listen : function(node, type, path, callback) {
-      if (__DEV__) {
-        var types = JX.$AX(type);
-        for (var ix = 0; ix < types.length; ix++) {
-          var t = types[ix];
-
-          if (!(t in JX.__allowedEvents)) {
-            JX.$E(
-              'JX.DOM.listen(...): ' +
-              'can only listen to events registered in init.js. "' +
-               t + '" not found.');
-          }
-        }
-      }
-
       var auto_id = ['autoid:' + JX.DOM._getAutoID(node)];
       path = JX.$AX(path || []);
       if (!path.length) {
@@ -651,6 +637,37 @@ JX.install('DOM', {
       }
       return JX.Stratcom.listen(type, path, callback);
     },
+
+
+    /**
+     * Invoke a custom event on a node. This method is a companion to
+     * @{method:JX.DOM.listen} and parallels @{method:JX.Stratcom.invoke} in
+     * the same way that method parallels @{method:JX.Stratcom.listen}.
+     *
+     * This method can not be used to invoke native events (like 'click').
+     *
+     * @param Node      The node to invoke an event on.
+     * @param string    Custom event type.
+     * @param dict      Event data.
+     * @return JX.Event The event object which was dispatched to listeners.
+     *                  The main use of this is to test whether any
+     *                  listeners prevented the event.
+     */
+    invoke : function(node, type, data) {
+      if (__DEV__) {
+        if (type in JX.__allowedEvents) {
+          throw new Error(
+            'JX.DOM.invoke(..., "' + type + '", ...): ' +
+            'you cannot invoke with the same type as a native event.');
+        }
+      }
+      return JX.Stratcom.dispatch({
+        target: node,
+        type: type,
+        customData: data
+      });
+    },
+
 
     uniqID : function(node) {
       if (!node.getAttribute('id')) {

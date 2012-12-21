@@ -24,6 +24,39 @@ describe('JX.DOM', function() {
     });
   });
 
+  describe('invoke', function() {
+    it('should invoke custom events', function() {
+      var span = JX.$N('span', 'test');
+      var div = JX.$N('div', {}, span);
+      var data = { duck: 'quack' };
+
+      var invoked = false;
+      var bubbled = false;
+      JX.DOM.listen(span, 'custom', null, function(event) {
+        expect(event.getTarget()).toBe(span);
+        expect(event.getType()).toBe('custom');
+        expect(event.getData()).toBe(data);
+        invoked = true;
+      });
+      JX.DOM.listen(div, 'custom', null, function(event) {
+        expect(event.getTarget()).toBe(span); // not div
+        bubbled = true;
+      });
+      JX.DOM.invoke(span, 'custom', data);
+      expect(invoked).toBe(true);
+      expect(bubbled).toBe(true);
+    });
+
+    it('should not allow invoking native events', function() {
+      ensure__DEV__(true, function() {
+        expect(function() {
+          JX.DOM.invoke(JX.$N('div'), 'click');
+        }).toThrow();
+      });
+    });
+  });
+
+
   describe('setContent', function() {
     var node;
 

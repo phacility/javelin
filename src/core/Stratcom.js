@@ -333,6 +333,7 @@ JX.install('Stratcom', {
 
       var proxy = new JX.Event()
         .setRawEvent(event)
+        .setData(event.customData)
         .setType(etype)
         .setTarget(target)
         .setNodes(nodes)
