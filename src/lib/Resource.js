@@ -26,7 +26,7 @@ JX.install('Resource', {
      */
     load: function(list, callback) {
       var resources = {},
-        uri, resource, path, type;
+        uri, resource, path, is_css;
 
       list = JX.$AX(list);
 
@@ -42,13 +42,37 @@ JX.install('Resource', {
         uri = new JX.URI(list[ii]);
         resource = uri.toString();
         path = uri.getPath();
+
+        is_css = false;
+        if (path.indexOf('.css') == path.length - 4) {
+          is_css = true;
+        }
+
+        // During initialization, resource paths are pulled directly out of the
+        // elements in the <head>. The browser can munge these from what the
+        // literal URIs are in the HTML; in particular, it tends to include the
+        // domain. So that we can allow clients to specify URIs consistently,
+        // not worrying about this behavior, run the URI through the same
+        // browser munging path that it would have gone through had it come out
+        // of the <head> in the first place, so everything matches and we don't
+        // double-load resources.
+        if (is_css) {
+          var normalizing_elem = document.createElement('link');
+          normalizing_elem.href = resource;
+          resource = normalizing_elem.href;
+        } else {
+          var normalizing_elem = document.createElement('script');
+          normalizing_elem.src = resource;
+          resource = normalizing_elem.src;
+        }
+
         resources[resource] = true;
 
         if (JX.Resource._loaded[resource]) {
           setTimeout(JX.bind(JX.Resource, JX.Resource._complete, resource), 0);
         } else if (!JX.Resource._loading[resource]) {
           JX.Resource._loading[resource] = true;
-          if (path.indexOf('.css') == path.length - 4) {
+          if (is_css) {
             JX.Resource._loadCSS(resource);
           } else {
             JX.Resource._loadJS(resource);
