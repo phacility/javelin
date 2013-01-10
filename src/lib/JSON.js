@@ -54,6 +54,9 @@ JX.install('JSON', {
         return obj || null;
       }
 
+      // These characters are valid in JSON but invalid in JavaScript.
+      data = data.replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+
       return eval('(' + data + ')');
     },
 
