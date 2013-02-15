@@ -140,8 +140,11 @@ JX.install('Resource', {
         if (owner) {
           while (jj--) {
             if (owner == links[jj]) {
-              JX.Resource._complete(links[jj]['data-href']);
-              links.splice(jj, 1);
+              try {
+                JX.Resource._complete(links[jj]['data-href']);
+              } finally {
+                links.splice(jj, 1);
+              }
             }
           }
         }
@@ -164,8 +167,11 @@ JX.install('Resource', {
         current = list[ii];
         delete current.resources[uri];
         if (!JX.Resource._hasResources(current.resources)) {
-          current.callback();
-          list.splice(ii--, 1);
+          try {
+            current.callback();
+          } finally {
+            list.splice(ii--, 1);
+          }
         }
       }
     },
