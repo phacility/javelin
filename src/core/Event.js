@@ -134,6 +134,37 @@ JX.install('Event', {
       return r.which == 3 || r.button == 2;
     },
 
+    /**
+     * Determine if a mouse event is a normal event (left mouse button, no
+     * modifier keys).
+     *
+     * @return bool
+     * @task info
+     */
+    isNormalMouseEvent : function() {
+      var supportedEvents = ['click', 'mouseup', 'mousedown'];
+
+      if (supportedEvents.indexOf(this.getType()) == -1) {
+        return false;
+      }
+
+      var r = this.getRawEvent();
+
+      if (r.metaKey || r.altKey || r.ctrlKey || r.shiftKey) {
+        return false;
+      }
+
+      if (('which' in r) && (r.which != 1)) {
+        return false;
+      }
+
+      if (('button' in r) && r.button) {
+        return false;
+      }
+
+      return true;
+    },
+
 
     /**
      * Determine if a click event is a normal click (left mouse button, no
@@ -147,20 +178,7 @@ JX.install('Event', {
         return false;
       }
 
-      var r = this.getRawEvent();
-      if (r.metaKey || r.altKey || r.ctrlkey || r.shiftKey) {
-        return false;
-      }
-
-      if (('which' in r) && (r.which != 1)) {
-        return false;
-      }
-
-      if (('button' in r) && r.button) {
-        return false;
-      }
-
-      return true;
+      return this.isNormalMouseEvent();
     },
 
 
@@ -211,6 +229,10 @@ JX.install('Event', {
     _keymap : {
       8     : 'delete',
       9     : 'tab',
+      // On Windows and Linux, Chrome sends '10' for return. On Mac OS X, it
+      // sends 13. Other browsers evidence varying degrees of diversity in their
+      // behavior. Treat '10' and '13' identically.
+      10    : 'return',
       13    : 'return',
       27    : 'esc',
       37    : 'left',
