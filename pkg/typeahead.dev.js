@@ -217,10 +217,14 @@ JX.install('Typeahead', {
     showResults : function(results) {
       var obj = {show: results};
       var e = this.invoke('show', obj);
-      this._display = obj.show;
+
+      // Note that the results list may have been update by the "show" event
+      // listener. Non-result node (e.g. divider or label) may have been
+      // inserted.
+      JX.DOM.setContent(this._root, results);
+      this._display = JX.DOM.scry(this._root, 'a', 'typeahead-result');
 
       if (this._display.length && !e.getPrevented()) {
-        JX.DOM.setContent(this._root, this._display);
         this._changeFocus(Number.NEGATIVE_INFINITY);
         var d = JX.Vector.getDim(this._hardpoint);
         d.x = 0;
@@ -231,6 +235,7 @@ JX.install('Typeahead', {
         JX.DOM.show(this._root);
       } else {
         this.hide();
+        JX.DOM.setContent(this._root, null);
       }
     },
 
@@ -314,6 +319,15 @@ JX.install('Typeahead', {
       this._control.value = '';
       this._value = '';
       this.hide();
+    },
+
+
+    /**
+     * @task control
+     */
+    enable : function() {
+      this._control.disabled = false;
+      this._stop = false;
     },
 
 
@@ -841,6 +855,7 @@ JX.install('TypeaheadSource', {
       return JX.$N(
         'a',
         {
+          sigil: 'typeahead-result',
           href: data.uri,
           name: data.name,
           rel: data.id,
@@ -1126,7 +1141,7 @@ JX.install('Tokenizer', {
           this,
           function(e) {
             if (e.getNode('remove')) {
-              this._remove(e.getNodeData('token').key);
+              this._remove(e.getNodeData('token').key, true);
             } else if (e.getTarget() == this._root) {
               this.focus();
             }
@@ -1306,6 +1321,10 @@ JX.install('Tokenizer', {
       return true;
     },
 
+    removeToken : function(key) {
+      return this._remove(key, false);
+    },
+
     buildInput: function(value) {
       return JX.$N('input', {
         className: 'jx-tokenizer-input',
@@ -1365,7 +1384,7 @@ JX.install('Tokenizer', {
           if (!this._focus.value.length) {
             var tok;
             while (tok = this._tokens.pop()) {
-              if (this._remove(tok)) {
+              if (this._remove(tok, true)) {
                 break;
               }
             }
@@ -1384,14 +1403,14 @@ JX.install('Tokenizer', {
       }
     },
 
-    _remove : function(index) {
+    _remove : function(index, focus) {
       if (!this._tokenMap[index]) {
         return false;
       }
       JX.DOM.remove(this._tokenMap[index].node);
       delete this._tokenMap[index];
       this._redraw(true);
-      this.focus();
+      focus && this.focus();
 
       this.invoke('change', this);
 

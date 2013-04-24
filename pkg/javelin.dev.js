@@ -964,6 +964,53 @@ JX.install('Event', {
       return r.which == 3 || r.button == 2;
     },
 
+    /**
+     * Determine if a mouse event is a normal event (left mouse button, no
+     * modifier keys).
+     *
+     * @return bool
+     * @task info
+     */
+    isNormalMouseEvent : function() {
+      var supportedEvents = ['click', 'mouseup', 'mousedown'];
+
+      if (supportedEvents.indexOf(this.getType()) == -1) {
+        return false;
+      }
+
+      var r = this.getRawEvent();
+
+      if (r.metaKey || r.altKey || r.ctrlKey || r.shiftKey) {
+        return false;
+      }
+
+      if (('which' in r) && (r.which != 1)) {
+        return false;
+      }
+
+      if (('button' in r) && r.button) {
+        return false;
+      }
+
+      return true;
+    },
+
+
+    /**
+     * Determine if a click event is a normal click (left mouse button, no
+     * modifier keys).
+     *
+     * @return bool
+     * @task info
+     */
+    isNormalClick : function() {
+      if (this.getType() != 'click') {
+        return false;
+      }
+
+      return this.isNormalMouseEvent();
+    },
+
 
     /**
      * Get the node corresponding to the specified key in this event's node map.
@@ -1012,6 +1059,10 @@ JX.install('Event', {
     _keymap : {
       8     : 'delete',
       9     : 'tab',
+      // On Windows and Linux, Chrome sends '10' for return. On Mac OS X, it
+      // sends 13. Other browsers evidence varying degrees of diversity in their
+      // behavior. Treat '10' and '13' identically.
+      10    : 'return',
       13    : 'return',
       27    : 'esc',
       37    : 'left',
@@ -1439,6 +1490,11 @@ JX.install('Stratcom', {
           }
         }
 
+        var auto_id = cursor.getAttribute('data-autoid');
+        if (auto_id) {
+          push('autoid:' + auto_id, cursor, distance);
+        }
+
         ++distance;
         cursor = cursor.parentNode;
       }
@@ -1452,6 +1508,7 @@ JX.install('Stratcom', {
 
       var proxy = new JX.Event()
         .setRawEvent(event)
+        .setData(event.customData)
         .setType(etype)
         .setTarget(target)
         .setNodes(nodes)
@@ -1883,6 +1940,7 @@ JX.flushHoldingQueue('behavior', JX.behavior);
  *           javelin-behavior
  *           javelin-json
  *           javelin-dom
+ *           javelin-resource
  * @provides javelin-request
  * @javelin
  */
@@ -1979,17 +2037,11 @@ JX.install('Request', {
       var method = this.getMethod().toUpperCase();
 
       if (__DEV__) {
-        if (this.getFile()) {
+        if (this.getRawData()) {
           if (method != 'POST') {
             JX.$E(
               'JX.Request.send(): ' +
-              'attempting to send a file over GET. You must use POST.');
-          }
-          if (this._data) {
-            JX.$E(
-              'JX.Request.send(): ' +
-              'attempting to send data and a file. You can not send both ' +
-              'at once.');
+              'attempting to send post data over GET. You must use POST.');
           }
         }
       }
@@ -2007,7 +2059,7 @@ JX.install('Request', {
       // If we're sending a file, submit the metadata via the URI instead of
       // via the request body, because the entire post body will be consumed by
       // the file content.
-      if (method == 'GET' || this.getFile()) {
+      if (method == 'GET' || this.getRawData()) {
         uri += ((uri.indexOf('?') === -1) ? '?' : '&') + q;
       }
 
@@ -2035,8 +2087,8 @@ JX.install('Request', {
       }
 
       if (method == 'POST') {
-        if (this.getFile()) {
-          xport.send(this.getFile());
+        if (this.getRawData()) {
+          xport.send(this.getRawData());
         } else {
           xport.setRequestHeader(
             'Content-Type',
@@ -2239,8 +2291,17 @@ JX.install('Request', {
           JX.Stratcom.mergeData(
             this._block,
             response.javelin_metadata || {});
-          this._done(response);
-          JX.initBehaviors(response.javelin_behaviors || {});
+
+          var when_complete = JX.bind(this, function() {
+            this._done(response);
+            JX.initBehaviors(response.javelin_behaviors || {});
+          });
+
+          if (response.javelin_resources) {
+            JX.Resource.load(response.javelin_resources, when_complete);
+          } else {
+            when_complete();
+          }
         }
       } else {
         this._cleanup();
@@ -2300,7 +2361,14 @@ JX.install('Request', {
      * @param string HTTP method, one of "POST" or "GET".
      */
     method : 'POST',
-    file : null,
+    /**
+     * Set the data parameter of transport.send. Useful if you want to send a
+     * file or FormData. Not that you cannot send raw data and data at the same
+     * time.
+     *
+     * @param Data, argument to transport.send
+     */
+    rawData: null,
     raw : false,
 
     /**
@@ -2578,9 +2646,16 @@ JX.install('Vector', {
       var x = 0;
       var y = 0;
       do {
-        x += node.offsetLeft;
-        y += node.offsetTop;
-        node = node.offsetParent;
+        var offsetParent = node.offsetParent;
+        var scrollLeft = 0;
+        var scrollTop = 0;
+        if (offsetParent && offsetParent != document.body) {
+          scrollLeft = offsetParent.scrollLeft;
+          scrollTop = offsetParent.scrollTop;
+        }
+        x += (node.offsetLeft - scrollLeft);
+        y += (node.offsetTop - scrollTop);
+        node = offsetParent;
       } while (node && node != document.body);
 
       return new JX.Vector(x, y);
@@ -2779,7 +2854,18 @@ JX.$ = function(id) {
 JX.install('HTML', {
 
   construct : function(str) {
+    if (str instanceof JX.HTML) {
+      this._content = str._content;
+      return;
+    }
+
     if (__DEV__) {
+      if ((typeof str !== 'string') && (!str || !str.match)) {
+        JX.$E(
+          'new JX.HTML(<empty?>): ' +
+          'call initializes an HTML object with an empty value.');
+      }
+
       var tags = ['legend', 'thead', 'tbody', 'tfoot', 'column', 'colgroup',
                   'caption', 'tr', 'th', 'td', 'option'];
       var evil_stuff = new RegExp('^\\s*<(' + tags.join('|') + ')\\b', 'i');
@@ -3003,6 +3089,7 @@ JX.$N = function(tag, attr, content) {
 JX.install('DOM', {
   statics : {
     _autoid : 0,
+    _uniqid : 0,
     _metrics : {},
 
 
@@ -3317,35 +3404,52 @@ JX.install('DOM', {
      *                    method.
      */
     listen : function(node, type, path, callback) {
-      if (__DEV__) {
-        var types = JX.$AX(type);
-        for (var ix = 0; ix < types.length; ix++) {
-          var t = types[ix];
-
-          if (!(t in JX.__allowedEvents)) {
-            JX.$E(
-              'JX.DOM.listen(...): ' +
-              'can only listen to events registered in init.js. "' +
-               t + '" not found.');
-          }
-        }
-      }
-
-      var id = ['id:' + JX.DOM.uniqID(node)];
+      var auto_id = ['autoid:' + JX.DOM._getAutoID(node)];
       path = JX.$AX(path || []);
       if (!path.length) {
-        path = id;
+        path = auto_id;
       } else {
         for (var ii = 0; ii < path.length; ii++) {
-          path[ii] = id.concat(JX.$AX(path[ii]));
+          path[ii] = auto_id.concat(JX.$AX(path[ii]));
         }
       }
       return JX.Stratcom.listen(type, path, callback);
     },
 
+
+    /**
+     * Invoke a custom event on a node. This method is a companion to
+     * @{method:JX.DOM.listen} and parallels @{method:JX.Stratcom.invoke} in
+     * the same way that method parallels @{method:JX.Stratcom.listen}.
+     *
+     * This method can not be used to invoke native events (like 'click').
+     *
+     * @param Node      The node to invoke an event on.
+     * @param string    Custom event type.
+     * @param dict      Event data.
+     * @return JX.Event The event object which was dispatched to listeners.
+     *                  The main use of this is to test whether any
+     *                  listeners prevented the event.
+     */
+    invoke : function(node, type, data) {
+      if (__DEV__) {
+        if (type in JX.__allowedEvents) {
+          throw new Error(
+            'JX.DOM.invoke(..., "' + type + '", ...): ' +
+            'you cannot invoke with the same type as a native event.');
+        }
+      }
+      return JX.Stratcom.dispatch({
+        target: node,
+        type: type,
+        customData: data
+      });
+    },
+
+
     uniqID : function(node) {
       if (!node.getAttribute('id')) {
-        node.setAttribute('id', 'autoid_'+(++JX.DOM._autoid));
+        node.setAttribute('id', 'uniqid_'+(++JX.DOM._uniqid));
       }
       return node.getAttribute('id');
     },
@@ -3542,9 +3646,16 @@ JX.install('DOM', {
      * @param Node Node to move document scroll position to, if possible.
      * @return void
      */
-     scrollTo : function(node) {
-       window.scrollTo(0, JX.$V(node).y);
-     }
+    scrollTo : function(node) {
+      window.scrollTo(0, JX.$V(node).y);
+    },
+
+    _getAutoID : function(node) {
+      if (!node.getAttribute('data-autoid')) {
+        node.setAttribute('data-autoid', 'autoid_'+(++JX.DOM._autoid));
+      }
+      return node.getAttribute('data-autoid');
+    }
   }
 });
 
@@ -3605,6 +3716,9 @@ JX.install('JSON', {
         } catch (e) {}
         return obj || null;
       }
+
+      // These characters are valid in JSON but invalid in JavaScript.
+      data = data.replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
       return eval('(' + data + ')');
     },
@@ -3893,6 +4007,10 @@ JX.install('URI', {
         str += this.getProtocol() + '://';
       }
       str += this.getDomain() || '';
+
+      if (this.getPort()) {
+        str += ':' + this.getPort();
+      }
 
       // If there is a domain or a protocol, we need to provide '/' for the
       // path. If we don't have either and also don't have a path, we can omit
