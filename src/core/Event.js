@@ -78,7 +78,7 @@ JX.install('Event', {
 
     /**
      * Stop and prevent an event, which stops it from propagating and prevents
-     * its defualt behavior. This is a convenience function, see stop() and
+     * its default behavior. This is a convenience function, see stop() and
      * prevent() for information on what it means to stop or prevent an event.
      *
      * @return this
