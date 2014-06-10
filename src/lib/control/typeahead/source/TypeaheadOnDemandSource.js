@@ -83,5 +83,3 @@ JX.install('TypeaheadOnDemandSource', {
     }
   }
 });
-
-

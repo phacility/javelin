@@ -57,6 +57,3 @@ JX.install('TypeaheadPreloadedSource', {
     }
   }
 });
-
-
-

@@ -7,5 +7,3 @@ ROOT=`dirname $0`"/../"
 (cd ${ROOT}support/javelinsymbols && make)
 (cd ${ROOT}support/jsast && make)
 (cd ${ROOT}support/jsxmin && make)
-
-

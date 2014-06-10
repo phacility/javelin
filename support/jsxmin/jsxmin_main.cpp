@@ -26,9 +26,9 @@ static void jsxminify(NodeProgram* root, string &replacements) {
 
 int main(int argc, char* argv[]) {
   try {
-    
+
     string replacements(argc > 1 ? argv[1] : "");
-    
+
     // Create a node.
     NodeProgram root(stdin);
     jsxminify(&root, replacements);

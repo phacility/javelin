@@ -133,4 +133,3 @@ JX.install('HTMLView', {
     }
   }
 });
-

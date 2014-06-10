@@ -57,5 +57,3 @@ function check_win($game, $player) {
 
   return false;
 }
-
-

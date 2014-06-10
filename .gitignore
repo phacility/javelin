@@ -13,7 +13,7 @@
 /support/jsast/jsast
 /support/jsxmin/jsxmin
 
-# Diviner artifacts 
+# Diviner artifacts
 /docs/
 /.divinercache/
 

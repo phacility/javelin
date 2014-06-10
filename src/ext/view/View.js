@@ -186,4 +186,3 @@ JX.install('View', {
     }
   }
 });
-

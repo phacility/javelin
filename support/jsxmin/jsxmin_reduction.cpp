@@ -15,7 +15,7 @@
 *
 * See accompanying file LICENSE.txt.
 *
-* @author Marcel Laverdet 
+* @author Marcel Laverdet
 */
 
 #include "libfbjs/node.hpp"

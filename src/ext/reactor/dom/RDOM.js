@@ -402,5 +402,3 @@ JX.install('RDOM', {
     }
   }
 });
-
-

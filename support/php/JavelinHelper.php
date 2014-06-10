@@ -119,9 +119,9 @@ class JavelinHelper {
 
     if ($javelin->onload) {
       throw new Exception(
-        "Javelin onload functions have been registered, but the response is ".
-        "being rendered as an Ajax response. This is invalid; use behaviors ".
-        "instead.");
+        'Javelin onload functions have been registered, but the response is '.
+        'being rendered as an Ajax response. This is invalid; use behaviors '.
+        'instead.');
     }
 
     $javelin->dirty = false;
@@ -139,9 +139,9 @@ class JavelinHelper {
   public function __destruct() {
     if ($this->dirty) {
       throw new Exception(
-        "Javelin has behaviors, metadata or onload functions to include in ".
-        "the response but you did not call renderHTMLFooter() or ".
-        "renderAjaxResponse() after registering them.");
+        'Javelin has behaviors, metadata or onload functions to include in '.
+        'the response but you did not call renderHTMLFooter() or '.
+        'renderAjaxResponse() after registering them.');
     }
   }
 
@@ -152,4 +152,3 @@ class JavelinHelper {
     return self::$instance;
   }
 }
-

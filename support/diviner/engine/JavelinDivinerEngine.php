@@ -310,7 +310,7 @@ class JavelinDivinerEngine extends DivinerEngine {
 
   protected function failParse(array $ast, $reason) {
     throw new Exception(
-      "Parsing failed at line ".$this->getNodeLine($ast).": ".$reason);
+      'Parsing failed at line '.$this->getNodeLine($ast).': '.$reason);
   }
 
   protected function getObjectLiteralPropertyLine(array $ast, $property) {
