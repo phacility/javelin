@@ -1,10 +1,7 @@
 {
-  "project_id" : "javelin",
-  "conduit_uri" : "https://secure.phabricator.com/api/",
-  "lint_engine" : "PhutilLintEngine",
-  "remote_hooks_installed" : true,
-  "phutil_libraries" : {
-    "javelin-diviner" : "support/diviner",
-    "diviner" : "diviner/src"
-  }
+  "project.name" : "javelin",
+  "phabricator.uri" : "https://secure.phabricator.com/",
+  "load" : [
+    "support/diviner"
+  ]
 }
