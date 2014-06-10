@@ -71,7 +71,7 @@
 %locations
 %pure-parser
 %parse-param { void* yyscanner }
-%parse-param { Node* root }
+%parse-param { fbjs::Node* root }
 %lex-param { void* yyscanner }
 %error-verbose
 
